@@ -24,7 +24,7 @@ subject alternative names (presuming they're all on the same IP address)
 ## Context file
 
 This example uses `bust-mta.spacey.org` as the dns name that will the hostname 
-and the file path that was created above
+and the file path that was created above. Put this into `context.json`
 
 ```json
 {
@@ -57,7 +57,7 @@ and the file path that was created above
 Using the result of `cargo build`:
 
 ```
-pcn@peternorton-7f1729:~/mailbag$ templater/target/debug/render-template  --context template.json --template unit-files/courier-mta.service.template ; echo
+pcn@peternorton-7f1729:~/mailbag$ templater/target/debug/render-template  --context context.json --template unit-files/courier-mta.service.template ; echo
 [Unit]
 Description=courier-mta Service
 After=docker.service
