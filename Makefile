@@ -4,7 +4,7 @@ install: build-all
 	sudo cp unit-files/*.service /etc/systemd/system && \
 	sudo cp unit-files/*.sh /usr/local/bin && \
 	sudo chmod +x /usr/local/bin/*.sh && \
-	systemctl daemon-reload
+	sudo systemctl daemon-reload
 
 containers: service-images
 
