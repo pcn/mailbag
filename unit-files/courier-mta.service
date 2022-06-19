@@ -11,7 +11,7 @@ ExecStartPre=-/usr/bin/docker rm %n
 ExecStart=/usr/bin/docker run --rm --name %n \
     -v /opt/vmail:/opt/vmail \
     -p 25:25 \
-    courier-mta:latest
+    %n:latest
 
 ExecStop=/usr/bin/docker kill %n
 
