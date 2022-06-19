@@ -21,9 +21,10 @@ Cleaning up challenges
 This will produce a key and a cert with all of the provided names as
 subject alternative names (presuming they're all on the same IP address)
 
-## Annoted context file
+## Context file
 
-This example uses `bust-mta.spacey.org` as the dns name that the 
+This example uses `bust-mta.spacey.org` as the dns name that will the hostname 
+and the file path that was created above
 
 ```json
 {
@@ -42,4 +43,32 @@ This example uses `bust-mta.spacey.org` as the dns name that the
     "dns_name": "bust-imap.spacey.org"
   }
 }
+```
+
+## And render
+Using the result of `cargo build`:
+
+```
+pcn@peternorton-7f1729:~/mailbag$ templater/target/debug/render-template  --context template.json --template unit-files/courier-mta.service.template ; echo
+[Unit]
+Description=courier-mta Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker exec %n stop
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStart=/usr/bin/docker run --rm --name %n \
+    --hostname bust-mta.spacey.org \
+    -v /etc/letsencrypt/live/bust.spacey.org/fullchain.pem:/usr/lib/courier/share/esmtpd.pem \
+    -v /opt/vmail:/opt/vmail \
+    -p 25:25 \
+    %n:latest
+
+ExecStop=/usr/bin/docker kill %n
+
+[Install]
+WantedBy=default.target
 ```
