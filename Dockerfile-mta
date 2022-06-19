@@ -4,4 +4,5 @@ ENV TZ=UTC
 
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
-ENTRYPOINT ["/usr/bin/echo", "Override the entrypoint"]
+# ENTRYPOINT ["/usr/bin/echo", "Override the entrypoint"]
+ENTRYPOINT ["/bin/bash"]
