@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -x -o pipefail
+
 /usr/lib/courier/sbin/makesmtpaccess
 /usr/sbin/makeuserdb
 
