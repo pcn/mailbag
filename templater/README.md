@@ -49,6 +49,9 @@ and the file path that was created above. Put this into `context.json`
   },
   "docker": {
     "network_name": "vmail"
+  },
+  "userdb": {
+    "directory": "/etc/courier/userdb"
   }
 }
 ```
