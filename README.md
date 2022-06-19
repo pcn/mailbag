@@ -82,3 +82,19 @@ sudo apt install -y emacs-nox
 ```
 sudo cp unit-files/courier-mta.service /etc/systemd/system/
 ```
+
+Enable the unit
+
+```
+sudo systemctl enable courier-mta.service
+```
+
+### Make the path for the virtual mail storage
+
+```
+mkdir /opt/vmail/<the zone>
+```
+
+
+## Make a virtual users in the database
+

@@ -6,4 +6,4 @@ set -e -o pipefail
 export DOCKER_BUILDKIT=1
 docker build -t courier-base -f Dockerfile-base  .
 
-docker build -t courier-mta -f Dockerfile-mta .
+docker build -t courier-mta.service -f Dockerfile-mta .
