@@ -9,9 +9,9 @@ Restart=always
 ExecStartPre=-/usr/bin/docker exec %n stop
 ExecStartPre=-/usr/bin/docker rm %n
 ExecStart=/usr/bin/docker run --rm --name %n \
-    --hostname bust-mta.spacey.org \
-    -v /etc/letsencrypt/live/bust.spacey.org/fullchain.pem:/usr/lib/courier/share/esmtpd.pem \
-    -v /opt/vmail:/opt/vmail \
+    --hostname {{ mta.dns-name  }} \
+    -v {{ mta.tls-keyfile }}:/usr/lib/courier/share/esmtpd.pem \
+    -v {{ mda.mail-path.host }}:{{ mda.mail-path.container }} \
     -p 25:25 \
     %n:latest
 

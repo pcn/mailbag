@@ -27,8 +27,14 @@ This example uses `bust-mta.spacey.org` as the dns name that the
 
 ```json
 {
+  "mda": {
+    "mail-path": {
+      "host": "/opt/vmail",
+      "container": "/opt/vmail"
+    }
+  },
   "mta": {
-    "dns-name": "bust.spacey.org",
+    "dns-name": "bust-mta.spacey.org",
     "tls-keyfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
     "tls-certfile": "/etc/letsencrypt/live/bust.spacey.org/cert.pem"
   },
