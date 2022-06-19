@@ -1,7 +1,10 @@
 
 
-courier-mta.service: render-template
-	./render-template --context context.json --template courier.mta.service.template > courier.mta.service
+postgresql.service: render-template
+	./render-template --context context.json --template postgresql.service.template > postgresql.service
+
+docker-custom-net.service: render-template
+	./render-template --context context.json --template docker-custom-net.service.template > docker-custom-net.service
 
 courier-mta.service: render-template
 	./render-template --context context.json --template unit-files/courier-mta.service.template > unit-files/courier-mta.service
