@@ -51,7 +51,7 @@ and the file path that was created above. Put this into `context.json`
     "network_name": "vmail"
   },
   "userdb": {
-    "directory": "/etc/courier/userdb"
+    "directory": "/etc/authlib/userdb"
   }
 }
 ```
