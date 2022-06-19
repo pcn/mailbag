@@ -1,7 +1,7 @@
 [Unit]
 Description=courier-mta Service
 After=docker.service
-Requires=docker-custom-net.service
+Requires=vmail-custom-net.service
 
 [Service]
 TimeoutStartSec=0

@@ -1,7 +1,7 @@
 [Unit]
 Description=postgresql Service
 After=docker.service
-Requires=docker.service
+Requires=vmail-custom-net.service
 
 [Service]
 TimeoutStartSec=0
