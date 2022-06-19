@@ -3,6 +3,7 @@ FROM courier-base
 ENV TZ=UTC
 
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
+COPY entrypoints/courier-mta /courier-mta
 
 # ENTRYPOINT ["/usr/bin/echo", "Override the entrypoint"]
 # ENTRYPOINT ["/bin/bash"]

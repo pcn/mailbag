@@ -10,9 +10,9 @@ ExecStartPre=-/usr/bin/docker exec %n stop
 ExecStartPre=-/usr/bin/docker rm %n
 # ExecStartPre=/usr/bin/docker pull jetbrains/youtrack:<version>
 ExecStart=/usr/bin/docker run --rm --name %n \
-    -v <path to data directory>:/opt/youtrack/data \
+    -v /opt/vmail:/opt/vmail \
     -p 25:25 \
-    jetbrains/youtrack:<version>
+    courier-mta:latest
 
 [Install]
 WantedBy=default.target
