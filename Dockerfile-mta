@@ -7,6 +7,8 @@ RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 RUN cd /etc/courier; sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd
 
 # Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
-RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd
-RUN tail /etc/courier/esmtpd
-ENTRYPOINT ["/usr/lib/courier/sbin/esmtpd", "start"]
+RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd && \
+ echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd
+
+COPY entrypoints/courier-mta /courier-mta
+ENTRYPOINT ["/courier-mta"]
