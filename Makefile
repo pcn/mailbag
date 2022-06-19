@@ -1,18 +1,21 @@
 build-all: containers unit-files
 
 install: build-all
-	cp unit-files/*.service /etc/systemd/system
+	cp unit-files/*.service /etc/systemd/system && \
+	cp unit-files/*.sh /usr/local/bin && \
+	chmod +x /usr/local/bin/*.sh && \
 	systemctl daemon-reload
 
 containers: service-images
 
-unit-files: postgresql.service docker-custom-net.service courier-mta.service
+unit-files: postgresql.service vmail-custom-net.service courier-mta.service
 
 postgresql.service: render-template
 	./render-template --context context.json --template unit-files/postgresql.service.template > unit-files/postgresql.service
 
-docker-custom-net.service: render-template
-	./render-template --context context.json --template unit-files/docker-custom-net.service.template > unit-files/docker-custom-net.service
+vmail-custom-net.service: render-template
+	./render-template --context context.json --template unit-files/vmail-custom-net.service.template > unit-files/vmail-custom-net.service
+	./render-template --context context.json --template unit-files/vmail-custom-net.sh.template > unit-files/vmail-custom-net.sh
 
 courier-mta.service: render-template
 	./render-template --context context.json --template unit-files/courier-mta.service.template > unit-files/courier-mta.service
