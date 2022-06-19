@@ -5,4 +5,5 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/docker network create {{ docker.network_name }}
+RemainAfterExit=yes
+ExecStart=(/usr/bin/docker network ls  | grep {{ docker.network_name }}) || /usr/bin/docker network create {{ docker.network_name }}
