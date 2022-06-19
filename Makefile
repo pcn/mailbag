@@ -1,9 +1,9 @@
 build-all: containers unit-files
 
 install: build-all
-	cp unit-files/*.service /etc/systemd/system && \
-	cp unit-files/*.sh /usr/local/bin && \
-	chmod +x /usr/local/bin/*.sh && \
+	sudo cp unit-files/*.service /etc/systemd/system && \
+	sudo cp unit-files/*.sh /usr/local/bin && \
+	sudo chmod +x /usr/local/bin/*.sh && \
 	systemctl daemon-reload
 
 containers: service-images
@@ -24,7 +24,7 @@ render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
 
 service-images: courier-packages.tar
-	./build-services.sh
+	sudo ./build-services.sh
 
 courier-packages.tar:
-	./build-base.sh
+	sudo ./build-base.sh
