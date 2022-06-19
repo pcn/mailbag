@@ -11,4 +11,5 @@ RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir
  echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd
 
 COPY entrypoints/courier-mta /courier-mta
+RUN chmod +x /courier-mta
 ENTRYPOINT ["/courier-mta"]
