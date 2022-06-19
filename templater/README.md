@@ -41,6 +41,14 @@ and the file path that was created above
   },
   "imap": {
     "dns_name": "bust-imap.spacey.org"
+  },
+  "postgres": {
+    "password": "BIG_SECRET",
+    "name": "vmaildb",
+    "container_label": "postgres:14.3-alpine"
+  },
+  "docker": {
+    "network_name": "vmail"
   }
 }
 ```

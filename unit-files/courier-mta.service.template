@@ -1,7 +1,7 @@
 [Unit]
 Description=courier-mta Service
 After=docker.service
-Requires=docker.service
+Requires=docker-custom-net.service
 
 [Service]
 TimeoutStartSec=0
@@ -9,6 +9,7 @@ Restart=always
 ExecStartPre=-/usr/bin/docker exec %n stop
 ExecStartPre=-/usr/bin/docker rm %n
 ExecStart=/usr/bin/docker run --rm --name %n \
+    --net {{ docker.network_name }}
     --hostname {{ mta.dns_name  }} \
     -v {{ mta.tls_keyfile }}:/usr/lib/courier/share/esmtpd.pem \
     -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
