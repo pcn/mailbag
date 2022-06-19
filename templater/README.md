@@ -28,18 +28,18 @@ This example uses `bust-mta.spacey.org` as the dns name that the
 ```json
 {
   "mda": {
-    "mail-path": {
+    "mail_path": {
       "host": "/opt/vmail",
       "container": "/opt/vmail"
     }
   },
   "mta": {
-    "dns-name": "bust-mta.spacey.org",
-    "tls-keyfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
-    "tls-certfile": "/etc/letsencrypt/live/bust.spacey.org/cert.pem"
+    "dns_name": "bust-mta.spacey.org",
+    "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
+    "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/cert.pem"
   },
   "imap": {
-    "dns-name": "thename-imap.zone.tld"
+    "dns_name": "bust-imap.spacey.org"
   }
 }
 ```

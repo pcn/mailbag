@@ -9,9 +9,9 @@ Restart=always
 ExecStartPre=-/usr/bin/docker exec %n stop
 ExecStartPre=-/usr/bin/docker rm %n
 ExecStart=/usr/bin/docker run --rm --name %n \
-    --hostname {{ mta.dns-name  }} \
-    -v {{ mta.tls-keyfile }}:/usr/lib/courier/share/esmtpd.pem \
-    -v {{ mda.mail-path.host }}:{{ mda.mail-path.container }} \
+    --hostname {{ mta.dns_name  }} \
+    -v {{ mta.tls_keyfile }}:/usr/lib/courier/share/esmtpd.pem \
+    -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
     -p 25:25 \
     %n:latest
 
