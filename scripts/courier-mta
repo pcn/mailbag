@@ -32,12 +32,8 @@ fi
 
 # Check if SMTP server should be started
 . ${sysconfdir}/esmtpd
-START_MTA=no
-case "$ESMTPDSTART" in
-        [yY]*)START_MTA=yes;;
-esac
-
-START_MSA=no
+START_MTA=yes
+START_MSA=yes
 . ${sysconfdir}/esmtpd-msa
 case "$ESMTPDSTART" in
         [yY]*)START_MSA=yes;;
