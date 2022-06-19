@@ -9,4 +9,7 @@ RUN apt-get update
 COPY courier-packages.tar /courier-packages.tar
 RUN cd /tmp; mkdir p; cd p; tar -xf /courier-packages.tar; apt install -y ./*.deb ; rm /courier-packages.tar
 
+RUN apt-get install -y rsyslog
+
+
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]
