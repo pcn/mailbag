@@ -1,6 +1,6 @@
 build-all: containers unit-files
 
-install: all
+install: build-all
 	cp unit-files/*.service /etc/systemd/system
 	systemctl daemon-reload
 
