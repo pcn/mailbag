@@ -1,10 +1,18 @@
+build-all: containers unit-files
 
+install: all
+	cp unit-files/*.service /etc/systemd/system
+	systemctl daemon-reload
+
+containers: service-images
+
+unit-files: postgresql.service docker-custom-net.service courier-mta.service
 
 postgresql.service: render-template
-	./render-template --context context.json --template postgresql.service.template > postgresql.service
+	./render-template --context context.json --template unit-files/postgresql.service.template > unit-files/postgresql.service
 
 docker-custom-net.service: render-template
-	./render-template --context context.json --template docker-custom-net.service.template > docker-custom-net.service
+	./render-template --context context.json --template unit-files/docker-custom-net.service.template > unit-files/docker-custom-net.service
 
 courier-mta.service: render-template
 	./render-template --context context.json --template unit-files/courier-mta.service.template > unit-files/courier-mta.service

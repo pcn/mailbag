@@ -12,7 +12,10 @@ ExecStartPre=-/usr/bin/docker pull postgres:{{ postgres.container_label }}
 ExecStart=/usr/bin/docker run --rm \
     --net {{ docker.network_name }} \
     --name {{ postgres.name }} \
+    -v /var/lib/postgresql/data:/var/lib/postgresql/data \
     -e POSTGRES_PASSWORD={{ postgres.password }} \
+    -e POSTGRES_DB=virtual_users
+    -e POSTGRES_USER=useradmin
     postgres \
     postgres:{{ postgres.container_label }}
 
