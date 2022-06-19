@@ -4,7 +4,7 @@ ENV TZ=UTC
 
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 COPY entrypoints/courier-mta /courier-mta
-RUN cd /etc/courier; sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd'
+RUN cd /etc/courier; sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd
 
 # ENTRYPOINT ["/usr/bin/echo", "Override the entrypoint"]
 # ENTRYPOINT ["/bin/bash"]
