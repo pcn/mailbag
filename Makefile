@@ -8,10 +8,12 @@ install: build-all
 
 containers: service-images
 
-unit-files: postgresql.service vmail-custom-net.service courier-mta.service
+unit-files: vmail-custom-net.service courier-mta.service
 
-postgresql.service: render-template
-	./render-template --context context.json --template unit-files/postgresql.service.template > unit-files/postgresql.service
+# I removed postgres sometime between 2002 and now. Use userdb now
+# http://www.courier-mta.org/authlib/userdb.html
+# postgresql.service: render-template
+# 	./render-template --context context.json --template unit-files/postgresql.service.template > unit-files/postgresql.service
 
 vmail-custom-net.service: render-template
 	./render-template --context context.json --template unit-files/vmail-custom-net.service.template > unit-files/vmail-custom-net.service

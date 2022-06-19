@@ -15,6 +15,18 @@ as well:
 
 etc.
 
+## courier userdb
+Courier's userdb provides a reasonable source format for virtual hosting users
+It makes sense to me to have a startup script so that a host will have
+`/etc/courier/userdb/` be a directory containing 1 or more source files, and on starting
+a container, whether it be mta or imapd or whatever, the db would get created on startup.
+
+It's a bit wasteful of CPU resources, but I don't expect the DB to be rebuilt often, and
+it prevents stale data from ending up on the host or effects of upgrades going weirdly.
+
+The makeuserdb script can still be run within the container when needed
+
+
 ## Build containers
 
 Run the build script, phase 1 build deb packages from the current courier-mta:
