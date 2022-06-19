@@ -9,4 +9,4 @@ encoded=$(echo -ne "\0spacey@${SMTPHOST}\0password" | base64)
 
 echo $encoded
 
-openssl s_client -connect ${SMTPHOST}:25 -starttls smtp
+echo openssl s_client -connect ${SMTPHOST}:25 -starttls smtp
