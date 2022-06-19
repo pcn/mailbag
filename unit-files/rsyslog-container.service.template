@@ -12,7 +12,7 @@ ExecStartPre=-/usr/bin/docker exec %n stop
 ExecStartPre=-/usr/bin/docker rm %n
 ExecStart=/usr/bin/docker run --rm \
     --net {{ docker.network_name }} \
-    --name rsyslog \
+    --name rsyslog-container \
     -v /var/log/vmail/:/var/log \
     rsyslog-container \
     rsyslog-container:latest

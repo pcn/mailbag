@@ -8,7 +8,7 @@ install: build-all
 
 containers: service-images
 
-unit-files: vmail-custom-net.service courier-mta.service
+unit-files: vmail-custom-net.service courier-mta.service rsyslog-container.service
 
 # I removed postgres sometime between 2002 and now. Use userdb now
 # http://www.courier-mta.org/authlib/userdb.html
@@ -21,6 +21,9 @@ vmail-custom-net.service: render-template
 
 courier-mta.service: render-template
 	./render-template --context context.json --template unit-files/courier-mta.service.template > unit-files/courier-mta.service
+
+rsyslog-container.service: render-template
+	./render-template --context context.json --template unit-files/rsyslog-container.service.template > unit-files/rsyslog-container.service
 
 render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
