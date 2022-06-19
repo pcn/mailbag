@@ -16,15 +16,26 @@ as well:
 etc.
 
 ## courier userdb
-Courier's userdb provides a reasonable source format for virtual hosting users
-It makes sense to me to have a startup script so that a host will have
-`/etc/courier/userdb/` be a directory containing 1 or more source files, and on starting
-a container, whether it be mta or imapd or whatever, the db would get created on startup.
+Courier's userdb provides a reasonable source format for virtual
+hosting users It makes sense to me to have a startup script so that a
+host will have `/etc/courier/userdb` be a mounted docker volume which
+is just a file mode `0600` containing data for vmail users. On
+starting a container, whether it be mta or imapd or whatever, the db
+would get created on startup in that container
 
 It's a bit wasteful of CPU resources, but I don't expect the DB to be rebuilt often, and
 it prevents stale data from ending up on the host or effects of upgrades going weirdly.
 
-The makeuserdb script can still be run within the container when needed
+The makeuserdb script can still be run within the container when/if needed
+
+## Current todo, in priority order
+
+- [ ] Fix logging so that it comes out of stdout and is handled by docker, better yet systemd
+- [ ] Confirm mta+starttls works
+- [ ] spin up impad
+- [ ] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
+- [ ] Figure out story for auto-renewal of certs
+- [ ] Figure out+document k9+mutt+mu4e with imap
 
 
 ## Build containers
