@@ -1,7 +1,12 @@
 #!/bin/bash
 set -e -u -o pipefail
-set -x 
-# From https://www.saotn.org/test-smtp-authentication-starttls/
-echo -ne '\0spacey@bust.spacey.org\0password' | base64
 
-# openssl s_client -connect smtp.example.com:25 -starttls smtp
+SMTPHOST=bust.spacey.org
+set -x
+
+# From https://www.saotn.org/test-smtp-authentication-starttls/
+encoded=$(echo -ne "\0spacey@${SMTPHOST}\0password" | base64)
+
+echo $encoded
+
+openssl s_client -connect ${SMTPHOST}:25 -starttls smtp
