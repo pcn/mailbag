@@ -28,13 +28,18 @@ it prevents stale data from ending up on the host or effects of upgrades going w
 
 The makeuserdb script can still be run within the container when/if needed
 
+```
+userdbpw -hmac-sha256 | userdb -f /etc/authlib/userdb/userdb spacey@bust.spacey.org set hmac-sha256
+makeuserdb
+```
+
 ## Current todo, in priority order
 
 - [X] Fix logging so that it comes out of stdout and is handled by docker, better yet systemd
 - [X] Confirm mta+starttls works
 - [X] spin up impad-ssl
 - [X] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
-- [ ] Figure out how to start authdaemond in each container so the local socket is available
+- [X] Figure out how to start authdaemond in each container so the local socket is available
 - [ ] Figure out story for auto-renewal of certs
 - [ ] Figure out+document k9+mutt+mu4e with imap
 
