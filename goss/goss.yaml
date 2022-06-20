@@ -46,7 +46,7 @@ file:
     exists: true
     mode: 0755
 
-  {{ mda.mail_path.host }}:
+  {{ .Vars.mda.mail_path.host }}:
     filetype: directory
     exists: true
     mode: 0700
