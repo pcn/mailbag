@@ -1,0 +1,7 @@
+all: *.template
+
+
+{% for tmpl in templates %}
+{{ tmpl.target }}: {{ tmpl.template }}
+	../render-template --context ../context.json --template {{ tmpl.template }} > {{ tmpl.target }}
+{% endfor %}

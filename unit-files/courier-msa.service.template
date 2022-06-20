@@ -1,0 +1,25 @@
+[Unit]
+Description=courier-msa Service
+After=docker.service
+Requires=vmail-custom-net.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker exec %n stop
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStart=/usr/bin/docker run --rm --name %n \
+    --net {{ docker.network_name }} \
+    --hostname {{ msa.dns_name  }} \
+    -v {{ userdb.directory }}:{{ userdb.directory }} \
+    -v {{ msa.tls_certfile }}:/usr/lib/courier/share/esmtpd_cert.pem \
+    -v {{ msa.tls_keyfile }}:/usr/lib/courier/share/esmtpd_private_key.pem \
+    -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
+    -v /run/systemd/journal/dev-log:/dev/log \
+    -p 587:587 \
+    %n:latest
+
+ExecStop=/usr/bin/docker kill %n
+
+[Install]
+WantedBy=default.target
