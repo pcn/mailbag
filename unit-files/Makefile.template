@@ -1,7 +1,6 @@
 all: {% for tmpl in templates -%} {{ tmpl.target }} {% endfor %}
 
-install: {% for tmpl in templates -%} install-{{ tmpl.target }} {% endfor %}
-	sudo systemctl daemon-reload
+install: all {% for tmpl in templates -%} install-{{ tmpl.target }} {% endfor %}
 
 {% for tmpl in templates %}
 {{ tmpl.target }}: {{ tmpl.template }}
