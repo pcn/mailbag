@@ -7,7 +7,7 @@ Requires=vmail-custom-net.service
 TimeoutStartSec=0
 Restart=always
 ExecStartPre=-/usr/bin/docker exec {{ imapd_ssl.service }} stop
-ExecStartPre=-/usr/bin/docker rm {{ impad_ssl.service }}
+ExecStartPre=-/usr/bin/docker rm {{ imapd_ssl.service }}
 ExecStart=/usr/bin/docker run --rm --name {{ imapd_ssl.service }} \
     --net {{ docker.network_name }} \
     --hostname {{ imapd_ssl.dns_name  }} \
