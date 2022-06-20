@@ -8,7 +8,7 @@ install: all {% for tmpl in templates -%} install-{{ tmpl.target }} {% endfor %}
 
 install-{{ tmpl.target }}: {{ tmpl.target }}
 	sudo install {{ tmpl.install }} {{ tmpl.target }} {% if tmpl.target|replace("service", "") != tmpl.target -%} && \
-        sudo service enable {{ tmpl.target }} && \
-	sudo systemctl daemon-reload  {% else %}
-        {% endif %}
+	sudo systemctl daemon-reload && \
+        sudo service enable {{ tmpl.target }} {% endif %}
+
 {% endfor %}
