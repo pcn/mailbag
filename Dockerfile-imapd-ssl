@@ -5,7 +5,7 @@ ENV TZ=UTC
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
 RUN cd /etc/courier; \
-  echo "TLS_PROTOCOL=TLSv1.2++" >> imapd-ssl && \
+  echo "TLS_PROTOCOL=TLSv1.2++" >> imapd-ssl 
 
 # TODO: test without, then try
 #  IMAP_TLS_REQUIRED=1
