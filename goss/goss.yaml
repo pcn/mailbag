@@ -50,5 +50,5 @@ file:
     filetype: directory
     exists: true
     mode: 0700
-    owner: 300
-    group: 300
+    # owner: 300
+    # group: 300
