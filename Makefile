@@ -28,4 +28,4 @@ goss-bin:
 	  chmod +x goss-bin
 
 run-goss: goss-bin
-	(cd goss && ../goss-bin --vars ../context.json goss.yaml validate)
+	(cd goss && ../goss-bin --vars ../context.json validate)
