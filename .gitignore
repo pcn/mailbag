@@ -1,5 +1,8 @@
 *.tar
 context.json
 target/
+# built binary for templates
 render-template
+# download the goss binary for checking config
+goss
 *.service

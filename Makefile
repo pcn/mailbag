@@ -22,3 +22,10 @@ service-images: courier-packages.tar build-services.sh
 
 courier-packages.tar: build-base.sh
 	sudo ./build-base.sh
+
+goss-bin:
+	curl -L https://github.com/aelsabbahy/goss/releases/download/v0.3.18/goss-linux-amd64 > goss-bin && \
+	  chmod +x goss-bin
+
+run-goss: goss-bin
+	(cd goss && ../goss-bin --vars ../context.json goss/goss.yaml validate)
