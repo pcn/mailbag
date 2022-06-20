@@ -12,7 +12,7 @@ RUN cd /etc/courier; \
 # Remove the -pid argument, which should cause courier-tcpd to run in the foreground
 # Also, the files are a bit different from the mta+msa, so this isn't totally copypasta
 RUN cd /usr/lib/courier/share && \
-  sed -i.dist 's/-pid=$SSLPIDFILE//;' imapd-ssl
+  sed -i.dist 's/-pid=$SSLPIDFILE//;s/-start//g' imapd-ssl
 
 COPY entrypoints/courier-imapd-ssl /courier-imapd-ssl
 RUN chmod +x /courier-imapd-ssl
