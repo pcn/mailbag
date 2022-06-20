@@ -3,7 +3,7 @@ all: {% for tmpl in templates -%} {{ tmpl.target }} {% endfor %}
 install: all {% for tmpl in templates -%} install-{{ tmpl.target }} {% endfor %}
 
 {% for tmpl in templates %}
-{{ tmpl.target }}: {{ tmpl.template }}
+{{ tmpl.target }}: {{ tmpl.template }} ../context.json
 	../render-template --context ../context.json --template {{ tmpl.template }} > {{ tmpl.target }}
 
 install-{{ tmpl.target }}: {{ tmpl.target }}
