@@ -8,6 +8,12 @@ install: build-all
 
 containers: service-images
 
+install: unit-files
+	cp unit-files/*.sh /usr/local/bin && chmod 
+	cp unit-files/*.service /etc/systemd/system && \
+	  sudo systemctl daemon-reload
+
+
 unit-files/Makefile:
 	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
 

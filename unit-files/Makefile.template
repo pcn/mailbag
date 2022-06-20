@@ -1,7 +1,13 @@
 all: {% for tmpl in templates -%} {{ tmpl.target }} {% endfor %}
 
+install: {% for tmpl in templates -%} install-{{ tmpl.target }} {% endfor %}
+	sudo systemctl daemon-reload
 
 {% for tmpl in templates %}
 {{ tmpl.target }}: {{ tmpl.template }}
 	../render-template --context ../context.json --template {{ tmpl.template }} > {{ tmpl.target }}
+
+install-{{ tmpl.target }}: {{ tmpl.target }}
+	sudo install {{ tmpl.install }} {{ tmpl.target }}
+
 {% endfor %}
