@@ -4,7 +4,7 @@ ENV TZ=UTC
 
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
-RUN apt-get update 
+RUN apt-get update  ; apt install -y less
 
 COPY courier-packages.tar /courier-packages.tar
 RUN cd /tmp; mkdir p; cd p; tar -xf /courier-packages.tar; apt install -y ./*.deb ; rm /courier-packages.tar
