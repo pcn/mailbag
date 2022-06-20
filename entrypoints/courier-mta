@@ -8,5 +8,7 @@ set -e -x -o pipefail
 
 ( cd /usr/lib/courier/share;
   cat esmtpd_cert.pem esmtpd_private_key.pem >> esmtpd.pem ; 
-  chmod 400 esmtpd.pem )
+  chmod 400 esmtpd.pem;
+  chown daemon esmtpd.pem
+)
 /usr/lib/courier/sbin/esmtpd start
