@@ -3,7 +3,11 @@
         {"template": "vmail-custom-net.service.template",
          "target": "vmail-custom-net.service" },
         {"template": "vmail-custom-net.sh.template",
-         "target": "vmail-custom-net.sh" }
+         "target": "vmail-custom-net.sh" },
+        {"template": "courier-mta.service.template",
+         "target": "courier-mta.service" },
+        {"template": "courier-msa.service.template",
+         "target": "courier-msa.service" }
     ]
 }
 

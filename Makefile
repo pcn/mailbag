@@ -8,14 +8,9 @@ install: build-all
 
 containers: service-images
 
-unit-files: vmail-custom-net.service courier-mta.service
-
-vmail-custom-net.service: render-template
-	./render-template --context context.json --template unit-files/vmail-custom-net.service.template > unit-files/vmail-custom-net.serviceo
-	./render-template --context context.json --template unit-files/vmail-custom-net.sh.template > unit-files/vmail-custom-net.sh
-
-courier-mta.service: render-template
-	./render-template --context context.json --template unit-files/courier-mta.service.template > unit-files/courier-mta.service
+unit-files: render-template unit-files/Makefile
+	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
+	cd unit-files && $(MAKE)
 
 render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
