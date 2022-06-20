@@ -1,9 +1,9 @@
 {
     "templates": [
-        {"template": "vmail-custom-net.service.template"
+        {"template": "vmail-custom-net.service.template",
          "target": "vmail-custom-net.service" },
-        {"template": "vmail-custom-net.sh.template"
+        {"template": "vmail-custom-net.sh.template",
          "target": "vmail-custom-net.sh" }
     ]
 }
-            
+
