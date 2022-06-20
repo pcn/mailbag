@@ -5,4 +5,8 @@ set -e -x -o pipefail
 /usr/lib/courier/sbin/makesmtpaccess
 /usr/sbin/makeuserdb
 
+
+( cd /usr/lib/courier/share;
+  cat esmtpd_cert.pem esmtpd_private_key.pem >> esmtpd.pem
+  chmod 400 emsptd.pem )
 /usr/lib/courier/sbin/esmtpd start
