@@ -8,8 +8,10 @@ install: build-all
 
 containers: service-images
 
-unit-files: render-template 
+unit-files/Makefile:
 	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
+
+unit-files: render-template  unit-files/Makefile
 	cd unit-files && $(MAKE)
 
 render-template:
