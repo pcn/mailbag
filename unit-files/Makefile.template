@@ -1,4 +1,4 @@
-all: *.template
+all: {% for tmpl in templates -%} {{ tmpl.target }} {% endfor %}
 
 
 {% for tmpl in templates %}
