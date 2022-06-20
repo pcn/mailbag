@@ -36,16 +36,21 @@ and the file path that was created above. Put this into `context.json`
   },
   "mta": {
     "dns_name": "bust-mta.spacey.org",
-    "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
-    "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/cert.pem"
+    "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
+    "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem"
+  },
+  "msa": {
+    "dns_name": "bust-msa.spacey.org",
+    "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
+    "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem"
+  },
+  "imapd_ssl": {
+    "dns_name": "bust-imapd-ssl.spacey.org",
+    "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
+    "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem"
   },
   "imap": {
     "dns_name": "bust-imap.spacey.org"
-  },
-  "postgres": {
-    "password": "BIG_SECRET",
-    "name": "vmaildb",
-    "container_label": "postgres:14.3-alpine"
   },
   "docker": {
     "network_name": "vmail"
@@ -53,6 +58,7 @@ and the file path that was created above. Put this into `context.json`
   "userdb": {
     "directory": "/etc/authlib/userdb"
   }
+
 }
 ```
 

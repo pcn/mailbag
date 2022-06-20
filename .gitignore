@@ -1,5 +1,5 @@
 *.tar
-template.json
+context.json
 target/
 render-template
 *.service
