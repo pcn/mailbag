@@ -9,4 +9,6 @@ RUN apt-get update
 COPY courier-packages.tar /courier-packages.tar
 RUN cd /tmp; mkdir p; cd p; tar -xf /courier-packages.tar; apt install -y ./*.deb ; rm /courier-packages.tar
 
+RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
+
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]
