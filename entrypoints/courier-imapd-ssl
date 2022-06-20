@@ -5,6 +5,7 @@ set -e -x -o pipefail
 /usr/lib/courier/sbin/makesmtpaccess
 /usr/sbin/makeuserdb
 
+/usr/sbin/authdaemond start
 
 ( cd /usr/lib/courier/share;
   cat imapd_cert.pem imapd_private_key.pem >> imapd.pem ;

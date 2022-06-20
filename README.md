@@ -34,6 +34,7 @@ The makeuserdb script can still be run within the container when/if needed
 - [X] Confirm mta+starttls works
 - [X] spin up impad-ssl
 - [X] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
+- [ ] Figure out how to start authdaemond in each container so the local socket is available
 - [ ] Figure out story for auto-renewal of certs
 - [ ] Figure out+document k9+mutt+mu4e with imap
 
