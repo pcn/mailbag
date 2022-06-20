@@ -17,8 +17,8 @@ unit-files: render-template unit-files/Makefile
 render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
 
-service-images: courier-packages.tar
+service-images: courier-packages.tar build-services.sh
 	sudo ./build-services.sh
 
-courier-packages.tar:
+courier-packages.tar: build-base.sh
 	sudo ./build-base.sh
