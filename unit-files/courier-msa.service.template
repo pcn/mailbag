@@ -6,9 +6,9 @@ Requires=vmail-custom-net.service
 [Service]
 TimeoutStartSec=0
 Restart=always
-ExecStartPre=-/usr/bin/docker exec %n stop
-ExecStartPre=-/usr/bin/docker rm %n
-ExecStart=/usr/bin/docker run --rm --name %n \
+ExecStartPre=-/usr/bin/docker exec {{ msa.service }} stop
+ExecStartPre=-/usr/bin/docker rm {{ msa.service }}
+ExecStart=/usr/bin/docker run --rm --name {{ msa.service }} \
     --net {{ docker.network_name }} \
     --hostname {{ msa.dns_name  }} \
     -v {{ userdb.directory }}:{{ userdb.directory }} \
@@ -17,9 +17,9 @@ ExecStart=/usr/bin/docker run --rm --name %n \
     -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
     -v /run/systemd/journal/dev-log:/dev/log \
     -p 587:587 \
-    %n:latest
+    {{ msa.service }}:latest
 
-ExecStop=/usr/bin/docker kill %n
+ExecStop=/usr/bin/docker kill {{ msa.service }}
 
 [Install]
 WantedBy=default.target
