@@ -12,4 +12,4 @@ docker build -t courier-mta.service -f Dockerfile-mta .
 # MSA image, for allowing authenticated users to submit email delivery to other mail servers
 docker build -t courier-msa.service -f Dockerfile-msa .
 # IMAPD-SSL image, for checking mail via IMAP
-docker build -t courier-imapd-ssl.service -f Dockerfile-iampd-ssl .
+docker build -t courier-imapd-ssl.service -f Dockerfile-imapd-ssl .
