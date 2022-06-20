@@ -23,7 +23,7 @@ subject alternative names (presuming they're all on the same IP address)
 
 ## Context file
 
-This example uses `bust-mta.spacey.org` as the dns name that will the hostname 
+This example uses `bust-mta.spacey.org` as the dns name that will the hostname
 and the file path that was created above. Put this into `context.json`
 
 ```json
@@ -50,7 +50,7 @@ and the file path that was created above. Put this into `context.json`
         "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
         "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem",
         "service": "courier-imapd-ssl.service"
-        
+
     },
     "docker": {
         "network_name": "vmail"
