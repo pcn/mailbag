@@ -1,0 +1,49 @@
+port:
+  tcp:25:
+    listening: true
+    ip:
+    - 0.0.0.0
+  tcp6:22:
+    listening: true
+    ip:
+    - '::'
+  tcp:587:
+    listening: true
+    ip:
+    - 0.0.0.0
+  tcp6:587:
+    listening: true
+    ip:
+    - '::'
+  tcp:993:
+    listening: true
+    ip:
+    - 0.0.0.0
+  tcp6:993:
+    listening: true
+    ip:
+    - '::'
+
+service:
+  courier-msa.service:
+    enabled: true
+    running: true
+    skip: false
+
+  courier-mta.service:
+    enabled: true
+    running: true
+    skip: false
+
+  courier-imapd-ssl.service:
+    enabled: true
+    running: true
+    skip: false
+
+file:
+  /opt/vmail:
+    filetype: directory
+    exists: true
+    mode: 0755
+
+ /opt/vmail/{{ 
