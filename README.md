@@ -31,9 +31,9 @@ The makeuserdb script can still be run within the container when/if needed
 ## Current todo, in priority order
 
 - [X] Fix logging so that it comes out of stdout and is handled by docker, better yet systemd
-- [ ] Confirm mta+starttls works
-- [ ] spin up impad
-- [ ] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
+- [X] Confirm mta+starttls works
+- [X] spin up impad-ssl
+- [X] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
 - [ ] Figure out story for auto-renewal of certs
 - [ ] Figure out+document k9+mutt+mu4e with imap
 
