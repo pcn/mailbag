@@ -8,5 +8,6 @@ install: all {% for tmpl in templates -%} install-{{ tmpl.target }} {% endfor %}
 
 install-{{ tmpl.target }}: {{ tmpl.target }}
 	sudo install {{ tmpl.install }} {{ tmpl.target }}
+        sudo service enable {{ tmpl.service }}
 
 {% endfor %}

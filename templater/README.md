@@ -28,37 +28,36 @@ and the file path that was created above. Put this into `context.json`
 
 ```json
 {
-  "mda": {
-    "mail_path": {
-      "host": "/opt/vmail",
-      "container": "/opt/vmail"
+    "mda": {
+        "mail_path": {
+            "host": "/opt/vmail",
+            "container": "/opt/vmail"
+        }
+    },
+    "mta": {        "dns_name": "bust-mta.spacey.org",
+        "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem",
+        "service": "courier-mta.service"
+    },
+    "msa": {
+        "dns_name": "bust-msa.spacey.org",
+        "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem",
+        "service": "courier-msa.service"
+    },
+    "imapd_ssl": {
+        "dns_name": "bust-imapd-ssl.spacey.org",
+        "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem",
+        "service": "courier-imapd-ssl.service"
+        
+    },
+    "docker": {
+        "network_name": "vmail"
+    },
+    "userdb": {
+        "directory": "/etc/authlib/userdb"
     }
-  },
-  "mta": {
-    "dns_name": "bust-mta.spacey.org",
-    "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
-    "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem"
-  },
-  "msa": {
-    "dns_name": "bust-msa.spacey.org",
-    "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
-    "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem"
-  },
-  "imapd_ssl": {
-    "dns_name": "bust-imapd-ssl.spacey.org",
-    "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
-    "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem"
-  },
-  "imap": {
-    "dns_name": "bust-imap.spacey.org"
-  },
-  "docker": {
-    "network_name": "vmail"
-  },
-  "userdb": {
-    "directory": "/etc/authlib/userdb"
-  }
-
 }
 ```
 
