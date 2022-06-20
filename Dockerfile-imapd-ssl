@@ -1,0 +1,19 @@
+FROM courier-base
+
+ENV TZ=UTC
+
+RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
+
+RUN cd /etc/courier; \
+  echo "TLS_PROTOCOL=TLSv1.2++" >> imapd-ssl && \
+
+# TODO: test without, then try
+#  IMAP_TLS_REQUIRED=1
+# Remove the -pid argument, which should cause courier-tcpd to run in the foreground
+# Also, the files are a bit different from the mta+msa, so this isn't totally copypasta
+RUN cd /usr/lib/courier/share && \
+  sed -i.dist 's/-pid=$SSLPIDFILE//;' imapd-ssl
+
+COPY entrypoints/courier-imapd-ssl /courier-imapd-ssl
+RUN chmod +x /courier-imapd-ssl
+ENTRYPOINT ["/courier-imapd-ssl"]

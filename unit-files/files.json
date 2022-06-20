@@ -15,6 +15,10 @@
         {"template": "courier-msa.service.template",
          "target": "courier-msa.service",
          "install": "-o root -g root -m 0444 -t /etc/systemd/system"
+        },
+        {"template": "courier-imapd-ssl.service.template",
+         "target": "courier-imapd-ssl.service",
+         "install": "-o root -g root -m 0444 -t /etc/systemd/system"
         }
     ]
 }

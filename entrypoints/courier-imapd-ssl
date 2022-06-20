@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e -x -o pipefail
+
+/usr/lib/courier/sbin/makesmtpaccess
+/usr/sbin/makeuserdb
+
+
+( cd /usr/lib/courier/share;
+  cat imapd_cert.pem imapd_private_key.pem >> imapd.pem ;
+  chmod 400 imapd.pem;
+  chown daemon imapd.pem
+)
+/usr/lib/courier/sbin/imapd-ssl start
