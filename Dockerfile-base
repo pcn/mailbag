@@ -12,7 +12,8 @@ RUN apt-get install -y locales && echo "LANG=en_US.UTF-8" > /etc/default/locale
 COPY courier-packages.tar /courier-packages.tar
 RUN set -x; cd /tmp; mkdir p; cd p; tar -xf /courier-packages.tar && \
   ls ; \
-  rm *web* *pop3* *mlm* *mysql* *auth*pgsql* *auth*pipe*  *auth*pipe*  *ldap*  *fax*  *-dev* && \
+  rm *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* *-dev* && \
+  rm *mlm* && \
   rm /courier-packages.tar && \
   apt install -y ./*.deb && \
   rm *.deb
