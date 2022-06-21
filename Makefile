@@ -1,4 +1,4 @@
-build-all: containers unit-files
+build-all: containers unit-files host
 
 install: build-all install-units
 
@@ -7,6 +7,9 @@ containers: service-images
 install-units: unit-files
 	cd unit-files && $(MAKE) install && \
 	sudo systemctl daemon-reload
+
+host: host/Makefile
+	cd host; $(MAKE)
 
 host/Makefile: host/Makefile.template context.json
 	./render-template --context context.json --template host/Makefile.template > host/Makefile
