@@ -32,31 +32,40 @@ and the file path that was created above. Put this into `context.json`
         "mail_path": {
             "host": "/opt/vmail",
             "container": "/opt/vmail"
-        }
+        },
+        "owner": "300",
+        "mode": "0755"
     },
-    "mta": {        "dns_name": "bust-mta.spacey.org",
-        "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem",
-        "service": "courier-mta.service"
+    "mta": {
+        "dns_name": "testmail-mta.rton.me",
+        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
+        "service": "courier-mta.service",
+        "accept_mail_for": ["testmail.rton.me"]
     },
     "msa": {
-        "dns_name": "bust-msa.spacey.org",
-        "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem",
+        "dns_name": "testmail-msa.rton.me",
+        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
         "service": "courier-msa.service"
     },
     "imapd_ssl": {
-        "dns_name": "bust-imapd-ssl.spacey.org",
-        "tls_certfile": "/etc/letsencrypt/live/bust.spacey.org/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/bust.spacey.org/privkey.pem",
+        "dns_name": "testmail-imapd-ssl.rton.me",
+        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
         "service": "courier-imapd-ssl.service"
-
     },
     "docker": {
         "network_name": "vmail"
     },
     "userdb": {
-        "directory": "/etc/authlib/userdb"
+        "directory": "/etc/authlib/userdb",
+        "owner": "daemon",
+        "mode": "0700"
+    },
+    "domain": {
+        "name": "testmail",
+        "zone": "rton.me"
     }
 }
 ```

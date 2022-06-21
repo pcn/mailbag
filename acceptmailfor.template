@@ -1,0 +1,3 @@
+{% for d in mta.accept_mail_for -%}
+{{ d }}
+{% endfor %}

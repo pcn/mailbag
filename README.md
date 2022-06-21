@@ -28,18 +28,26 @@ it prevents stale data from ending up on the host or effects of upgrades going w
 
 The makeuserdb script can still be run within the container when/if needed. 
 
-Creating a user is done like this:
+Creating a user is done like this...
+
+And the offlineimap doesn't do hmac-sha1 or hmac-sha256. So hmac-md5 is it for now?
 
 ```
-userdbpw -hmac-sha256 | userdb -f /etc/authlib/userdb/userdb spacey@testmail.rton.me set hmac-sha256
+userdbpw -hmac-sha256 | userdb -f /etc/authlib/userdb/rton.me  spacey@testmail.rton.me set hmac-sha256pw
+userdbpw -hmac-md5 | userdb -f /etc/authlib/userdb/rton.me spacey@testmail.rton.me set hmac-md5pw
 userdb -f /etc/authlib/userdb/rton.me spacey@testmail.rton.me set gid=300
 userdb -f /etc/authlib/userdb/rton.me spacey@testmail.rton.me set uid=300
 userdb -f /etc/authlib/userdb/rton.me spacey@testmail.rton.me set home=/opt/vmail/testmail.rton.me/spacey
-/usr/lib/courier/bin/maildirmake /opt/vmail/testmail.rton.me/spacey
-
+makeuserdb
+# Now make the maildir
+/usr/lib/courier/bin/maildirmake /opt/vmail/testmail.rton.me/spacey/Maildir
+chown -R vmail:vmail /opt/vmail/testmail.rton.me/spacey
 
 makeuserdb
 ```
+
+In the context required on the host, the list of domains in the `mta.accept_mail_for` list will be
+compiled into the mta container so that it can receive email for those and only those domains.
 
 ## Current todo, in priority order
 
