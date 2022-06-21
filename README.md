@@ -26,10 +26,18 @@ would get created on startup in that container
 It's a bit wasteful of CPU resources, but I don't expect the DB to be rebuilt often, and
 it prevents stale data from ending up on the host or effects of upgrades going weirdly.
 
-The makeuserdb script can still be run within the container when/if needed
+The makeuserdb script can still be run within the container when/if needed. 
+
+Creating a user is done like this:
 
 ```
-userdbpw -hmac-sha256 | userdb -f /etc/authlib/userdb/userdb spacey@bust.spacey.org set hmac-sha256
+userdbpw -hmac-sha256 | userdb -f /etc/authlib/userdb/userdb spacey@testmail.rton.me set hmac-sha256
+userdb -f /etc/authlib/userdb/rton.me spacey@testmail.rton.me set gid=300
+userdb -f /etc/authlib/userdb/rton.me spacey@testmail.rton.me set uid=300
+userdb -f /etc/authlib/userdb/rton.me spacey@testmail.rton.me set home=/opt/vmail/testmail.rton.me/spacey
+/usr/lib/courier/bin/maildirmake /opt/vmail/testmail.rton.me/spacey
+
+
 makeuserdb
 ```
 
