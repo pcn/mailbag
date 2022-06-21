@@ -10,7 +10,21 @@ RUN groupadd -g 300 vmail; useradd -M -r -d /opt/vmail -u 300 -g vmail vmail
 RUN apt-get install -y locales && echo "LANG=en_US.UTF-8" > /etc/default/locale
 
 COPY courier-packages.tar /courier-packages.tar
-RUN cd /tmp; mkdir p; cd p; tar -xf /courier-packages.tar; apt install -y ./*.deb ; rm /courier-packages.tar
+RUN cd /tmp; mkdir p; cd p; tar -xf /courier-packages.tar && \
+  rm *web* && \
+  rm *pop3* && \
+  rm *mlm* && \
+  rm *mysql* && \
+  rm *auth*pgsql* && \
+  rm *auth*pipe* && \
+  rm *auth*pipe* && \
+  rm *auth*pipe* && \
+  rm *ldap* && \
+  rm *fax* && \
+  rm *-dev* && \
+  rm /courier-packages.tar && \
+  apt install -y ./*.deb && \
+  rm *.deb
 
 RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
 
