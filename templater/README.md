@@ -49,6 +49,10 @@ and the file path that was created above. Put this into `context.json`
         "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
         "service": "courier-msa.service"
     },
+    "courierd": {
+        "dns_name": "testmail.rton.me",
+        "service": "courier-courierd.service"
+    },
     "imapd_ssl": {
         "dns_name": "testmail-imapd-ssl.rton.me",
         "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
