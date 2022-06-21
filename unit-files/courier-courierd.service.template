@@ -14,7 +14,8 @@ ExecStart=/usr/bin/docker run --rm --name {{ courierd.service }} \
     -v {{ userdb.directory }}:{{ userdb.directory }} \
     -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
     -v /run/systemd/journal/dev-log:/dev/log \
-    -v /var/spool/mail:/var/spool/mail \ 
+    -v /var/spool/mail:/var/spool/mail \
+    -v /var/spool/courier:/var/spool/courier \
     {{ courierd.service }}:latest
 
 ExecStop=/usr/bin/docker kill {{ courierd.service }}
