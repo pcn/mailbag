@@ -1,4 +1,4 @@
-all: certbot vmail_host acceptmailfor
+all: certbot vmail_host acceptmailfor courier_spool
 
 certbot:
 	sudo certbot certonly --standalone -d {{ domain.name }}.{{ domain.zone }},{{ mta.dns_name }},{{ msa.dns_name }},{{ imapd_ssl.dns_name }}
@@ -15,3 +15,27 @@ vmail_dir:
 	mkdir -p {{ mda.mail_path.host }}/{{ domain.name }}.{{ domain.zone }} && \
 	chown {{ mda.owner}} {{ mda.mail_path.host }} && \
 	chmod {{ mda.mode }} {{ mda.mail_path.host }} 
+
+# It should look like this:
+# root@testmail-mta:/var/spool/courier# ls -laF
+# total 56
+# drwxr-xr-x 1 bin    bin    4096 Jun 21 06:50 ./
+# drwxr-xr-x 1 root   root   4096 Jun 21 06:51 ../
+# drwxr-x--- 2 daemon daemon 4096 Jun  6 22:06 allfilters/
+# drwxr-xr-x 5 bin    daemon 4096 Jun 21 06:50 calendar/
+# drwx------ 2 daemon daemon 4096 Jun  6 22:06 faxtmp/
+# drwxr-x--- 2 daemon daemon 4096 Jun  6 22:06 filters/
+# drwxr-x--- 2 daemon daemon 4096 Jun  6 22:06 msgq/
+# drwxr-x--- 2 daemon daemon 4096 Jun  6 22:06 msgs/
+# drwxr-xr-x 2 daemon daemon 4096 Jun  6 22:06 sts/
+# drwxrwx--- 1 daemon daemon 4096 Jun 21 07:18 tmp/
+# drwxr-xr-x 2 daemon daemon 4096 Jun  6 22:06 track/
+# drwx------ 2 bin    bin    4096 Jun  6 22:06 webmail-logincache/
+# 
+courier_spool:
+	sudo install -m 750 -u bin -g bin /var/spool/courier && \
+	  cd /var/spool/courier && \
+	  sudo install -m 0750 -u daemon -g daemon -d allfilters faxtmp filters msgq msgs sts tmp track && \
+	  sudo chmod g-rwx faxtmp && \
+	  chmod o+rx sts && \
+	  chmod g+rwx tmp
