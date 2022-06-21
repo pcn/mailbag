@@ -1,0 +1,23 @@
+[Unit]
+Description=courier-courierd Service
+After=docker.service
+Requires=vmail-custom-net.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker exec {{ courierd.service }} stop
+ExecStartPre=-/usr/bin/docker rm {{ courierd.service }}
+ExecStart=/usr/bin/docker run --rm --name {{ courierd.service }} \
+    --net {{ docker.network_name }} \
+    --hostname {{ courierd.dns_name  }} \
+    -v {{ userdb.directory }}:{{ userdb.directory }} \
+    -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
+    -v /run/systemd/journal/dev-log:/dev/log \
+    -v /var/spool/mail:/var/spool/mail \ 
+    {{ courierd.service }}:latest
+
+ExecStop=/usr/bin/docker kill {{ courierd.service }}
+
+[Install]
+WantedBy=default.target
