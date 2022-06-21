@@ -33,9 +33,9 @@ vmail_dir:
 # drwx------ 2 bin    bin    4096 Jun  6 22:06 webmail-logincache/
 # 
 courier_spool:
-	sudo install -m 750 -u bin -g bin /var/spool/courier && \
+	sudo install -m 750 -o bin -g bin /var/spool/courier && \
 	  cd /var/spool/courier && \
-	  sudo install -m 0750 -u daemon -g daemon -d allfilters faxtmp filters msgq msgs sts tmp track && \
+	  sudo install -m 0750 -o daemon -g daemon -d allfilters faxtmp filters msgq msgs sts tmp track && \
 	  sudo chmod g-rwx faxtmp && \
 	  sudo chmod o+rx sts && \
 	  sudo chmod g+rwx tmp
