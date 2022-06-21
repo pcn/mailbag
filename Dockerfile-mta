@@ -13,6 +13,9 @@ RUN /usr/lib/courier/share/makeacceptmailfor
 RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd && \
  echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd
 
+# Debugging
+RUN echo "ESMTP_LOG_DIALOG=1" >> emstpd
+
 COPY entrypoints/courier-mta /courier-mta
 RUN chmod +x /courier-mta
 ENTRYPOINT ["/courier-mta"]
