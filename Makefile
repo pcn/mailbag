@@ -8,6 +8,9 @@ install-units: unit-files
 	cd unit-files && $(MAKE) install && \
 	sudo systemctl daemon-reload
 
+host/Makefile: host/Makefile.template context.json
+	./render-template --context host/files.json --template host/Makefile.template > host/Makefile
+
 unit-files/Makefile: unit-files/Makefile.template unit-files/files.json
 	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
 
