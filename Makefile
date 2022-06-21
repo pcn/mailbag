@@ -32,3 +32,11 @@ goss-bin:
 
 run-goss: goss-bin
 	(cd goss && ../goss-bin --vars ../context.json validate)
+
+start: unit-files
+	cd unit-files && $(MAKE) start-services
+
+stop: unit-files
+	cd unit-files && $(MAKE) stop-services
+
+
