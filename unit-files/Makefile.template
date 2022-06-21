@@ -2,8 +2,8 @@ all: {% for tmpl in templates -%} {{ tmpl.target }} {% endfor %}
 
 install: all {% for tmpl in templates -%} install-{{ tmpl.target }} {% endfor %}
 
-stop-services: all {% for tmpl in templates -%} stop-{{ tmpl.target }} {% endfor %}
-start-services: all {% for tmpl in templates -%} start-{{ tmpl.target }} {% endfor %}
+stop-services: all {% for tmpl in templates if tmpl.target.enable -%} stop-{{ tmpl.target }} {% endfor %}
+start-services: all {% for tmpl in templates if tmpl.target.enable -%} start-{{ tmpl.target }} {% endfor %}
 
 {% for tmpl in templates %}
 {{ tmpl.target }}: {{ tmpl.template }} ../context.json
