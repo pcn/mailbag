@@ -4,17 +4,17 @@ certbot:
 	sudo certbot certonly --standalone -d {{ domain.name }}.{{ domain.zone }},{{ mta.dns_name }},{{ msa.dns_name }},{{ imapd_ssl.dns_name }}
 
 userdb_dir:
-	mkdir -p  {{ userdb.directory }} && \
-	chown {{ userdb.owner}} {{ userdb.directory }} && \
-	chmod {{ userdb.mode }} {{ userdb.directory }}
+	sudo mkdir -p  {{ userdb.directory }} && \
+	sudo chown {{ userdb.owner}} {{ userdb.directory }} && \
+	sudo chmod {{ userdb.mode }} {{ userdb.directory }}
 
 vmail_dir:
-	mkdir -p {{ mda.mail_path.host }} && \
-	chown {{ mda.owner}} {{ mda.mail_path.host }} && \
-	chmod {{ mda.mode }} {{ mda.mail_path.host }} && \
-	mkdir -p {{ mda.mail_path.host }}/{{ domain.name }}.{{ domain.zone }} && \
-	chown {{ mda.owner}} {{ mda.mail_path.host }} && \
-	chmod {{ mda.mode }} {{ mda.mail_path.host }} 
+	sudo mkdir -p {{ mda.mail_path.host }} && \
+	sudo chown {{ mda.owner}} {{ mda.mail_path.host }} && \
+	sudo chmod {{ mda.mode }} {{ mda.mail_path.host }} && \
+	sudo mkdir -p {{ mda.mail_path.host }}/{{ domain.name }}.{{ domain.zone }} && \
+	sudo chown {{ mda.owner}} {{ mda.mail_path.host }} && \
+	sudo chmod {{ mda.mode }} {{ mda.mail_path.host }} 
 
 # It should look like this:
 # root@testmail-mta:/var/spool/courier# ls -laF
@@ -37,5 +37,5 @@ courier_spool:
 	  cd /var/spool/courier && \
 	  sudo install -m 0750 -u daemon -g daemon -d allfilters faxtmp filters msgq msgs sts tmp track && \
 	  sudo chmod g-rwx faxtmp && \
-	  chmod o+rx sts && \
-	  chmod g+rwx tmp
+	  sudo chmod o+rx sts && \
+	  sudo chmod g+rwx tmp
