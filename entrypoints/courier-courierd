@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e -x -o pipefail
+
+/usr/sbin/makeuserdb
+
+/usr/sbin/authdaemond start
+
+/usr/bin/env -i /bin/bash -c "set -a ; . /etc/courier/courierd; /usr/lib/courier/libexec/courier/courierd"

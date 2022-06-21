@@ -1,0 +1,7 @@
+FROM courier-base
+
+ENV TZ=UTC
+
+COPY entrypoints/courier-courierd /courier-courierd
+RUN chmod +x /courier-courierd
+ENTRYPOINT ["/courier-courierd"]

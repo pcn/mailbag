@@ -1,9 +1,5 @@
 FROM courier-base
 
-ENV TZ=UTC
-
-RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
-
 RUN cd /etc/courier; sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd
 
 COPY target/acceptmailfor /etc/courier/esmtpacceptmailfor.dir/acceptmailfor
@@ -18,7 +14,8 @@ RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir
  echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd
 
 # Debugging
-RUN echo "ESMTP_LOG_DIALOG=1" >> emstpd
+RUN cd /usr/lib/courier/share && \
+  echo "ESMTP_LOG_DIALOG=1" >> emstpd
 
 COPY entrypoints/courier-mta /courier-mta
 RUN chmod +x /courier-mta
