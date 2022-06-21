@@ -34,8 +34,7 @@ vmail_dir:
 # 
 courier_spool:
 	sudo install -m 750 -o bin -g bin -d /var/spool/courier && \
-	  cd /var/spool/courier && \
-	  sudo install -m 0750 -o daemon -g daemon -d allfilters faxtmp filters msgq msgs sts tmp track && \
-	  sudo chmod g-rwx faxtmp && \
-	  sudo chmod o+rx sts && \
-	  sudo chmod g+rwx tmp
+	  sudo install -m 0750 -o daemon -g daemon -d /var/spool/courier/allfilters /var/spool/courier/faxtmp /var/spool/courier/filters /var/spool/courier/msgq /var/spool/courier/msgs /var/spool/courier/sts /var/spool/courier/tmp /var/spool/courier/track && \
+	  sudo chmod g-rwx /var/spool/courier/faxtmp && \
+	  sudo chmod o+rx /var/spool/courier/sts && \
+	  sudo chmod g+rwx /var/spool/courier/tmp
