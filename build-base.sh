@@ -4,8 +4,8 @@ set -e -o pipefail
 
 # From https://stackoverflow.com/questions/49638532/docker-copy-file-to-host-from-within-dockerfile
 export DOCKER_BUILDKIT=1
-# docker build  -t build-mail -f Dockerfile  .
-docker build --output type=tar,dest=courier-packages.tar .
+docker build  -t build-mail -f Dockerfile  .
+# docker build --output type=tar,dest=courier-packages.tar .
 
 # Based on this:
 # https://stackoverflow.com/questions/51086724/docker-build-using-volumes-at-build-time

@@ -2,6 +2,12 @@ FROM courier-base
 
 ENV TZ=UTC
 
+COPY target/acceptmailfor /etc/courier/esmtpacceptmailfor.dir/acceptmailfor
+RUN /usr/lib/courier/share/makeacceptmailfor
+
+COPY target/hosteddomains /etc/courier/hosteddomains
+RUN /usr/lib/courier/share/makehosteddomains
+
 COPY entrypoints/courier-courierd /courier-courierd
 RUN chmod +x /courier-courierd
 ENTRYPOINT ["/courier-courierd"]

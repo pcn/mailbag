@@ -33,7 +33,7 @@ vmail_dir:
 # drwx------ 2 bin    bin    4096 Jun  6 22:06 webmail-logincache/
 # 
 courier_spool:
-	sudo install -m 750 -o bin -g bin -d /var/spool/courier && \
+	sudo install -m 755 -o bin -g bin -d /var/spool/courier && \
 	  sudo install -m 0750 -o daemon -g daemon -d /var/spool/courier/allfilters /var/spool/courier/faxtmp /var/spool/courier/filters /var/spool/courier/msgq /var/spool/courier/msgs /var/spool/courier/sts /var/spool/courier/tmp /var/spool/courier/track && \
 	  sudo chmod g-rwx /var/spool/courier/faxtmp && \
 	  sudo chmod o+rx /var/spool/courier/sts && \
