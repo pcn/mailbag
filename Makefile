@@ -5,8 +5,8 @@ install: build-all install-units
 containers: service-images
 
 install-units: unit-files
-	cd unit-files && $(MAKE) install
-
+	cd unit-files && $(MAKE) install && \
+	sudo systemctl daemon-reload
 
 unit-files/Makefile: unit-files/Makefile.template unit-files/files.json
 	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
