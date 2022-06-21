@@ -11,4 +11,7 @@ userdb_dir:
 vmail_dir:
 	mkdir -p {{ mda.mail_path.host }} && \
 	chown {{ mda.owner}} {{ mda.mail_path.host }} && \
-	chmod {{ mda.mode }} {{ mda.mail_path.host }}
+	chmod {{ mda.mode }} {{ mda.mail_path.host }} && \
+	mkdir -p {{ mda.mail_path.host }}/{{ domain.name }}.{{ domain.zone }} && \
+	chown {{ mda.owner}} {{ mda.mail_path.host }} && \
+	chmod {{ mda.mode }} {{ mda.mail_path.host }} 
