@@ -9,6 +9,10 @@ RUN cd /etc/courier; sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd
 COPY target/acceptmailfor /etc/courier/esmtpacceptmailfor.dir/acceptmailfor
 RUN /usr/lib/courier/share/makeacceptmailfor
 
+COPY target/hosteddomains /etc/courier/hosteddomains
+RUN /usr/lib/courier/share/makehosteddomains
+
+
 # Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
 RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd && \
  echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd
