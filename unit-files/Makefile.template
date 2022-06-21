@@ -15,7 +15,7 @@ install-{{ tmpl.target }}: {{ tmpl.target }}
 	sudo systemctl enable {{ tmpl.target }}
 
 stop-{{ tmpl.target }}: {{ tmpl.target }}
-	sudo systemctl start {{ tmpl.target }}
+	sudo systemctl stop {{ tmpl.target }}
         
 start-{{ tmpl.target }}: {{ tmpl.target }}
 	sudo systemctl start {{ tmpl.target }}
