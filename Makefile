@@ -21,7 +21,7 @@ render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
 
 service-images: courier-packages.tar build-services.sh render-template
-	mkdir target && ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor
+	mkdir -p target && ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor
 	sudo ./build-services.sh
 
 courier-packages.tar: build-base.sh
