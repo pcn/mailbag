@@ -70,6 +70,60 @@ compiled into the mta container so that it can receive email for those and only 
 - [ ] Figure out+document k9+mutt+mu4e with imap
 
 
+### Current blocker
+
+This is deeply discouraging, but it seems that when esmptd is invoked from couriertls,
+the esmtpd just reads and doesn't process anything. 
+
+This is what a trace on the process looks like:
+
+```
+brk(0x55ca39ac5000)                     = 0x55ca39ac5000
+chdir("/usr/lib/courier")               = 0
+fcntl(0, F_SETFL, O_RDONLY|O_NONBLOCK)  = 0
+fcntl(1, F_SETFL, O_RDONLY|O_NONBLOCK)  = 0
+access("/etc/courier/vhost.172.18.0.2", F_OK) = -1 ENOENT (No such file or directory)
+socket(AF_UNIX, SOCK_DGRAM|SOCK_CLOEXEC, 0) = 5
+connect(5, {sa_family=AF_UNIX, sun_path="/dev/log"}, 110) = 0
+openat(AT_FDCWD, "/etc/courier/esmtptimeout", O_RDONLY) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/etc/courier/esmtptimeoutdata", O_RDONLY) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/etc/courier/esmtpgreeting", O_RDONLY) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/etc/courier/me", O_RDONLY) = -1 ENOENT (No such file or directory)
+uname({sysname="Linux", nodename="testmail-mta.rton.me", ...}) = 0
+openat(AT_FDCWD, "/usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache", O_RDONLY) = 6
+newfstatat(6, "", {st_mode=S_IFREG|0644, st_size=27002, ...}, AT_EMPTY_PATH) = 0
+close(6)                                = 0
+futex(0x7fcfed33ea6c, FUTEX_WAKE_PRIVATE, 2147483647) = 0
+brk(0x55ca39ae7000)                     = 0x55ca39ae7000
+brk(0x55ca39adf000)                     = 0x55ca39adf000
+pselect6(2, NULL, [1], NULL, {tv_sec=300, tv_nsec=0}, NULL) = 1 (out [1], left {tv_sec=299, tv_nsec=999997391})
+writev(1, [{iov_base="220 ", iov_len=4}, {iov_base="testmail-mta.rton.me ESMTP", iov_len=26}, {iov_base="\r\n", iov_len=2}], 3) = 32
+rt_sigaction(SIGPIPE, {sa_handler=SIG_IGN, sa_mask=[PIPE], sa_flags=SA_RESTORER|SA_RESTART, sa_restorer=0x7fcfed166520}, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+openat(AT_FDCWD, "/etc/localtime", O_RDONLY|O_CLOEXEC) = 6
+newfstatat(6, "", {st_mode=S_IFREG|0644, st_size=114, ...}, AT_EMPTY_PATH) = 0
+newfstatat(6, "", {st_mode=S_IFREG|0644, st_size=114, ...}, AT_EMPTY_PATH) = 0
+read(6, "TZif2\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1\0\0\0\4\0\0\0\0\0\0UTC\0TZif2\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1\0\0\0\4\0\0\0\0\0\0UTC\0\nUTC0\n", 4096) = 114
+lseek(6, -60, SEEK_CUR)                 = 54
+read(6, "TZif2\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1\0\0\0\4\0\0\0\0\0\0UTC\0\nUTC0\n", 4096) = 60
+close(6)                                = 0
+sendto(5, "<22>Jun 22 21:18:27 courieresmtpd-ssl: started,ip=[::ffff:76.121.130.175],port=[54510]", 86, MSG_NOSIGNAL, NULL, 0) = 86
+openat(AT_FDCWD, "/etc/courier/sizelimit", O_RDONLY) = 6
+newfstatat(6, "", {st_mode=S_IFREG|0644, st_size=8, ...}, AT_EMPTY_PATH) = 0
+read(6, "1000000\n", 4096)              = 8
+close(6)                                = 0
+pselect6(1, [0], NULL, NULL, {tv_sec=600, tv_nsec=0}, NULL) = 1 (in [0], left {tv_sec=597, tv_nsec=959076613})
+read(0, "ehlo baby\n", 5120)            = 10
+pselect6(1, [0], NULL, NULL, {tv_sec=598, tv_nsec=0}, NULL) = 1 (in [0], left {tv_sec=597, tv_nsec=431048060})
+read(0, "\n", 5110)                     = 1
+pselect6(1, [0], NULL, NULL, {tv_sec=598, tv_nsec=0}, NULL) = 1 (in [0], left {tv_sec=593, tv_nsec=737487866})
+read(0, "help me out here\n", 5109)     = 17
+pselect6(1, [0], NULL, NULL, {tv_sec=593, tv_nsec=0}, NULL) = 1 (in [0], left {tv_sec=592, tv_nsec=82476151})
+read(0, "\n", 5092)                     = 1
+pselect6(1, [0], NULL, NULL, {tv_sec=592, tv_nsec=0}, NULL <detached ...>
+```
+
+There should be a response to the ehlo
+
 ### Non-goals
 #### starttls
 Something is happening between the courieresmtpd and couriertls process where the pipe

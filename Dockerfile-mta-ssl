@@ -5,7 +5,8 @@ RUN cd /etc/courier; sed -i.dist 's/ESMTPDSSLSTART=NO/ESMTPDSSLSTART=YES/g' esmt
   echo 'BOFHNOVRFY=1' >> esmtpd-ssl && \
   echo 'SYSLOGNAME=courieresmtpd-ssl' >> esmtpd-ssl && \
   echo 'ESMTPAUTH_TLS="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"' >> esmtpd-ssl && \
-  echo 'BOFHCHECKDNS=0' >> esmtpd-ssl
+  echo 'BOFHCHECKDNS=0' >> esmtpd-ssl && \
+  echo 'ESMTP_LOG_DIALOG=1' >> esmptd-ssl
 
 
 
