@@ -5,8 +5,11 @@ RUN cd /etc/courier; \
   echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd && \
   echo "SYSLOGNAME=courieresmtpd-mta" >> esmtpd && \
   sed -i.dist 's/^BOFHCHECKDNS=1/BOFHCHECKDNS=0/g;s/^ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd-msa && \
-  echo "SYSLOGNAME=courieresmtpd-msa" >> esmtpd-msa
-
+  echo "SYSLOGNAME=courieresmtpd-msa" >> esmtpd-msa && \
+  echo "ESMTP_LOG_DIALOG=2" >> esmtpd-msa && \
+  echo "AUTH_REQUIRED=1" >> esmtpd-msa && \
+  echo "ESMTPAUTH_TLS="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256" >> esmtpd-msa
+  
 
 # Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
 RUN cd /usr/lib/courier/share && \

@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e -u -o pipefail
 
-SMTPHOST=bust.spacey.org
+SMTPHOST=testmail.rton.me
 set -x
 
 # From https://www.saotn.org/test-smtp-authentication-starttls/
-encoded=$(echo -ne "\0spacey@${SMTPHOST}\0password" | base64)
+encoded=$(echo -ne "\0spacey@${SMTPHOST}\0test123" | base64)
 
 echo $encoded
 
-echo openssl s_client -connect ${SMTPHOST}:25 -starttls smtp
+echo openssl s_client -connect ${SMTPHOST}:587 -starttls smtp
