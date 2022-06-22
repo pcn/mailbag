@@ -14,7 +14,7 @@ ExecStart=/usr/bin/docker run --rm --name {{ msa.service }} \
     -v {{ userdb.directory }}:{{ userdb.directory }} \
     -v {{ msa.tls_certfile }}:/usr/lib/courier/share/esmtpd_cert.pem \
     -v {{ msa.tls_keyfile }}:/usr/lib/courier/share/esmtpd_private_key.pem \
-    -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
+    -v {{ mda.mail_path_host }}:{{ mda.mail_path_container }} \
     -v /run/systemd/journal/dev-log:/dev/log \
     -v /var/spool/mail:/var/spool/mail \
     -v /var/spool/courier-msa:/var/spool/courier \

@@ -14,7 +14,7 @@ ExecStart=/usr/bin/docker run --rm --name {{ imapd_ssl.service }} \
     -v {{ userdb.directory }}:{{ userdb.directory }} \
     -v {{ imapd_ssl.tls_certfile }}:/usr/lib/courier/share/imapd_cert.pem \
     -v {{ imapd_ssl.tls_keyfile }}:/usr/lib/courier/share/imapd_private_key.pem \
-    -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
+    -v {{ mda.mail_path_host }}:{{ mda.mail_path_container }} \
     -v /run/systemd/journal/dev-log:/dev/log \
     -p 993:993 \
     {{ imapd_ssl.service }}:latest
