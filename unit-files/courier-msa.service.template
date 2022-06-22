@@ -17,7 +17,7 @@ ExecStart=/usr/bin/docker run --rm --name {{ msa.service }} \
     -v {{ mda.mail_path.host }}:{{ mda.mail_path.container }} \
     -v /run/systemd/journal/dev-log:/dev/log \
     -v /var/spool/mail:/var/spool/mail \
-    -v /var/spool/courier:/var/spool/courier \
+    -v /var/spool/courier-msa:/var/spool/courier \
     -p 587:587 \
     {{ msa.service }}:latest
 

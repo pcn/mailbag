@@ -1,4 +1,4 @@
-all: certbot vmail_dir courier_spool
+all: certbot vmail_dir courier_mta_spool courier_msa_spool
 
 certbot:
 	sudo certbot certonly --standalone -d {{ domain.name }}.{{ domain.zone }},{{ mta.dns_name }},{{ msa.dns_name }},{{ imapd_ssl.dns_name }}
@@ -32,9 +32,17 @@ vmail_dir:
 # drwxr-xr-x 2 daemon daemon 4096 Jun  6 22:06 track/
 # drwx------ 2 bin    bin    4096 Jun  6 22:06 webmail-logincache/
 # 
-courier_spool:
-	sudo install -m 755 -o bin -g bin -d /var/spool/courier && \
-	  sudo install -m 0750 -o daemon -g daemon -d /var/spool/courier/allfilters /var/spool/courier/faxtmp /var/spool/courier/filters /var/spool/courier/msgq /var/spool/courier/msgs /var/spool/courier/sts /var/spool/courier/tmp /var/spool/courier/track && \
-	  sudo chmod g-rwx /var/spool/courier/faxtmp && \
-	  sudo chmod o+rx /var/spool/courier/sts && \
-	  sudo chmod g+rwx /var/spool/courier/tmp
+courier_mta_spool:
+	sudo install -m 755 -o bin -g bin -d /var/spool/courier-mta && \
+	  sudo install -m 0750 -o daemon -g daemon -d /var/spool/courier-mta/allfilters /var/spool/courier-mta/faxtmp /var/spool/courier-mta/filters /var/spool/courier-mta/msgq /var/spool/courier-mta/msgs /var/spool/courier-mta/sts /var/spool/courier-mta/tmp /var/spool/courier-mta/track && \
+	  sudo chmod g-rwx /var/spool/courier-mta/faxtmp && \
+	  sudo chmod o+rx /var/spool/courier-mta/sts && \
+	  sudo chmod g+rwx /var/spool/courier-mta/tmp
+
+
+courier_msa_spool:
+	sudo install -m 755 -o bin -g bin -d /var/spool/courier-msa && \
+	  sudo install -m 0750 -o daemon -g daemon -d /var/spool/courier-msa/allfilters /var/spool/courier-msa/faxtmp /var/spool/courier-msa/filters /var/spool/courier-msa/msgq /var/spool/courier-msa/msgs /var/spool/courier-msa/sts /var/spool/courier-msa/tmp /var/spool/courier-msa/track && \
+	  sudo chmod g-rwx /var/spool/courier-msa/faxtmp && \
+	  sudo chmod o+rx /var/spool/courier-msa/sts && \
+	  sudo chmod g+rwx /var/spool/courier-msa/tmp
