@@ -65,6 +65,8 @@ compiled into the mta container so that it can receive email for those and only 
 - [X] spin up impad-ssl
 - [X] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
 - [X] Figure out how to start authdaemond in each container so the local socket is available
+- [ ] Troubleshoot why starttls seems to freeze up
+
 - [ ] Figure out story for auto-renewal of certs
 - [ ] Figure out+document k9+mutt+mu4e with imap
 
