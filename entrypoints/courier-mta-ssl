@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -e -x -o pipefail
+
+/usr/lib/courier/sbin/makesmtpaccess
+/usr/sbin/makeuserdb
+
+/usr/sbin/authdaemond start
+
+( cd /usr/lib/courier/share;
+  cat esmtpd_cert.pem esmtpd_private_key.pem >> esmtpd.pem ; 
+  chmod 400 esmtpd.pem;
+  chown daemon esmtpd.pem
+)
+# start courierd in the background
+/usr/lib/courier/share/courierctl.start
+# and the esmtpd
+/usr/lib/courier/sbin/esmtpd-ssl start
