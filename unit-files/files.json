@@ -22,11 +22,6 @@
          "target": "courier-imapd-ssl.service",
          "install": "-o root -g root -m 0444 -t /etc/systemd/system",
          "enable": true
-        },
-        {"template": "courier-courierd.service.template",
-         "target": "courier-courierd.service",
-         "install": "-o root -g root -m 0444 -t /etc/systemd/system",
-         "enable": true
         }
     ]
 }

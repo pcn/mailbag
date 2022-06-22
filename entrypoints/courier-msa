@@ -12,4 +12,8 @@ set -e -x -o pipefail
   chmod 400 esmtpd.pem;
   chown daemon esmtpd.pem
 )
+
+# start courierd in the background
+/usr/lib/courier/share/courierctl.start
+# And start the msa
 /usr/lib/courier/sbin/esmtpd-msa start
