@@ -8,7 +8,7 @@ RUN cd /etc/courier; \
   echo "SYSLOGNAME=courieresmtpd-msa" >> esmtpd-msa && \
   echo "ESMTP_LOG_DIALOG=2" >> esmtpd-msa && \
   echo "AUTH_REQUIRED=1" >> esmtpd-msa && \
-  echo "ESMTPAUTH_TLS="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256" >> esmtpd-msa
+  echo "ESMTPAUTH_TLS=\"PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256\"" >> esmtpd-msa
   
 
 # Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
