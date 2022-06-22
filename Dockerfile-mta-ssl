@@ -1,0 +1,27 @@
+FROM courier-base
+
+RUN cd /etc/courier; sed -i.dist 's/ESMTPDSSLSTART=NO/ESMTPDSSLSTART=YES/g' esmtpd-ssl && \
+  echo 'BOFHNOEXPN=1' >> esmtpd-ssl && \
+  echo 'BOFHNOVRFY=1' >> esmtpd-ssl && \
+  echo 'SYSLOGNAME=courieresmtpd-ssl' >> esmtpd-ssl
+
+
+COPY target/acceptmailfor /etc/courier/esmtpacceptmailfor.dir/acceptmailfor
+RUN /usr/lib/courier/share/makeacceptmailfor
+
+COPY target/hosteddomains /etc/courier/hosteddomains
+RUN /usr/lib/courier/share/makehosteddomains
+
+
+# Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
+RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd-ssl   # && \
+ # echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd-ssl
+
+
+# Debugging
+RUN cd /usr/lib/courier/share && \
+  echo "ESMTP_LOG_DIALOG=1" >> emstpd
+
+COPY entrypoints/courier-mta /courier-mta
+RUN chmod +x /courier-mta
+ENTRYPOINT ["/courier-mta"]

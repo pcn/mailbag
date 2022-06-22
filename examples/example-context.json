@@ -12,6 +12,13 @@
         "service": "courier-mta.service",
         "accept_mail_for": ["testmail.rton.me"]
     },
+    "mta_ssl": {
+        "dns_name": "testmail-mta.rton.me",
+        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
+        "service": "courier-mta-ssl.service",
+        "accept_mail_for": ["testmail.rton.me"]
+    },
     "msa": {
         "dns_name": "testmail-msa.rton.me",
         "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",

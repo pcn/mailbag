@@ -39,6 +39,13 @@ courier_mta_spool:
 	  sudo chmod o+rx /var/spool/courier-mta/sts /var/spool/courier-mta/track && \
 	  sudo chmod g+rwx /var/spool/courier-mta/tmp
 
+courier_mta_ssl_spool:
+	sudo install -m 755 -o bin -g bin -d /var/spool/courier-mta-ssl && \
+	  sudo install -m 0750 -o daemon -g daemon -d /var/spool/courier-mta-ssl/allfilters /var/spool/courier-mta-ssl/faxtmp /var/spool/courier-mta-ssl/filters /var/spool/courier-mta-ssl/msgq /var/spool/courier-mta-ssl/msgs /var/spool/courier-mta-ssl/sts /var/spool/courier-mta-ssl/tmp /var/spool/courier-mta-ssl/track && \
+	  sudo chmod g-rwx /var/spool/courier-mta-ssl/faxtmp && \
+	  sudo chmod o+rx /var/spool/courier-mta-ssl/sts /var/spool/courier-mta-ssl/track && \
+	  sudo chmod g+rwx /var/spool/courier-mta-ssl/tmp
+
 
 courier_msa_spool:
 	sudo install -m 755 -o bin -g bin -d /var/spool/courier-msa && \

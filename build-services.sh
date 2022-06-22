@@ -9,7 +9,8 @@ export DOCKER_BUILDKIT=1
 docker build -t courier-base -f Dockerfile-base  .
 # MTA image, for accepting mail delivery from the internet
 docker build -t courier-mta.service -f Dockerfile-mta .
+docker build -t courier-mta-ssl.service -f Dockerfile-mta-ssl .
 # MSA image, for allowing authenticated users to submit email delivery to other mail servers
-docker build -t courier-msa.service -f Dockerfile-msa .
+# docker build -t courier-msa.service -f Dockerfile-msa .
 # IMAPD-SSL image, for checking mail via IMAP
 docker build -t courier-imapd-ssl.service -f Dockerfile-imapd-ssl .

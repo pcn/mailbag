@@ -13,8 +13,8 @@
          "install": "-o root -g root -m 0444 -t /etc/systemd/system",
          "enable": true
         },
-        {"template": "courier-msa.service.template",
-         "target": "courier-msa.service",
+        {"template": "courier-mta-ssl.service.template",
+         "target": "courier-mta-ssl.service",
          "install": "-o root -g root -m 0444 -t /etc/systemd/system",
          "enable": true
         },

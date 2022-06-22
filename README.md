@@ -65,10 +65,18 @@ compiled into the mta container so that it can receive email for those and only 
 - [X] spin up impad-ssl
 - [X] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
 - [X] Figure out how to start authdaemond in each container so the local socket is available
-- [ ] Troubleshoot why starttls seems to freeze up
 
 - [ ] Figure out story for auto-renewal of certs
 - [ ] Figure out+document k9+mutt+mu4e with imap
+
+
+### Non-goals
+#### starttls
+Something is happening between the courieresmtpd and couriertls process where the pipe
+seems to die. This is making startls challening, and it shouldn't be? I'm not sure
+what I'm missing, exactly, but I'm going to skip that and start an smtp+ssl port and
+do mail submission over that port
+
 
 
 ## Build containers
