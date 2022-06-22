@@ -1,4 +1,4 @@
-all: certbot vmail_dir courier_mta_spool courier_msa_spool
+all: certbot vmail_dir courier_mta_spool courier_mta_ssl_spool courier_msa_spool
 
 certbot:
 	sudo certbot certonly --standalone -d {{ domain.name }}.{{ domain.zone }},{{ mta.dns_name }},{{ msa.dns_name }},{{ imapd_ssl.dns_name }}
