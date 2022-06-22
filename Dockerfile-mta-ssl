@@ -16,7 +16,7 @@ RUN /usr/lib/courier/share/makehosteddomains
 
 
 # Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
-RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd-ssl   # && \
+RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$SSLPIDFILE //;s%/usr/bin/mkdir -p `dirname $SSLPIDFILE`%%' esmtpd-ssl   # && \
  # echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd-ssl
 
 
