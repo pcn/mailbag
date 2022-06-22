@@ -24,6 +24,6 @@ RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir
 RUN cd /usr/lib/courier/share && \
   echo "ESMTP_LOG_DIALOG=1" >> emstpd
 
-COPY entrypoints/courier-mta /courier-mta
-RUN chmod +x /courier-mta
-ENTRYPOINT ["/courier-mta"]
+COPY entrypoints/courier-mta-ssl /courier-mta-ssl
+RUN chmod +x /courier-mta-ssl
+ENTRYPOINT ["/courier-mta-ssl"]
