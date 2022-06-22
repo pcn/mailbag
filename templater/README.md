@@ -23,56 +23,16 @@ subject alternative names (presuming they're all on the same IP address)
 
 ## Context file
 
-This example uses `bust-mta.spacey.org` as the dns name that will the hostname
-and the file path that was created above. Put this into `context.json`
+The file `examples/example-context.json` should be moved to context.json, and 
+the following entries must be changed:
 
-```json
-{
-    "mda": {
-        "mail_path": {
-            "host": "/opt/vmail",
-            "container": "/opt/vmail"
-        },
-        "owner": "300",
-        "mode": "0755"
-    },
-    "mta": {
-        "dns_name": "testmail-mta.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
-        "service": "courier-mta.service",
-        "accept_mail_for": ["testmail.rton.me"]
-    },
-    "msa": {
-        "dns_name": "testmail-msa.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
-        "service": "courier-msa.service"
-    },
-    "courierd": {
-        "dns_name": "testmail.rton.me",
-        "service": "courier-courierd.service"
-    },
-    "imapd_ssl": {
-        "dns_name": "testmail-imapd-ssl.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
-        "service": "courier-imapd-ssl.service"
-    },
-    "docker": {
-        "network_name": "vmail"
-    },
-    "userdb": {
-        "directory": "/etc/authlib/userdb",
-        "owner": "daemon",
-        "mode": "0700"
-    },
-    "domain": {
-        "name": "testmail",
-        "zone": "rton.me"
-    }
-}
-```
+- mta.dns_name
+- mta.accept_mail_for[]
+- msa.dns_name
+- imapd_ssl.dns_name
+- domain.name
+- domain.zone
+
 
 ## And render
 Using the result of `cargo build`:
