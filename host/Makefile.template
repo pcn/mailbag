@@ -12,7 +12,7 @@ vmail_dir:
 	sudo mkdir -p {{ mda.mail_path_host }} && \
 	sudo chown {{ mda.owner}} {{ mda.mail_path_host }} && \
 	sudo chmod {{ mda.mode }} {{ mda.mail_path_host }} && \
-	sudo mkdir -p {{ mda.mail_path.host }}/{{ domain.name }}.{{ domain.zone }} && \
+	sudo mkdir -p {{ mda.mail_path_host }}/{{ domain.name }}.{{ domain.zone }} && \
 	sudo chown {{ mda.owner}} {{ mda.mail_path_host }} && \
 	sudo chmod {{ mda.mode }} {{ mda.mail_path_host }} 
 
