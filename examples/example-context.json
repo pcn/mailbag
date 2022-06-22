@@ -1,7 +1,7 @@
 {
     "mda": {
         "mail_path_host": "/opt/vmail",
-        "mail_path_container": "/opt/vmail"
+        "mail_path_container": "/opt/vmail",
         "owner": "300",
         "mode": "0755"
     },
