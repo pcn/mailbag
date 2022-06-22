@@ -3,7 +3,9 @@ FROM courier-base
 RUN cd /etc/courier; sed -i.dist 's/ESMTPDSSLSTART=NO/ESMTPDSSLSTART=YES/g' esmtpd-ssl && \
   echo 'BOFHNOEXPN=1' >> esmtpd-ssl && \
   echo 'BOFHNOVRFY=1' >> esmtpd-ssl && \
-  echo 'SYSLOGNAME=courieresmtpd-ssl' >> esmtpd-ssl
+  echo 'SYSLOGNAME=courieresmtpd-ssl' >> esmtpd-ssl && \
+  echo 'ESMTPAUTH_TLS="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"' >> esmtpd-ssl
+
 
 
 COPY target/acceptmailfor /etc/courier/esmtpacceptmailfor.dir/acceptmailfor
