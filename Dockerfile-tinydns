@@ -1,0 +1,10 @@
+FROM ubuntu:jammy
+
+ENV TZ=UTC
+
+RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
+
+RUN apt-get update ; apt-get -y install djbdns djbdns-conf djbdns-utils tinydns
+
+
+ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

@@ -6,7 +6,7 @@ import sys
 import json
 
 context = json.load(open('../context.json'))
-print(context)
+print(json.dumps(context))
 sys.exit(1)
 
 (host, port, user, passw) = sys.argv[1].split(':')
