@@ -6,5 +6,14 @@ RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
 RUN apt-get update ; apt-get -y install djbdns-conf djbdns-utils tinydns runit
 
+RUN mkdir /etc/service/tinydns
+
+COPY entrypoints/tinydns /etc/service/tinydns/run
+RUN chmod +x /etc/service/tinydns/run
+RUN ln -s /usr/bin/sv /etc/init.d/my_service
+
+WORKDIR /tinydns
+
+CMD ["runsvdir", "/etc/service"]
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

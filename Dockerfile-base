@@ -19,5 +19,8 @@ RUN set -x; cd /tmp; mkdir p; cd p; tar -xf /courier-packages.tar && \
   rm *.deb
 
 RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
+COPY render-template /render-template
+COPY acceptmailfor.template /acceptmailfor.template
+COPY hosteddomains.template /hosteddomains.template
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

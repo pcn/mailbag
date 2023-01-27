@@ -1,24 +1,24 @@
 {
     "templates": [
-        {"template": "vmail-custom-net.service.template",
+        {"template": "vmail-custom-net.service",
          "target": "vmail-custom-net.service",
          "install": "-o root -g root -m 0444 -t /etc/systemd/system"
         },
-        {"template": "vmail-custom-net.sh.template",
+        {"template": "vmail-custom-net.sh",
          "target": "vmail-custom-net.sh",
          "install": "-o root -g root -m 0555 -t /usr/local/bin"
         },
-        {"template": "courier-mta.service.template",
+        {"template": "courier-mta.service",
          "target": "courier-mta.service",
          "install": "-o root -g root -m 0444 -t /etc/systemd/system",
          "enable": true
         },
-        {"template": "courier-mta-ssl.service.template",
+        {"template": "courier-mta-ssl.service",
          "target": "courier-mta-ssl.service",
          "install": "-o root -g root -m 0444 -t /etc/systemd/system",
          "enable": true
         },
-        {"template": "courier-imapd-ssl.service.template",
+        {"template": "courier-imapd-ssl.service",
          "target": "courier-imapd-ssl.service",
          "install": "-o root -g root -m 0444 -t /etc/systemd/system",
          "enable": true

@@ -55,8 +55,21 @@ chown -R vmail:vmail /opt/vmail/testmail.rton.me/spacey
 makeuserdb
 ```
 
-In the context required on the host, the list of domains in the `mta.accept_mail_for` list will be
-compiled into the mta container so that it can receive email for those and only those domains.
+
+## The context file
+In the context required on the host, the list of domains in the
+`mta.accept_mail_for` list will be rendered via the templates that are
+copied into the mta container at build time so that it can receive
+email for those and only those domains.
+
+The context file needs to be placed on the host, outside of the containers, so it can be mapped into the 
+containers for rendering (e.g. mta esmtpacceptmailfor at startup) and so it can be used to
+extract required values for the unit files (e.g network variables)
+
+The context file will be placed in `/etc/mailbag/context.json`, and
+must be based on the contents of `examples/example-context.json`
+
+Unit files will extract keys from the context via jq
 
 ## Current todo, in priority order
 
@@ -65,12 +78,21 @@ compiled into the mta container so that it can receive email for those and only 
 - [X] spin up impad-ssl
 - [X] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
 - [X] Figure out how to start authdaemond in each container so the local socket is available
+- [ ] document context for each component, add render-template to each container, run on startup with a bound context file
+- [ ] tinydns under runit working
+- [ ] document how tinydns is configured to work; using `make` on the host?
 
 - [ ] Figure out story for auto-renewal of certs
-- [ ] Figure out+document k9+mutt+mu4e with imap
-
+- [ ] Figure out+document k9+mutt+offlineimap3+mu4e with imap
+- [ ] Build images via github actions and distribute via ghcr.io
 
 ### Current blocker
+document context file
+
+
+### Past issues: courier-mtpd not working over ssl/tls/starttls
+solution: courier doesn't fool around with `\n` pretending to be `\r\n` and `openssl s_client`
+doesn't do what telnet does and provide a `\r` for free. So yeah, it works.
 
 This is deeply discouraging, but it seems that when esmptd is invoked from couriertls,
 the esmtpd just reads and doesn't process anything. 

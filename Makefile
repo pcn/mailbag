@@ -11,10 +11,10 @@ install-units: unit-files
 host: host/Makefile
 	cd host; $(MAKE)
 
-host/Makefile: host/Makefile.template context.json
+host/Makefile: host/Makefile.template context.json render-template
 	./render-template --context context.json --template host/Makefile.template > host/Makefile
 
-unit-files/Makefile: unit-files/Makefile.template unit-files/files.json
+unit-files/Makefile: unit-files/Makefile.template unit-files/files.json render-template
 	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
 
 unit-files: render-template unit-files/Makefile
@@ -23,10 +23,10 @@ unit-files: render-template unit-files/Makefile
 render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
 
-service-images: courier-packages.tar build-services.sh render-template
-	mkdir -p target && \
-	 ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
-	 ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
+service-images: courier-packages.tar build-services.sh render-template render-template
+	# mkdir -p target && \
+	#  ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
+	#  ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
 	sudo ./build-services.sh
 
 courier-packages.tar: build-base.sh

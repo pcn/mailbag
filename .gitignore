@@ -5,4 +5,3 @@ target/
 render-template
 # download the goss binary for checking config
 goss-bin
-*.service
