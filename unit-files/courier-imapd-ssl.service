@@ -1,0 +1,25 @@
+[Unit]
+Description=courier-imapd-ssl Service
+After=docker.service
+Requires=vmail-custom-net.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker exec $( jq -r .imapd_ssl.service /etc/mailbag/context.json ) stop
+ExecStartPre=-/usr/bin/docker rm $( jq -r .imapd_ssl.service  /etc/mailbag/context.json )
+ExecStart=/usr/bin/docker run --rm --name $( jq -r .imapd_ssl.service /etc/mailbag/context.json ) \
+    --net $( jq -r .docker.network_name /etc/mailbag/context.json ) \
+    --hostname $( jq -r .imapd_ssl.dns_name /etc/mailbag/context.json ) \
+    -v $( jq -r .userdb.directory  /etc/mailbag/context.json ):$( jq -r . userdb.directory  /etc/mailbag/context.json ) \
+    -v $( jq -r . imapd_ssl.tls_certfile /etc/mailbag/context.json ):/usr/lib/courier/share/imapd_cert.pem \
+    -v $( jq -r .imapd_ssl.tls_keyfile /etc/mailbag/context.json ):/usr/lib/courier/share/imapd_private_key.pem \
+    -v $( jq -r .mda.mail_path_host /etc/mailbag/context.json ):$( jq -r . mda.mail_path_container /etc/mailbag/context.json ) \
+    -v /run/systemd/journal/dev-log:/dev/log \
+    -p 993:993 \
+    $( jq -r .imapd_ssl.service /etc/mailbag/context.json ):latest
+
+ExecStop=/usr/bin/docker kill $( jq -r .imapd_ssl.service  /etc/mailbag/context.json )
+
+[Install]
+WantedBy=default.target

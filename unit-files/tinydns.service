@@ -1,0 +1,24 @@
+[Unit]
+Description=tinydns authoritative DNS Service
+After=docker.service
+Requires=vmail-custom-net.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker exec $( jq -r .tinydns.service /etc/mailbag/context.json ) stop
+ExecStartPre=-/usr/bin/docker rm $( jq -r .tinydns.service /etc/mailbag/context.json )
+ExecStart=/usr/bin/docker run --rm --name $( jq -r .tinydns.service /etc/mailbag/context.json ) \
+    --net $( jq -r .docker.network_name /etc/mailbag/context.json ) \
+    --hostname $( jq -r .tinydns.dns_name  /etc/mailbag/context.json ) \
+    -v $( jq -r .tinydns.dns_path_host /etc/mailbag/context.json ):$( jq -r .tinydns.dns_path_container /etc/mailbag/context.json ) \
+    -v /run/systemd/journal/dev-log:/dev/log \
+    -v /var/spool/mail:/var/spool/mail \
+    -p 53:53/udp \
+    -p 53:53
+    $( jq -r .tinydns.service /etc/mailbag/context.json ):latest
+
+ExecStop=/usr/bin/docker kill $( jq -r .tinydns.service /etc/mailbag/context.json )
+
+[Install]
+WantedBy=default.target

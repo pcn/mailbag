@@ -1,0 +1,27 @@
+[Unit]
+Description=courier-msa Service
+After=docker.service
+Requires=vmail-custom-net.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker exec $( jq -r .msa.service /etc/mailbag/context.json ) stop
+ExecStartPre=-/usr/bin/docker rm $( jq -r .msa.service /etc/mailbag/context.json )
+ExecStart=/usr/bin/docker run --rm --name $( jq -r .msa.service /etc/mailbag/context.json ) \
+    --net $( jq -r .docker.network_name /etc/mailbag/context.json ) \
+    --hostname $( jq -r .msa.dns_name  /etc/mailbag/context.json ) \
+    -v $( jq -r .userdb.directory /etc/mailbag/context.json ):$( jq -r .userdb.directory /etc/mailbag/context.json ) \
+    -v $( jq -r .msa.tls_certfile /etc/mailbag/context.json ):/usr/lib/courier/share/esmtpd_cert.pem \
+    -v $( jq -r .msa.tls_keyfile /etc/mailbag/context.json ):/usr/lib/courier/share/esmtpd_private_key.pem \
+    -v $( jq -r .mda.mail_path_host /etc/mailbag/context.json ):$( jq -r .mda.mail_path_container /etc/mailbag/context.json ) \
+    -v /run/systemd/journal/dev-log:/dev/log \
+    -v /var/spool/mail:/var/spool/mail \
+    -v /var/spool/courier-msa:/var/spool/courier \
+    -p 587:587 \
+    $( jq -r .msa.service /etc/mailbag/context.json ):latest
+
+ExecStop=/usr/bin/docker kill $( jq -r .msa.service /etc/mailbag/context.json )
+
+[Install]
+WantedBy=default.target

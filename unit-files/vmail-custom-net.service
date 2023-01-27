@@ -1,0 +1,9 @@
+[Unit]
+Description=docker private network
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/vmail-custom-net.sh
