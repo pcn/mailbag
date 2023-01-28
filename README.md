@@ -157,7 +157,8 @@ do mail submission over that port
 
 ## Build containers
 
-Run the build script, phase 1 build deb packages from the current courier-mta:
+The makefile does this:
+The build script runs, first phase 1 build deb packages from the current courier-mta:
 
 ```
 ./build-base.sh
@@ -170,6 +171,15 @@ Then produce container images for each services:
 ```
 ./build-services.sh
 ```
+
+Doing this via the make file is easier with just 
+
+```
+make
+``` 
+
+which runs the `build-artifacts` target which also generates necessary prerequisites.
+
 
 ## On the internet-facing host
 

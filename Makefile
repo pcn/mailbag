@@ -1,4 +1,4 @@
-build-all: containers unit-files host
+build-artifacts: containers unit-files
 
 install: build-all install-units
 
@@ -8,9 +8,11 @@ install-units: unit-files
 	cd unit-files && $(MAKE) install && \
 	sudo systemctl daemon-reload
 
+# This is runtime/install-time action - maybe remove this from here and make an install directory for that?
 host: host/Makefile
 	cd host; $(MAKE)
 
+# This is runtime/install-time action
 host/Makefile: host/Makefile.template context.json render-template
 	./render-template --context context.json --template host/Makefile.template > host/Makefile
 
