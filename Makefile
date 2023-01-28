@@ -25,7 +25,7 @@ unit-files: render-template unit-files/Makefile
 render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
 
-service-images: courier-packages.tar build-services.sh render-template render-template
+service-images: build-services.sh render-template render-template  # courier-packages.tar
 	# mkdir -p target && \
 	#  ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
 	#  ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
