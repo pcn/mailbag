@@ -15,8 +15,11 @@ jobs:
   push_to_registry:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout repository
+      - name: checkout repository and build template tool
         uses: actions/checkout@v3
+        uses: icepuma/rust-action@master
+        with:
+          args: make render-template
 
 
       - name: Log in to the Container registry
@@ -32,6 +35,7 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
+            
       - name: Build, don't push base image
         uses: docker/build-push-action@v2
         with:
