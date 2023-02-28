@@ -6,6 +6,8 @@ set -e -x -o pipefail
 /render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
 /render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
 
+/usr/lib/courier/share/makeacceptmailfor
+/usr/lib/courier/share/makehosteddomains
 /usr/lib/courier/sbin/makesmtpaccess
 /usr/sbin/makeuserdb
 /usr/lib/courier/sbin/makealiases

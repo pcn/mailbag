@@ -2,11 +2,13 @@ FROM courier-base
 
 RUN cd /etc/courier; sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd
 
-COPY target/acceptmailfor /etc/courier/esmtpacceptmailfor.dir/acceptmailfor
-RUN /usr/lib/courier/share/makeacceptmailfor
+# The following should be in the entrypoints now
+# mv target/acceptmailfor /etc/courier/esmtpacceptmailfor.dir/acceptmailfor
+# RUN /usr/lib/courier/share/makeacceptmailfor
 
-COPY target/hosteddomains /etc/courier/hosteddomains
-RUN /usr/lib/courier/share/makehosteddomains
+# The following should be in the entrypoints now
+# COPY target/hosteddomains /etc/courier/hosteddomains
+# RUN /usr/lib/courier/share/makehosteddomains
 
 
 # Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
@@ -20,3 +22,4 @@ RUN cd /usr/lib/courier/share && \
 COPY entrypoints/courier-mta /courier-mta
 RUN chmod +x /courier-mta
 ENTRYPOINT ["/courier-mta"]
+

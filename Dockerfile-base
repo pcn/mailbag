@@ -7,15 +7,14 @@ RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 RUN apt-get update  ; apt install -y less
 RUN groupadd -g 300 vmail; useradd -M -r -d /opt/vmail -u 300 -g vmail vmail
 
-RUN apt-get install -y locales && echo "LANG=en_US.UTF-8" > /etc/default/locale
+RUN apt-get install -y locales bzip2 curl && echo "LANG=en_US.UTF-8" > /etc/default/locale
 
-RUN  
 RUN set -x; cd /tmp; mkdir p; cd p; curl -L https://github.com/pcn/mailbag-build-couriermta/releases/download/v01pre5/courier-v01pre5.tar.bz2 | tar -xjf - && \
   ls ; cd debs; \
   rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* *-dev* && \
   rm -f *mlm* && \
   apt install -y ./*.deb && \
-  rm *.deb
+  rm -f *.deb
 
 RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
 COPY render-template /render-template
