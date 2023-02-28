@@ -1,6 +1,7 @@
-build-artifacts: containers unit-files
+build-artifacts: containers
+# build-artifacts: containers unit-files
 
-install: build-all install-units
+install: build-all  install-units
 
 containers: service-images
 
@@ -12,20 +13,20 @@ install-units: unit-files
 host: host/Makefile
 	cd host; $(MAKE)
 
-# This is runtime/install-time action
-host/Makefile: host/Makefile.template context.json render-template
-	./render-template --context context.json --template host/Makefile.template > host/Makefile
+# # This is runtime/install-time action
+# host/Makefile: host/Makefile.template context.json render-template
+# 	./render-template --context context.json --template host/Makefile.template > host/Makefile
 
-unit-files/Makefile: unit-files/Makefile.template unit-files/files.json render-template
-	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
+# unit-files/Makefile: unit-files/Makefile.template unit-files/files.json render-template
+# 	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
 
-unit-files: render-template unit-files/Makefile
-	cd unit-files && $(MAKE)
+# unit-files: render-template unit-files/Makefile
+# 	cd unit-files && $(MAKE)
 
 render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
 
-service-images: build-services.sh render-template render-template  # courier-packages.tar
+service-images: build-services.sh render-template   # courier-packages.tar
 	# mkdir -p target && \
 	#  ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
 	#  ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
