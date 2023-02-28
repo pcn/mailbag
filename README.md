@@ -84,7 +84,8 @@ Unit files will extract keys from the context via jq
 
 - [ ] Figure out story for auto-renewal of certs
 - [ ] Figure out+document k9+mutt+offlineimap3+mu4e with imap
-- [ ] Build images via github actions and distribute via ghcr.io
+- [X] Build images via github actions and distribute via ghcr.io
+- [ ] Make generating the context.json easier so that the containers can be configured
 
 ### Current blocker
 document context file
@@ -157,23 +158,7 @@ do mail submission over that port
 
 ## Build containers
 
-The makefile does this:
-The build script runs, first phase 1 build deb packages from the current courier-mta:
-
-```
-./build-base.sh
-```
-
-That will produce a tarball with all of the courier deb packages.
-
-Then produce container images for each services:
-
-```
-./build-services.sh
-```
-
-Doing this via the make file is easier with just 
-
+The makefile builds containers, which is equivalent to the dockerfiles themselves. So just :
 ```
 make
 ``` 
