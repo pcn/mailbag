@@ -2,7 +2,7 @@ FROM ubuntu:noble AS build-stage
 
 ENV TZ=UTC
 
-RUN apt-get install -y tzdata
+RUN apt-get update && apt-get install -y tzdata
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
 RUN apt-get update 
