@@ -3,6 +3,8 @@
 # doing this all in docker starts to get clumsy in the face
 # of failure and retries
 
+apt-get update
+
 while ! echo y | apt-get install -y \
                          build-essential curl git gnupg  wget \
             software-properties-common rsync emacs-nox zip vim sudo \
