@@ -2,7 +2,8 @@ FROM ubuntu:jammy AS build-stage
 
 ENV TZ=UTC
 
-RUN apt-get install -y tzdata && ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
+RUN apt-get install -y tzdata
+RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
 RUN apt-get update 
 
