@@ -2,7 +2,7 @@ GOSS_VER = "0.4.8"
 
 
 dummy:
-	@echo "Build, install or host"
+	@echo "build-artifacts, install or host"
 
 install: build-artifacts  install-units
 
