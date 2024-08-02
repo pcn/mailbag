@@ -31,7 +31,7 @@ goss-bin:
 	curl -L https://github.com/aelsabbahy/goss/releases/download/v$(GOSS_VER)/goss-linux-amd64 > goss-bin && \
 	  chmod +x goss-bin
 
-## Build targets are now built by github actions
+## Build targets are now built by github actions, and downloaded in Dockerfile-base
 # build-artifacts: containers
 # # build-artifacts: containers unit-files
 # containers: service-images
