@@ -24,7 +24,7 @@ RUN bash /tmp/install-courier.sh
 # From now on, use new scripts/things to avoid re-building.
 
 FROM scratch AS export-stage
-COPY --from=build-stage /export /
+COPY --from=build-stage /export /export
 
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]
