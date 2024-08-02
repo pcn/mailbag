@@ -11,12 +11,10 @@ install-units: unit-files
 	cd unit-files && $(MAKE) install && \
 	sudo systemctl daemon-reload
 
-
-
-service-images: build-services.sh render-template   # courier-packages.tar
-	# mkdir -p target && \
-	#  ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
-	#  ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
+service-images: build-services.sh render-template courier-packages.tar
+	mkdir -p target && \
+	 ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
+	 ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
 	sudo ./build-services.sh
 
 courier-packages.tar: build-base.sh
