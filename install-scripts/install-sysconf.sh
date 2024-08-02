@@ -2,7 +2,7 @@
 
 set -e -u -o pipefail
 
-VER=0.19
+VER=0.21
 # Download per https://www.courier-mta.org/download.html
 mkdir /tmp/sysconf
 cd /tmp/sysconf
