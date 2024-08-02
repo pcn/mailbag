@@ -11,19 +11,6 @@ install-units: unit-files
 	cd unit-files && $(MAKE) install && \
 	sudo systemctl daemon-reload
 
-# This is runtime/install-time action - maybe remove this from here and make an install directory for that?
-host: host/Makefile
-	cd host; $(MAKE)
-
-# # This is runtime/install-time action
-# host/Makefile: host/Makefile.template context.json render-template
-# 	./render-template --context context.json --template host/Makefile.template > host/Makefile
-
-# unit-files/Makefile: unit-files/Makefile.template unit-files/files.json render-template
-# 	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
-
-# unit-files: render-template unit-files/Makefile
-# 	cd unit-files && $(MAKE)
 
 render-template:
 	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
@@ -51,3 +38,16 @@ stop: unit-files
 	cd unit-files && $(MAKE) stop-services
 
 
+## Build/runtime targets
+
+host: host/Makefile
+	cd host; $(MAKE)
+
+host/Makefile: host/Makefile.template context.json render-template
+	./render-template --context context.json --template host/Makefile.template > host/Makefile
+
+unit-files/Makefile: unit-files/Makefile.template unit-files/files.json render-template
+	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
+
+unit-files: render-template unit-files/Makefile
+	cd unit-files && $(MAKE)
