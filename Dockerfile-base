@@ -1,5 +1,5 @@
 FROM export-stage
-COPY --from=build-stage /export /tmp/p
+COPY --from=export-stage /export /tmp/p
 
 ENV TZ=UTC
 
