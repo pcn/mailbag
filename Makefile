@@ -12,8 +12,6 @@ install-units: unit-files
 	sudo systemctl daemon-reload
 
 
-render-template:
-	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
 
 service-images: build-services.sh render-template   # courier-packages.tar
 	# mkdir -p target && \
@@ -24,10 +22,6 @@ service-images: build-services.sh render-template   # courier-packages.tar
 courier-packages.tar: build-base.sh
 	sudo ./build-base.sh
 
-goss-bin:
-	curl -L https://github.com/aelsabbahy/goss/releases/download/v$(GOSS_VER)/goss-linux-amd64 > goss-bin && \
-	  chmod +x goss-bin
-
 run-goss: goss-bin
 	(cd goss && ../goss-bin --vars ../context.json validate)
 
@@ -36,6 +30,14 @@ start: unit-files
 
 stop: unit-files
 	cd unit-files && $(MAKE) stop-services
+
+## Pre-requisites
+render-template:
+	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
+
+goss-bin:
+	curl -L https://github.com/aelsabbahy/goss/releases/download/v$(GOSS_VER)/goss-linux-amd64 > goss-bin && \
+	  chmod +x goss-bin
 
 
 ## Build/runtime targets
