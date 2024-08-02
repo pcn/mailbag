@@ -1,9 +1,10 @@
 GOSS_VER = "0.4.8"
 
-build-artifacts: containers
-# build-artifacts: containers unit-files
 
-install: build-all  install-units
+dummy:
+	@echo "Build, install or host"
+
+install: build-artifacts  install-units
 
 containers: service-images
 
@@ -37,8 +38,12 @@ goss-bin:
 	curl -L https://github.com/aelsabbahy/goss/releases/download/v$(GOSS_VER)/goss-linux-amd64 > goss-bin && \
 	  chmod +x goss-bin
 
+## Build targets
+build-artifacts: containers
+# build-artifacts: containers unit-files
 
-## Build/runtime targets
+
+## Runtime targets
 
 host: host/Makefile
 	cd host; $(MAKE)
