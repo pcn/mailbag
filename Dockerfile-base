@@ -15,8 +15,8 @@ RUN apt-get install -y locales bzip2 curl && echo "LANG=en_US.UTF-8" > /etc/defa
 
 # RUN set -x; cd /tmp; mkdir p; cd p;
 # curl -L https://github.com/pcn/mailbag-build-couriermta/releases/download/v01pre5/courier-v01pre5.tar.bz2 | tar -xjf - && \
-RUN  ls; \
-  rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* *-dev* && \
+RUN  ls;
+RUN rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* *-dev* && \
   rm -f *mlm* && \
   apt install -y ./*.deb && \
   rm -f *.deb
