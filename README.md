@@ -16,13 +16,17 @@ as well:
 etc.
 
 ## Daemons and their groupings
-I haven't dived into why, or maybe how to better do this, but it seems
+~~I haven't dived into why, or maybe how to better do this, but it seems
 to me that there is a communications channel that I'm missing that's
 required for the mta to communicate with the courierd to properly
 deliver local mail. When they're not running in the same container, enqueued
 mail gets bounched or dropped (via backscatter protection) so I'm
 going to create 2 courier directories and mount one each for the msa and mta,
-and run the courierd in each of those containers.
+and run the courierd in each of those containers.~~
+
+Identified, still needs fixing: need a common temp dir to be
+mounted. On an old .deb-based installation, it happens in
+`/var/lib/courier/tmp/`
 
 ## courier userdb
 Courier's userdb provides a reasonable source format for virtual

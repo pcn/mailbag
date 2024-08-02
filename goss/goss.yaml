@@ -52,3 +52,9 @@ file:
     mode: 0700
     # owner: 300
     # group: 300
+
+  /var/lib/courier/tmp:
+    filetype: directory
+    exists: true
+    mode: 0755
+  
