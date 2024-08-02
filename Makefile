@@ -1,3 +1,5 @@
+GOSS_VER = "0.4.8"
+
 build-artifacts: containers
 # build-artifacts: containers unit-files
 
@@ -36,7 +38,7 @@ courier-packages.tar: build-base.sh
 	sudo ./build-base.sh
 
 goss-bin:
-	[ ! -f ./goss-bin ] && curl -L https://github.com/aelsabbahy/goss/releases/download/v0.3.18/goss-linux-amd64 > goss-bin && \
+	[ ! -f ./goss-bin ] && curl -L https://github.com/aelsabbahy/goss/releases/download/v$(GOSS_VER)/goss-linux-amd64 > goss-bin && \
 	  chmod +x goss-bin
 
 run-goss: goss-bin
