@@ -1,4 +1,4 @@
-FROM ubuntu:jammy AS build-stage
+FROM ubuntu:noble AS build-stage
 
 ENV TZ=UTC
 
