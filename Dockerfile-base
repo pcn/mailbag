@@ -1,4 +1,6 @@
 FROM export-stage
+FROM ubuntu:noble
+
 COPY --from=export-stage /export /tmp/p
 
 ENV TZ=UTC
