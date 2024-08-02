@@ -2,7 +2,7 @@ GOSS_VER = "0.4.8"
 
 
 dummy:
-	@echo "build-artifacts, install or host"
+	@echo "targets: service-images, install or host"
 
 install: build-artifacts  install-units
 
@@ -36,6 +36,8 @@ build-artifacts: containers
 # build-artifacts: containers unit-files
 containers: service-images
 
+# XXX I should be able to create the acceptmailfor and and hosteddomanins in the entryptpoints
+#  why is this hjere?
 service-images: build-services.sh render-template courier-packages.tar
 	mkdir -p target && \
 	 ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
