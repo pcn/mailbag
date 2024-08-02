@@ -5,7 +5,8 @@ set -e -o pipefail
 # From https://stackoverflow.com/questions/49638532/docker-copy-file-to-host-from-within-dockerfile
 export DOCKER_BUILDKIT=1
 
-# Base image with packages installed 
+# Base image with packages installed
+docker build -t export-stage -f Dockerfile .
 docker build -t courier-base -f Dockerfile-base  .
 # MTA image, for accepting mail delivery from the internet
 docker build -t courier-mta.service -f Dockerfile-mta .

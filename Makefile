@@ -32,9 +32,9 @@ goss-bin:
 	  chmod +x goss-bin
 
 ## Build targets are now built by github actions, and downloaded in Dockerfile-base
-# build-artifacts: containers
-# # build-artifacts: containers unit-files
-# containers: service-images
+build-artifacts: containers
+# build-artifacts: containers unit-files
+containers: service-images
 
 service-images: build-services.sh render-template courier-packages.tar
 	mkdir -p target && \
