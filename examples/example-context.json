@@ -42,5 +42,10 @@
     "domain": {
         "name": "testmail",
         "zone": "rton.me"
+    },
+    "paths" : {
+        "shared-tmp": "/var/lib/courier/tmp",
+        "not used yet": "but it will be later"
     }
+    
 }

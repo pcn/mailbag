@@ -53,7 +53,7 @@ file:
     # owner: 300
     # group: 300
 
-  /var/lib/courier/tmp:
+  {{ .Vars.paths.shared-tmp }}:
     filetype: directory
     exists: true
     mode: 0755
