@@ -41,9 +41,9 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: false
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: bare-image-${{ steps.meta.outputs.labels }}
+          labels: export-stage   # -${{ steps.meta.outputs.labels }}
           file: Dockerfile
           
       - name: Build, don't push base image
