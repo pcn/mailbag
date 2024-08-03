@@ -1,4 +1,4 @@
-name: Build support items
+name: Build supporting binaries and puh them
 on:
   workflow_run:
     workflows:
