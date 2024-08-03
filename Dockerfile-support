@@ -17,7 +17,7 @@ RUN mkdir /export
 RUN cd / && apt-get -y update && apt-get install -y curl && curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 RUN bash /tmp/packages.sh
-RUN cd /templater && . "$HOME/.cargo/env" && cargo build && cd target/debug/render-template /export
+RUN cd /templater && . "$HOME/.cargo/env" && cargo build && cp target/debug/render-template /export
 
 
 # From now on, use new scripts/things to avoid re-building.
