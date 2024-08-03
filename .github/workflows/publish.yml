@@ -36,7 +36,17 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
+
             
+      - name: Build the render binary
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: support   # -${{ steps.meta.outputs.labels }}
+          file: Dockerfile-support
+          
       - name: Build, don't push bare container with artifacts
         uses: docker/build-push-action@v2
         with:
