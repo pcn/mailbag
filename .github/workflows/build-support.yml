@@ -47,7 +47,6 @@ jobs:
             
       - name: Build the render binary
         uses: docker/build-push-action@v6
-        uses: dorny/paths-filter@v3
         id: build
         if: steps.changes.outputs.renderer == 'true'
         with:
