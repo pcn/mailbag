@@ -20,7 +20,7 @@ jobs:
       - name: build render-template
         uses: dtolnay/rust-toolchain@stable
         # XXX fix the below
-        run: echo "foo" || make render-template
+      - run: echo "foo" || make render-template
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
