@@ -1,0 +1,26 @@
+FROM ubuntu:noble AS build-support-binaries
+
+# Supporting binaries like the rendere, and maybe goss?
+
+ENV TZ=UTC
+
+RUN apt-get update && apt-get install -y tzdata
+RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
+
+RUN apt-get update 
+
+COPY templater /templater
+
+RUN mkdir /export
+
+RUN cd / && curl https://sh.rustup.rs -sSf | sh
+RUN cd /templater && cargo build && cd target/debug/render-template /export
+
+
+# From now on, use new scripts/things to avoid re-building.
+
+FROM scratch AS binaries
+COPY --from=build-support-binaries /export /export
+
+
+ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]
