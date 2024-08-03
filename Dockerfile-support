@@ -10,12 +10,13 @@ RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 RUN apt-get update 
 
 COPY templater /templater
+COPY install-scripts/packages.sh /tmp/packages.sh
 
 RUN mkdir /export
 
 RUN cd / && apt-get -y update && apt-get install -y curl && curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-RUN cd /templater && ls -laF 
+RUN bash /tmp/packages.sh
 RUN cd /templater && . "$HOME/.cargo/env" && cargo build && cd target/debug/render-template /export
 
 
