@@ -14,6 +14,7 @@ COPY templater /templater
 RUN mkdir /export
 
 RUN cd / && curl https://sh.rustup.rs -sSf | sh
+RUN cd /templater && ls -laF 
 RUN cd /templater && cargo build && cd target/debug/render-template /export
 
 
