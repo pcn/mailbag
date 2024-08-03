@@ -18,7 +18,7 @@ jobs:
       - name: checkout repository and build template tool
         uses: actions/checkout@v3
       - name: build render-template
-        uses: mirlahiji/rust-action@master
+        uses: dtolnay/rust-toolchain@stable
         with:  # XXX fix the below
           args: echo "foo" || make render-template
 
