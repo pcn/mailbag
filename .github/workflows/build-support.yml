@@ -39,12 +39,12 @@ jobs:
 
             
       - name: Build the render binary
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         uses: dorny/paths-filter@v3
         id: changes
         with:
           token: ${{ github.token }}
-          filters: .github/file-filters.yml
+          # filters: .github/file-filters.yml
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
