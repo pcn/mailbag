@@ -48,7 +48,7 @@ jobs:
       - name: Build the render binary
         uses: docker/build-push-action@v6
         id: build
-        if: steps.changes.outputs.renderer == 'true'
+        # if: steps.changes.outputs.renderer == 'true'
         with:
           token: ${{ github.token }}
           context: .
