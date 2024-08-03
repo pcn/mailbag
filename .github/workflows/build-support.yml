@@ -1,3 +1,6 @@
+# TODO: use GITHUB_TOKEN to use a repository token instead of a PAT
+# https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry
+
 name: Build supporting binaries and puh them
 on:
   workflow_run:
@@ -15,7 +18,7 @@ jobs:
   push_support_to_registry:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout repository and build template tool
+      - name: checkout repository and build template 
         uses: actions/checkout@v3
       - name: build render-template
         uses: dtolnay/rust-toolchain@stable
@@ -34,7 +37,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
+            ${{ env.REGISTRY }}/pcn/${{ env.IMAGE_NAME }}
 
       - name: Filter paths
         id: changes
