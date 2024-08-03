@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}-support
 
 jobs:
   push_to_registry:
@@ -45,12 +45,12 @@ jobs:
             renderer:
             - 'renderer/**'
             
-      - name: Build the render binary
+      - name: Build and push the render binary
         uses: docker/build-push-action@v6
         id: build
         # if: steps.changes.outputs.renderer == 'true'
         with:
-          token: ${{ github.token }}
+          # token: ${{ github.token }}
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
