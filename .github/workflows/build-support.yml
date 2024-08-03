@@ -37,19 +37,23 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}
 
+      - name: Filter paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            renderer:
+            - 'renderer/**'
             
       - name: Build the render binary
         uses: docker/build-push-action@v6
         uses: dorny/paths-filter@v3
-        id: changes
+        id: build
+        if: steps.changes.outputs.renderer == 'true'
         with:
           token: ${{ github.token }}
-          # filters: .github/file-filters.yml
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: support   # -${{ steps.meta.outputs.labels }}
           file: Dockerfile-support
-          filters:  |
-            renderer:
-            - 'renderer/**'
