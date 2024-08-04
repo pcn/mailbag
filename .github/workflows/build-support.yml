@@ -91,13 +91,13 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            packages:
+            build-packages:
             - Dockerfile
             - install-scripts/**
             
       - name: Build and push the render binary
         uses: docker/build-push-action@v6
-        id: build
+        id: build-packages
         if: steps.changes.outputs.renderer == 'true'
         with:
           context: .
