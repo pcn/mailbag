@@ -20,6 +20,7 @@ env:
   NAMESPACE: pcn
   SUPPORT_IMAGE_NAME: ${{ github.repository }}-support
   PACKAGES_IMAGE_NAME: ${{ github.repository }}-packages
+  BASE_IMAGE_NAME: ${{ github.repository }}-base
   
 
 jobs:
@@ -145,6 +146,6 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: packages   # -${{ steps.meta.outputs.labels }}
+          labels: base   # -${{ steps.meta.outputs.labels }}
           file: Dockerfile-base
           
