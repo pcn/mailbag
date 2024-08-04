@@ -1,5 +1,8 @@
+# TODO: Pull from a base image.
 FROM courier-base
 
+# Oh, this is so much better than configuration management
+# :rolls eyes:
 RUN cd /etc/courier; \
   sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g;s/^BOFHNOEXPN=0/BOFHNOEXPN=1/g;s/^BOFHNOVRFY=0/BOFHNOVRFY=1/g;s/^ESMTPAUTH_TLS=""/ESMTPAUTH_TLS="PLAIN LOGIN"/g' esmtpd && \
   echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd && \

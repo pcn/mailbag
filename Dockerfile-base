@@ -1,5 +1,9 @@
-FROM export-stage
+# support is the render-template binary
+FROM ghcr.io/pcn/pcn/mailbag-support:main AS support
+# export-stage is the packaged .debs for the courier components
+FROM export-stage 
 FROM ubuntu:noble
+
 
 COPY --from=export-stage /export /tmp/p
 
@@ -16,12 +20,14 @@ RUN apt-get install -y locales bzip2 curl && echo "LANG=en_US.UTF-8" > /etc/defa
 # RUN set -x; cd /tmp; mkdir p; cd p;
 # curl -L https://github.com/pcn/mailbag-build-couriermta/releases/download/v01pre5/courier-v01pre5.tar.bz2 | tar -xjf - && \
 RUN  ls /tmp/p
+# Remove packages that we don't want, and install all of the remaining packages.
 RUN cd /tmp/p; rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* *-dev* && \
   rm -f *mlm* && \
   apt install -y ./*.deb && \
   rm -f *.deb
 
 RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
+COPY --from=support /export /export
 COPY render-template /render-template
 COPY acceptmailfor.template /acceptmailfor.template
 COPY hosteddomains.template /hosteddomains.template

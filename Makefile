@@ -38,11 +38,12 @@ containers: service-images
 
 # XXX I should be able to create the acceptmailfor and and hosteddomanins in the entryptpoints
 #  why is this here?
-service-images: build-services.sh render-template courier-packages.tar
-	mkdir -p target && \
-	 ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
-	 ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
-	sudo ./build-services.sh
+# Yeah, this rendering should be done in the container
+# service-images: build-services.sh render-template
+# 	# mkdir -p target && \
+# 	#  ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
+# 	#  ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
+# 	sudo ./build-services.sh
 
 ## Runtime targets
 
