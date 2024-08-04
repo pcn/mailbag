@@ -1,4 +1,4 @@
-FROM courier-base
+FROM ghcr.io/pcn/pcn/mailbag-base:main
 
 RUN cd /etc/courier; sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd
 

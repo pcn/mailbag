@@ -1,5 +1,5 @@
 # TODO: Pull from a base image.
-FROM courier-base
+FROM ghcr.io/pcn/pcn/mailbag-base:main
 
 # Oh, this is so much better than configuration management
 # :rolls eyes:
