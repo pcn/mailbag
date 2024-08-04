@@ -112,8 +112,6 @@ jobs:
     steps:
       - name: checkout repository and push a base image
         uses: actions/checkout@v4
-      - name: build packages image
-
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
