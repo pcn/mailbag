@@ -1,11 +1,11 @@
 # support is the render-template binary
 FROM ghcr.io/pcn/pcn/mailbag-support:main AS support
 # export-stage is the packaged .debs for the courier components
-FROM export-stage 
+FROM ghcr.io/pcn/pcn/mailbag-packages:main AS packages
 FROM ubuntu:noble
 
 
-COPY --from=export-stage /export /tmp/p
+COPY --from=packages /export /tmp/p
 
 ENV TZ=UTC
 
@@ -27,8 +27,7 @@ RUN cd /tmp/p; rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* 
   rm -f *.deb
 
 RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
-COPY --from=support /export /export
-COPY render-template /render-template
+COPY --from=support /export/render-template /render-template
 COPY acceptmailfor.template /acceptmailfor.template
 COPY hosteddomains.template /hosteddomains.template
 

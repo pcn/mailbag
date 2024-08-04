@@ -107,46 +107,46 @@ jobs:
           file: Dockerfile
           
 
+  push_base_to_registry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository and push a base image
+        uses: actions/checkout@v4
+      - name: build packages image
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.MAILBAG_ACTION_PAT }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.NAMESPACE}}/${{ env.BASE_IMAGE_NAME }}
+
+      - name: Filter paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            renderer:
+            - 'Dockerfile'
+            - 'Dockerfile-base'
+            - 'install-scripts/**'
+            - 'entrypoints/**'
           
-# # XXX build the packages first          
-#   push_base_to_registry:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: checkout repository and push a base image
-#         uses: actions/checkout@v3
-#       - name: build packages image
-
-#       - name: Log in to the Container registry
-#         uses: docker/login-action@v3
-#         with:
-#           registry: ${{ env.REGISTRY }}
-#           username: ${{ github.actor }}
-#           password: ${{ secrets.MAILBAG_ACTION_PAT }}
-
-#       - name: Extract metadata (tags, labels) for Docker
-#         id: meta
-#         uses: docker/metadata-action@v5
-#         with:
-#           images: |
-#             ${{ env.REGISTRY }}/${{ env.NAMESPACE}}/${{ env.BASE_IMAGE_NAME }}
-
-#       - name: Filter paths
-#         id: changes
-#         uses: dorny/paths-filter@v3
-#         with:
-#           filters: |
-#             renderer:
-#             - 'Dockerfile'
-#             - 'install-scripts/**'
-            
-#       - name: Build and push the base packages
-#         uses: docker/build-push-action@v6
-#         id: build
-#         if: steps.changes.outputs.renderer == 'true'
-#         with:
-#           context: .
-#           push: true
-#           tags: ${{ steps.meta.outputs.tags }}
-#           labels: packages   # -${{ steps.meta.outputs.labels }}
-#           file: Dockerfile
+      - name: Build and push the base packages
+        uses: docker/build-push-action@v6
+        id: build
+        if: steps.changes.outputs.renderer == 'true'
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: packages   # -${{ steps.meta.outputs.labels }}
+          file: Dockerfile-base
           
