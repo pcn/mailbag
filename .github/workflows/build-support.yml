@@ -6,7 +6,7 @@
 # docker run --entrypoint /export/render ghcr.io/pcn/pcn/mailbag-support:main
 # in other words just get the binary from the registry
 
-name: Build supporting binaries and puh them
+name: Build supporting artifacts and push them in container images
 on:
   workflow_run:
     workflows:
