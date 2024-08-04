@@ -71,8 +71,6 @@ jobs:
     steps:
       - name: checkout repository and build template 
         uses: actions/checkout@v3
-      - name: build base image
-      - run: make render-template
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
