@@ -1,6 +1,11 @@
 # TODO: use GITHUB_TOKEN to use a repository token instead of a PAT
 # https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry
 
+# This needs to be built once for the rest of the process to work, since from now on we're going to do the
+# moral equivalent of
+# docker run --entrypoint /export/render ghcr.io/pcn/pcn/mailbag-support:main
+# in other words just get the binary from the registry
+
 name: Build supporting binaries and puh them
 on:
   workflow_run:
@@ -50,7 +55,7 @@ jobs:
       - name: Build and push the render binary
         uses: docker/build-push-action@v6
         id: build
-        # if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes.outputs.renderer == 'true'
         with:
           context: .
           push: true
