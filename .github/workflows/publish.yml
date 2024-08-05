@@ -9,95 +9,78 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_BASE_NAME: ${{ github.repository }}-courier
 
-# jobs:
-#   push_to_registry:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: checkout repository and build template tool
-#         uses: actions/checkout@v3
-#       - name: build render-template
-#         uses: mirlahiji/rust-action@master
-#         with:
-#           args: make render-template
+jobs:
+  push_to_registry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.MAILBAG_ACTION_PAT }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+
+      - name: Filter paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            build-packages:
+            - 'Dockerfile-*'
 
 
-#       - name: Log in to the Container registry
-#         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-#         with:
-#           registry: ${{ env.REGISTRY }}
-#           username: ${{ github.actor }}
-#           password: ${{ secrets.MAILBAG_ACTION_PAT }}
-
-#       - name: Extract metadata (tags, labels) for Docker
-#         id: meta
-#         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-#         with:
-#           images: |
-#             ghcr.io/${{ github.repository }}
-
-            
-#       # - name: Build the render binary
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: support   # -${{ steps.meta.outputs.labels }}
-      #     file: Dockerfile-support
-          
-      # - name: Build, don't push bare container with artifacts
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: export-stage   # -${{ steps.meta.outputs.labels }}
-      #     file: Dockerfile
-          
-      # - name: Build, don't push base image
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     push: false
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: base-${{ steps.meta.outputs.labels }}
-      #     file: Dockerfile-base
-          
-      # - name: Build and push mta image
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: mta-${{ steps.meta.outputs.labels }}
-      #     file: Dockerfile-mta
-          
-      # - name: Build and push mta-ssl image
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: mta-ssl-${{ steps.meta.outputs.labels }}
-      #     file: Dockerfile-mta-ssl
-          
-      # - name: Build and push imapd-ssl image
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: imapd-ssl-${{ steps.meta.outputs.labels }}
-      #     file: Dockerfile-imapd-ssl
-          
-      # - name: Build and push tinydns image
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: tinydns-${{ steps.meta.outputs.labels }}
-      #     file: Dockerfile-tinydns
+      - name: Build and push mta image
+        uses: docker/build-push-action@v5
+        id: mta
+        if: steps.changes.outputs.renderer == 'true'
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: mta-${{ steps.meta.outputs.labels }}
+          file: Dockerfile-mta
+        
+      - name: Build and push mta-ssl image
+        uses: docker/build-push-action@v5
+        id: mta-ssl
+        if: steps.changes.outputs.renderer == 'true'
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: mta-ssl-${{ steps.meta.outputs.labels }}
+          file: Dockerfile-mta-ssl
+        
+      - name: Build and push imapd-ssl image
+        uses: docker/build-push-action@v5
+        id: imapd-ssl
+        if: steps.changes.outputs.renderer == 'true'
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: imapd-ssl-${{ steps.meta.outputs.labels }}
+          file: Dockerfile-imapd-ssl
+        
+      - name: Build and push tinydns image
+        uses: docker/build-push-action@v5
+        id: tinydns
+        if: steps.changes.outputs.renderer == 'true'
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: tinydns-${{ steps.meta.outputs.labels }}
+          file: Dockerfile-tinydns
           
