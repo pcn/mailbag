@@ -240,41 +240,41 @@ jobs:
           labels: tinydns-${{ steps.meta.outputs.labels }}
           file: Dockerfile-tinydns
           
-  push_courierd_to_registry:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-      - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.MAILBAG_ACTION_PAT }}
+  # push_courierd_to_registry:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v4
+  #     - name: Log in to the Container registry
+  #       uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+  #       with:
+  #         registry: ${{ env.REGISTRY }}
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.MAILBAG_ACTION_PAT }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-courierd
+  #     - name: Extract metadata (tags, labels) for Docker
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: |
+  #           ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-courierd
 
-      - name: Filter paths
-        id: changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            build-packages:
-            - 'Dockerfile-*'
+  #     - name: Filter paths
+  #       id: changes
+  #       uses: dorny/paths-filter@v3
+  #       with:
+  #         filters: |
+  #           build-packages:
+  #           - 'Dockerfile-*'
 
-      - name: Build and push courierd image
-        uses: docker/build-push-action@v5
-        id: courierd
-        if: steps.changes.outputs.renderer == 'true'
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: courierd-${{ steps.meta.outputs.labels }}
-          file: Dockerfile-courierd
+  #     - name: Build and push courierd image
+  #       uses: docker/build-push-action@v5
+  #       id: courierd
+  #       if: steps.changes.outputs.renderer == 'true'
+  #       with:
+  #         context: .
+  #         push: true
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: courierd-${{ steps.meta.outputs.labels }}
+  #         file: Dockerfile-courierd
           
