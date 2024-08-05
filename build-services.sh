@@ -6,8 +6,9 @@ set -e -o pipefail
 export DOCKER_BUILDKIT=1
 
 # Base image with packages installed
-docker build -t export-stage -f Dockerfile .
-docker build -t courier-base -f Dockerfile-base  .
+# Fetch these images from ghcr
+# docker build -t export-stage -f Dockerfile .
+# docker build -t courier-base -f Dockerfile-base  .
 # MTA image, for accepting mail delivery from the internet
 docker build -t courier-mta.service -f Dockerfile-mta .
 docker build -t courier-mta-ssl.service -f Dockerfile-mta-ssl .
