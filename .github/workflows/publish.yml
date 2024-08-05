@@ -9,10 +9,11 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  NAMESPACE: pcn  
   IMAGE_BASE_NAME: ${{ github.repository }}-courier
 
 jobs:
-  push_to_registry:
+  push_mta_to_registry:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -29,7 +30,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ github.repository }}
+            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-mta
 
       - name: Filter paths
         id: changes
@@ -51,36 +52,36 @@ jobs:
           labels: mta-${{ steps.meta.outputs.labels }}
           file: Dockerfile-mta
         
-      - name: Build and push mta-ssl image
-        uses: docker/build-push-action@v5
-        id: mta-ssl
-        if: steps.changes.outputs.renderer == 'true'
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: mta-ssl-${{ steps.meta.outputs.labels }}
-          file: Dockerfile-mta-ssl
+      # - name: Build and push mta-ssl image
+      #   uses: docker/build-push-action@v5
+      #   id: mta-ssl
+      #   if: steps.changes.outputs.renderer == 'true'
+      #   with:
+      #     context: .
+      #     push: true
+      #     tags: ${{ steps.meta.outputs.tags }}
+      #     labels: mta-ssl-${{ steps.meta.outputs.labels }}
+      #     file: Dockerfile-mta-ssl
         
-      - name: Build and push imapd-ssl image
-        uses: docker/build-push-action@v5
-        id: imapd-ssl
-        if: steps.changes.outputs.renderer == 'true'
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: imapd-ssl-${{ steps.meta.outputs.labels }}
-          file: Dockerfile-imapd-ssl
+      # - name: Build and push imapd-ssl image
+      #   uses: docker/build-push-action@v5
+      #   id: imapd-ssl
+      #   if: steps.changes.outputs.renderer == 'true'
+      #   with:
+      #     context: .
+      #     push: true
+      #     tags: ${{ steps.meta.outputs.tags }}
+      #     labels: imapd-ssl-${{ steps.meta.outputs.labels }}
+      #     file: Dockerfile-imapd-ssl
         
-      - name: Build and push tinydns image
-        uses: docker/build-push-action@v5
-        id: tinydns
-        if: steps.changes.outputs.renderer == 'true'
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: tinydns-${{ steps.meta.outputs.labels }}
-          file: Dockerfile-tinydns
+      # - name: Build and push tinydns image
+      #   uses: docker/build-push-action@v5
+      #   id: tinydns
+      #   if: steps.changes.outputs.renderer == 'true'
+      #   with:
+      #     context: .
+      #     push: true
+      #     tags: ${{ steps.meta.outputs.tags }}
+      #     labels: tinydns-${{ steps.meta.outputs.labels }}
+      #     file: Dockerfile-tinydns
           
