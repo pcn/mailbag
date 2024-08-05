@@ -26,8 +26,9 @@ RUN cd /tmp/p; rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* 
   apt install -y ./*.deb && \
   rm -f *.deb
 
-RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
 COPY --from=support /export/render-template /render-template
+RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
+RUN chmod +x /render-template
 COPY acceptmailfor.template /acceptmailfor.template
 COPY hosteddomains.template /hosteddomains.template
 

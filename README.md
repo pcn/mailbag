@@ -82,17 +82,26 @@ Unit files will extract keys from the context via jq
 - [X] spin up impad-ssl
 - [X] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
 - [X] Figure out how to start authdaemond in each container so the local socket is available
-- [ ] document context for each component, add render-template to each container, run on startup with a bound context file
-- [ ] tinydns under runit working
-- [ ] document how tinydns is configured to work; using `make` on the host?
+- [ ] document context for each component
+- [X] add render-template to each container, run on startup with a bound context file
 
-- [ ] Figure out story for auto-renewal of certs
+- [ ] Ensure certbot is installed, available and usable
+- [ ] Ensure jq is installed, available and usable
+- [ ] Cerbot story for auto-renewal of certs
 - [ ] Figure out+document k9+mutt+offlineimap3+mu4e with imap
 - [X] Build images via github actions and distribute via ghcr.io
 - [ ] Make generating the context.json easier so that the containers can be configured
 
+- [ ] tinydns under runit working
+- [ ] document how tinydns is configured to work; using `make` on the host?
+
+- [ ] Pick a secrets store or API, and use it
+
 ### Current blocker
-document context file
+- document context file
+- secrets
+- the vmail network service needs configuration
+- ensure packages are installed
 
 
 ### Past issues: courier-mtpd not working over ssl/tls/starttls
