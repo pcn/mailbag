@@ -15,5 +15,7 @@ docker build -t courier-mta-ssl.service -f Dockerfile-mta-ssl .
 # docker build -t courier-msa.service -f Dockerfile-msa .
 # IMAPD-SSL image, for checking mail via IMAP
 docker build -t courier-imapd-ssl.service -f Dockerfile-imapd-ssl .
+# And a container for the courierd
+docker build -t courierd.service -f Dockerfile-courierd .
 # Tinydns for dns authoritative service
 docker build -t tinydns -f Dockerfile-tinydns .
