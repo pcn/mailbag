@@ -40,7 +40,6 @@ jobs:
             build-packages:
             - 'Dockerfile-*'
 
-
       - name: Build and push mta image
         uses: docker/build-push-action@v5
         id: mta
@@ -51,7 +50,45 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: mta-${{ steps.meta.outputs.labels }}
           file: Dockerfile-mta
-        
+
+  push_mta_ssl_to_registry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.MAILBAG_ACTION_PAT }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-mta-ssl
+
+      - name: Filter paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            build-packages:
+            - 'Dockerfile-*'
+
+      - name: Build and push mta image
+        uses: docker/build-push-action@v5
+        id: mta
+        if: steps.changes.outputs.renderer == 'true'
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: mta-${{ steps.meta.outputs.labels }}
+          file: Dockerfile-mta-ssl
+
       # - name: Build and push mta-ssl image
       #   uses: docker/build-push-action@v5
       #   id: mta-ssl
