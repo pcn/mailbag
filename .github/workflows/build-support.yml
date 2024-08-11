@@ -49,7 +49,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.SUPPORT_IMAGE_NAME }}
 
       - name: Filter paths
-        id: changes
+        id: changes-renderer
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -59,7 +59,7 @@ jobs:
       - name: Build and push the render binary
         uses: docker/build-push-action@v6
         id: build
-        # if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-renderer.outputs.renderer == 'true'
         with:
           context: .
           push: true
@@ -88,7 +88,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.PACKAGES_IMAGE_NAME }}
 
       - name: Filter paths
-        id: changes
+        id: changes-builld-packages
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -99,7 +99,7 @@ jobs:
       - name: Build and push the render binary
         uses: docker/build-push-action@v6
         id: build-packages
-        if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-build-packages.outputs.build-,packages == 'true'
         with:
           context: .
           push: true
@@ -128,11 +128,11 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}
 
       - name: Filter paths
-        id: changes
+        id: changes-base-deps
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            renderer:
+            base-deps:
             - 'Dockerfile'
             - 'Dockerfile-base'
             - 'install-scripts/**'
@@ -141,7 +141,7 @@ jobs:
       - name: Build and push the base packages
         uses: docker/build-push-action@v6
         id: build
-        if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-base-deps.outputs.base-deps == 'true'
         with:
           context: .
           push: true
