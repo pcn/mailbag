@@ -17,9 +17,8 @@ RUN mkdir /export
 RUN cd / && apt-get -y update && apt-get install -y curl && curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 RUN bash /tmp/packages.sh
-# XXX this takes a lot of time to test
-# RUN cd /templater && . "$HOME/.cargo/env" && cargo build && cp target/debug/render-template /export && chmod +x /export/render-template
-RUN date > /export/render-template
+RUN cd /templater && . "$HOME/.cargo/env" && cargo build && cp target/debug/render-template /export && chmod +x /export/render-template
+
 
 
 # From now on, use new scripts/things to avoid re-building.
