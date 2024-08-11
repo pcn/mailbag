@@ -20,6 +20,6 @@ set -e -x -o pipefail
   chown daemon esmtpd.pem
 )
 # start courierd in the background
-/usr/lib/courier/share/courierctl.start
+# /usr/lib/courier/share/courierctl.start
 # and the esmtpd
 /usr/lib/courier/sbin/esmtpd start

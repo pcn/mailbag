@@ -46,7 +46,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE}}/${{ env.SUPPORT_IMAGE_NAME }}
+            ${{ env.REGISTRY }}/${{ env.SUPPORT_IMAGE_NAME }}
 
       - name: Filter paths
         id: changes
