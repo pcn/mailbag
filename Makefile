@@ -1,5 +1,8 @@
 GOSS_VER = "0.4.8"
 
+IMAGE_REGISTRY = "ghcr.io/pcn/mailbag"
+TAG = "latest"
+
 
 dummy:
 	@echo "targets: service-images, install or host"
@@ -58,3 +61,6 @@ unit-files/Makefile: unit-files/Makefile.template unit-files/files.json render-t
 
 unit-files: render-template unit-files/Makefile
 	cd unit-files && $(MAKE)
+
+fetch-images:
+	docker pull $(IMAGE_REGISTRY)/msa:$(TAG)
