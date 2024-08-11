@@ -9,8 +9,10 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  NAMESPACE: pcn  
-  IMAGE_BASE_NAME: ${{ github.repository }}-courier
+  NAMESPACE: pcn
+  COURIER_IMGE_BASE_NAME: ${{ github.repository }}/courier
+  DJBDNS_IMGE_BASE_NAME: ${{ github.repository }}/djbdns
+  
 
 jobs:
   push_mta_to_registry:
@@ -30,7 +32,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-mta
+            ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-mta
 
       - name: Filter paths
         id: changes
@@ -43,7 +45,7 @@ jobs:
       - name: Build and push mta image
         uses: docker/build-push-action@v5
         id: mta
-        if: steps.changes.outputs.renderer == 'true'
+        # if: steps.changes.outputs.renderer == 'true'
         with:
           context: .
           push: true
@@ -57,7 +59,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -68,7 +70,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-msa
+            ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-msa
 
       - name: Filter paths
         id: changes
@@ -81,7 +83,7 @@ jobs:
       - name: Build and push msa image
         uses: docker/build-push-action@v5
         id: msa
-        if: steps.changes.outputs.renderer == 'true'
+        # if: steps.changes.outputs.renderer == 'true'
         with:
           context: .
           push: true
@@ -95,7 +97,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -106,7 +108,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-courierd
+            ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-courierd
 
       - name: Filter paths
         id: changes
@@ -119,7 +121,7 @@ jobs:
       - name: Build and push courierd image
         uses: docker/build-push-action@v5
         id: courierd
-        if: steps.changes.outputs.renderer == 'true'
+        # if: steps.changes.outputs.renderer == 'true'
         with:
           context: .
           push: true
@@ -133,7 +135,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -144,7 +146,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-mta-ssl
+            ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-mta-ssl
 
       - name: Filter paths
         id: changes
@@ -157,7 +159,7 @@ jobs:
       - name: Build and push mta-ssl image
         uses: docker/build-push-action@v5
         id: mta-ssl
-        if: steps.changes.outputs.renderer == 'true'
+        # if: steps.changes.outputs.renderer == 'true'
         with:
           context: .
           push: true
@@ -171,7 +173,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -182,7 +184,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-impad-ssl
+            ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-impad-ssl
 
       - name: Filter paths
         id: changes
@@ -194,7 +196,7 @@ jobs:
       - name: Build and push imapd-ssl image
         uses: docker/build-push-action@v5
         id: imapd-ssl
-        if: steps.changes.outputs.renderer == 'true'
+        # if: steps.changes.outputs.renderer == 'true'
         with:
           context: .
           push: true
@@ -208,7 +210,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -219,7 +221,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-tinydns
+            ${{ env.REGISTRY }}/${{ env.DJBDNS_IMGE_BASE_NAME }}-tinydns
 
       - name: Filter paths
         id: changes
@@ -232,7 +234,7 @@ jobs:
       - name: Build and push tinydns image
         uses: docker/build-push-action@v5
         id: tinydns
-        if: steps.changes.outputs.renderer == 'true'
+        # if: steps.changes.outputs.renderer == 'true'
         with:
           context: .
           push: true
@@ -246,7 +248,7 @@ jobs:
   #     - name: Checkout repo
   #       uses: actions/checkout@v4
   #     - name: Log in to the Container registry
-  #       uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+  #       uses: docker/login-action@v3
   #       with:
   #         registry: ${{ env.REGISTRY }}
   #         username: ${{ github.actor }}
