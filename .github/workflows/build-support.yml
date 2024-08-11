@@ -96,10 +96,10 @@ jobs:
             - Dockerfile
             - install-scripts/**
             
-      - name: Build and push the render binary
+      - name: Build and push the built deb packages
         uses: docker/build-push-action@v6
         id: build-packages
-        if: steps.changes-build-packages.outputs.build-packages == 'true'
+        # if: steps.changes-build-packages.outputs.build-packages == 'true'
         with:
           context: .
           push: true
