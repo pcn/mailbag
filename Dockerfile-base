@@ -1,7 +1,7 @@
 # support is the render-template binary
-FROM ghcr.io/pcn/pcn/mailbag-support:main AS support
+FROM ghcr.io/pcn/mailbag-support:main AS support
 # export-stage is the packaged .debs for the courier components
-FROM ghcr.io/pcn/pcn/mailbag-packages:main AS packages
+FROM ghcr.io/pcn/mailbag-packages:main AS packages
 FROM ubuntu:noble
 
 

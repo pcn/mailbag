@@ -1,4 +1,4 @@
-FROM ghcr.io/pcn/pcn/mailbag-base:main
+FROM ghcr.io/pcn/mailbag-base:main
 
 RUN cd /etc/courier; \
   echo "TLS_PROTOCOL=TLSv1.2++" >> imapd-ssl  && \

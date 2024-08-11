@@ -1,4 +1,4 @@
-FROM ghcr.io/pcn/pcn/mailbag-base:main
+FROM ghcr.io/pcn/mailbag-base:main
 
 RUN cd /etc/courier; sed -i.dist 's/ESMTPDSSLSTART=NO/ESMTPDSSLSTART=YES/g' esmtpd-ssl && \
   echo 'BOFHNOEXPN=1' >> esmtpd-ssl && \
