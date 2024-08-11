@@ -30,7 +30,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-mta
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE_NAME }}-mta
 
       - name: Filter paths
         id: changes
@@ -68,7 +68,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-msa
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE_NAME }}-msa
 
       - name: Filter paths
         id: changes
@@ -106,7 +106,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-courierd
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE_NAME }}-courierd
 
       - name: Filter paths
         id: changes
@@ -144,7 +144,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-mta-ssl
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE_NAME }}-mta-ssl
 
       - name: Filter paths
         id: changes
@@ -182,7 +182,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-impad-ssl
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE_NAME }}-impad-ssl
 
       - name: Filter paths
         id: changes
@@ -219,7 +219,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-tinydns
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE_NAME }}-tinydns
 
       - name: Filter paths
         id: changes
