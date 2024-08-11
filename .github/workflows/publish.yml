@@ -9,8 +9,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  NAMESPACE: pcn  
-  IMAGE_BASE_NAME: ${{ github.repository }}-courier
+  NAMESPACE: pcn
+  IMAGE_BASE_NAME: ${{ github.repository }}/courier
 
 jobs:
   push_mta_to_registry:
