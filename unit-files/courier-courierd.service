@@ -1,0 +1,24 @@
+[Unit]
+Description=courier-courierd Service
+After=docker.service
+Requires=vmail-custom-net.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker exec $( jq -r .courierd.service /etc/mailbag/context.json ) stop
+ExecStartPre=-/usr/bin/docker rm $( jq -r .courierd.service /etc/mailbag/context.json )
+ExecStart=/usr/bin/docker run --rm --name $( jq -r .courierd.service /etc/mailbag/context.json ) \
+    --net $( jq -r .docker.network_name /etc/mailbag/context.json ) \
+    --hostname $( jq -r .courierd.dns_name  /etc/mailbag/context.json ) \
+    -v $( jq -r .userdb.directory /etc/mailbag/context.json ):$( jq -r .userdb.directory /etc/mailbag/context.json ) \
+    -v /run/systemd/journal/dev-log:/dev/log \
+    -v /var/spool/mail:/var/spool/mail \
+    -v /var/spool/courier-mta:/var/spool/courier \
+    -v /var/lib/courier/tmp/:/var/lib/courier/tmp/ \
+    $( jq -r .courierd.image /etc/mailbag/context.json ):main
+
+ExecStop=/usr/bin/docker kill $( jq -r .courierd.service /etc/mailbag/context.json )
+
+[Install]
+WantedBy=default.target

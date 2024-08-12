@@ -1,4 +1,8 @@
 {
+    "courierd": {
+        "service": "courier-courierd.service",
+        "image": "ghcr.io/pcn/mailbag/courier-courierd:main"
+    },
     "mda": {
         "mail_path_host": "/opt/vmail",
         "mail_path_container": "/opt/vmail",
