@@ -3,12 +3,12 @@
 set -e -x -o pipefail
 
 # context.json is added via the docker/container as a bind mount
-/render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
-/render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
+# /render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
+# /render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
 
-/usr/lib/courier/share/makehosteddomains
+# /usr/lib/courier/share/makehosteddomains
 
-# And start the msa, based on /usr/lib/courier/share/courierctl.start.
+# # And start the msa, based on /usr/lib/courier/share/courierctl.start.
 # we don't want to start this in the background
 prefix="/usr/lib/courier"
 exec_prefix="/usr/lib/courier"
