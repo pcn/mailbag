@@ -2,6 +2,8 @@
 
 set -e -x -o pipefail
 
+export THEUSER=daemon
+
 # context.json is added via the docker/container as a bind mount
 /render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
 /render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
@@ -9,6 +11,10 @@ set -e -x -o pipefail
 /usr/lib/courier/share/makeacceptmailfor
 /usr/lib/courier/share/makehosteddomains
 /usr/lib/courier/sbin/makesmtpaccess
+( cd /etc/authlib && \
+      chmod 700 userdb && \
+      chown $THEUSER userdb )
+  
 /usr/sbin/makeuserdb
 /usr/lib/courier/sbin/makealiases
 
@@ -20,6 +26,6 @@ set -e -x -o pipefail
   chown daemon esmtpd.pem
 )
 # start courierd in the background
-/usr/lib/courier/share/courierctl.start
+# /usr/lib/courier/share/courierctl.start
 # and the esmtpd
 /usr/lib/courier/sbin/esmtpd start

@@ -22,6 +22,7 @@ ExecStart=/usr/bin/docker run --rm --name $( jq -r .mta.service /etc/mailbag/con
     -v /etc/mailbag/context.json:/context.json \
     -v /etc/mailbag/acceptmailfor.template:/acceptmailfor.template \
     -v /etc/mailbag/hosteddomains.template:/hosteddomains.template \
+    -v /var/lib/courier/tmp/:/var/lib/courier/tmp/ \
     -p 25:25 \
     $( jq -r .mta.service /etc/mailbag/context.json ):latest
 

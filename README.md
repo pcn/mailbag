@@ -15,6 +15,18 @@ as well:
 
 etc.
 
+Install certbot with `apt install -y certbot`
+
+It seems like cerbot will create a directory called
+`/etc/cerbot/live/<domain name>-<4-digit generation>/` that the files will
+live in. As the cert gets renewed, that diretory's generation will
+start with 001, then become 0002, etc.
+
+This feels fragile, I'll have to just grab the most recent directory
+and use that when starting up containers I guess.
+
+
+
 ## Daemons and their groupings
 ~~I haven't dived into why, or maybe how to better do this, but it seems
 to me that there is a communications channel that I'm missing that's

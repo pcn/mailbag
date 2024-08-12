@@ -35,7 +35,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-mta
 
       - name: Filter paths
-        id: changes
+        id: changes-mta
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -45,7 +45,7 @@ jobs:
       - name: Build and push mta image
         uses: docker/build-push-action@v5
         id: mta
-        # if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-mta.outputs.build-packages == 'true'
         with:
           context: .
           push: true
@@ -73,7 +73,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-msa
 
       - name: Filter paths
-        id: changes
+        id: changes-msa
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -83,7 +83,7 @@ jobs:
       - name: Build and push msa image
         uses: docker/build-push-action@v5
         id: msa
-        # if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-msa.outputs.build-packages == 'true'
         with:
           context: .
           push: true
@@ -111,7 +111,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-courierd
 
       - name: Filter paths
-        id: changes
+        id: changes-courierd
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -121,7 +121,7 @@ jobs:
       - name: Build and push courierd image
         uses: docker/build-push-action@v5
         id: courierd
-        # if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-courierd.outputs.build-packages == 'true'
         with:
           context: .
           push: true
@@ -149,7 +149,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-mta-ssl
 
       - name: Filter paths
-        id: changes
+        id: changes-mta-ssl
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -159,7 +159,7 @@ jobs:
       - name: Build and push mta-ssl image
         uses: docker/build-push-action@v5
         id: mta-ssl
-        # if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-mta-ssl.outputs.build-packages == 'true'
         with:
           context: .
           push: true
@@ -187,7 +187,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-impad-ssl
 
       - name: Filter paths
-        id: changes
+        id: changes-imapd-ssl
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -196,7 +196,7 @@ jobs:
       - name: Build and push imapd-ssl image
         uses: docker/build-push-action@v5
         id: imapd-ssl
-        # if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-impad-ssl.outputs.build-packages == 'true'
         with:
           context: .
           push: true
@@ -224,7 +224,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.DJBDNS_IMGE_BASE_NAME }}-tinydns
 
       - name: Filter paths
-        id: changes
+        id: changes-tinydns
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -234,49 +234,11 @@ jobs:
       - name: Build and push tinydns image
         uses: docker/build-push-action@v5
         id: tinydns
-        # if: steps.changes.outputs.renderer == 'true'
+        if: steps.changes-tinydns.outputs.build-packages == 'true'
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: tinydns-${{ steps.meta.outputs.labels }}
           file: Dockerfile-tinydns
-          
-  # push_courierd_to_registry:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout repo
-  #       uses: actions/checkout@v4
-  #     - name: Log in to the Container registry
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: ${{ env.REGISTRY }}
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.MAILBAG_ACTION_PAT }}
-
-  #     - name: Extract metadata (tags, labels) for Docker
-  #       id: meta
-  #       uses: docker/metadata-action@v5
-  #       with:
-  #         images: |
-  #           ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_BASE_NAME }}-courierd
-
-  #     - name: Filter paths
-  #       id: changes
-  #       uses: dorny/paths-filter@v3
-  #       with:
-  #         filters: |
-  #           build-packages:
-  #           - 'Dockerfile-*'
-
-  #     - name: Build and push courierd image
-  #       uses: docker/build-push-action@v5
-  #       id: courierd
-  #       if: steps.changes.outputs.renderer == 'true'
-  #       with:
-  #         context: .
-  #         push: true
-  #         tags: ${{ steps.meta.outputs.tags }}
-  #         labels: courierd-${{ steps.meta.outputs.labels }}
-  #         file: Dockerfile-courierd
           
