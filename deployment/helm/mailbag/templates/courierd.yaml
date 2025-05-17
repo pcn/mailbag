@@ -1,0 +1,73 @@
+{{- if .Values.components.courierd.enabled -}}
+{{- $namespace := .Values.namespace.name -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-courierd
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/component: courierd
+spec:
+  replicas: {{ .Values.components.courierd.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: courierd
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/component: courierd
+    spec:
+      initContainers:
+      - name: init-dirs
+        image: busybox:latest
+        command: 
+        - sh
+        - -c
+        - |
+          mkdir -p /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+          chmod 750 /var/spool/courier/{msgq,msgs,filters,allfilters}
+          chmod 770 /var/spool/courier/tmp
+          chmod 755 /var/spool/courier/track
+          chown -R daemon:daemon /var/spool/courier
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: courierd
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}/courier-courierd.service:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        - name: mail-storage
+          mountPath: /vmail
+        - name: context-config
+          mountPath: /context.json
+          subPath: context.json
+        securityContext:
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+          runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        resources:
+          {{- toYaml .Values.components.courierd.resources | nindent 10 }}
+      volumes:
+      - name: courier-spool
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-courier-spool-pvc
+      - name: mail-storage
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-mail-storage-pvc
+      - name: context-config
+        configMap:
+          name: {{ .Release.Name }}-context
+{{- end }}

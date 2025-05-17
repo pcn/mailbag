@@ -41,20 +41,132 @@ service:
     skip: false
 
 file:
-  /opt/vmail:
+  /vmail:
     filetype: directory
     exists: true
     mode: 0755
 
-  {{ .Vars.mda.mail_path.host }}:
+  # /vmail/<name of the domain> check here
+  {{ .Vars.mda.mail_path_host }}:
     filetype: directory
     exists: true
-    mode: 0700
-    # owner: 300
-    # group: 300
+    mode: {{ .Vars.mda.mode }}
 
-  {{ .Vars.paths.shared-tmp }}:
+
+  # MTA
+  {{ .Vars.mta.courierd_path_host }}:
     filetype: directory
     exists: true
     mode: 0755
-  
+    owner: root
+
+  {{ .Vars.mta.courierd_path_host }}/msgq:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.mta.courierd_path_host }}/msgs:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.mta.courierd_path_host }}/msgfilters:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.mta.courierd_path_host }}/allfilters:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.mta.courierd_path_host }}/tmp:
+    filetype: directory
+    exists: true
+    mode: 0770
+
+  {{ .Vars.mta.courierd_path_host }}/track:
+    filetype: directory
+    exists: true
+    mode: 0755
+    
+
+
+  # MTA_SSL
+  {{ .Vars.mta_ssl.courierd_path_host }}:
+    filetype: directory
+    exists: true
+    mode: 0755
+    owner: root
+
+  {{ .Vars.mta_ssl.courierd_path_host }}/msgq:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.mta_ssl.courierd_path_host }}/msgs:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.mta_ssl.courierd_path_host }}/msgfilters:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.mta_ssl.courierd_path_host }}/allfilters:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.mta_ssl.courierd_path_host }}/tmp:
+    filetype: directory
+    exists: true
+    mode: 0770
+
+  {{ .Vars.mta_ssl.courierd_path_host }}/track:
+    filetype: directory
+    exists: true
+    mode: 0755
+
+
+    
+  # MSA
+  {{ .Vars.msa.courierd_path_host }}:
+    filetype: directory
+    exists: true
+    mode: 0755
+    owner: root
+
+  {{ .Vars.msa.courierd_path_host }}/msgq:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.msa.courierd_path_host }}/msgs:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.msa.courierd_path_host }}/msgfilters:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.msa.courierd_path_host }}/allfilters:
+    filetype: directory
+    exists: true
+    mode: 0750
+
+  {{ .Vars.msa.courierd_path_host }}/tmp:
+    filetype: directory
+    exists: true
+    mode: 0770
+
+  {{ .Vars.msa.courierd_path_host }}/track:
+    filetype: directory
+    exists: true
+    mode: 0755
+
+
+    

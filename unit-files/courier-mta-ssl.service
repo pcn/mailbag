@@ -15,6 +15,7 @@ ExecStart=/usr/bin/docker run --rm --name $( jq -r .mta_ssl.service /etc/mailbag
     -v $( jq -r .mta_ssl.tls_certfile /etc/mailbag/context.json ):/usr/lib/courier/share/esmtpd_cert.pem \
     -v $( jq -r .mta_ssl.tls_keyfile /etc/mailbag/context.json ):/usr/lib/courier/share/esmtpd_private_key.pem \
     -v $( jq -r .mda.mail_path_host /etc/mailbag/context.json ):$( jq -r .mda.mail_path_container /etc/mailbag/context.json ) \
+    -v $( jq -r .mta.courierd_path_host /etc/mailbag/context.json ):$( jq -r .mta.courier_path_container /etc/mailbag/context.json ) \
     -v /run/systemd/journal/dev-log:/dev/log \
     -v /var/spool/mail:/var/spool/mail \
     -v /var/spool/courier-mta-ssl:/var/spool/courier \

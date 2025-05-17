@@ -1,0 +1,173 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: courier-spool-pv
+  labels:
+    app: mailbag
+    type: courier-spool
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mailbag/spool/courier
+    type: Directory
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mail-storage-pv
+  labels:
+    app: mailbag
+    type: mail-storage
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /vmail
+    type: Directory
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: courier-config-pv
+  labels:
+    app: mailbag
+    type: courier-config
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mailbag/config/courier
+    type: Directory
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: courier-auth-pv
+  labels:
+    app: mailbag
+    type: courier-auth
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mailbag/config/authlib
+    type: Directory
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: courier-cert-pv
+  labels:
+    app: mailbag
+    type: courier-cert
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /etc/letsencrypt
+    type: Directory
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: courier-spool-pvc
+  namespace: mailbag
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  selector:
+    matchLabels:
+      type: courier-spool
+  volumeName: courier-spool-pv
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mail-storage-pvc
+  namespace: mailbag
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  selector:
+    matchLabels:
+      type: mail-storage
+  volumeName: mail-storage-pv
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: courier-config-pvc
+  namespace: mailbag
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      type: courier-config
+  volumeName: courier-config-pv
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: courier-auth-pvc
+  namespace: mailbag
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      type: courier-auth
+  volumeName: courier-auth-pv
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: courier-cert-pvc
+  namespace: mailbag
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      type: courier-cert
+  volumeName: courier-cert-pv

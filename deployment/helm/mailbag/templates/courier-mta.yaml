@@ -1,0 +1,130 @@
+{{- if .Values.components.mta.enabled -}}
+{{- $namespace := .Values.namespace.name -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-courier-mta
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/component: mta
+spec:
+  replicas: {{ .Values.components.mta.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: mta
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/component: mta
+    spec:
+      initContainers:
+      - name: init-dirs
+        image: busybox:latest
+        command: 
+        - sh
+        - -c
+        - |
+          mkdir -p /etc/courier/esmtpacceptmailfor.dir
+          mkdir -p /etc/authlib/userdb
+          chmod 700 /etc/authlib/userdb
+          chown -R daemon:daemon /etc/courier
+          chown -R daemon:daemon /etc/authlib
+        volumeMounts:
+        - name: courier-config
+          mountPath: /etc/courier
+        - name: courier-auth
+          mountPath: /etc/authlib
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: courier-mta
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}/courier-mta.service:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: 25
+          name: smtp
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        - name: mail-storage
+          mountPath: /vmail
+        - name: courier-config
+          mountPath: /etc/courier
+        - name: courier-auth
+          mountPath: /etc/authlib
+        - name: courier-cert
+          mountPath: /certs
+        - name: context-config
+          mountPath: /context.json
+          subPath: context.json
+        - name: templates
+          mountPath: /acceptmailfor.template
+          subPath: acceptmailfor.template
+        - name: templates
+          mountPath: /hosteddomains.template
+          subPath: hosteddomains.template
+        securityContext:
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+          runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        resources:
+          {{- toYaml .Values.components.mta.resources | nindent 10 }}
+      volumes:
+      - name: courier-spool
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-courier-spool-pvc
+      - name: mail-storage
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-mail-storage-pvc
+      - name: courier-config
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-courier-config-pvc
+      - name: courier-auth
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-courier-auth-pvc
+      - name: courier-cert
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-courier-cert-pvc
+      - name: context-config
+        configMap:
+          name: {{ .Release.Name }}-context
+          items:
+          - key: context.json
+            path: context.json
+      - name: templates
+        configMap:
+          name: {{ .Release.Name }}-context
+---
+{{- if .Values.services.mta.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mta
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/component: mta
+spec:
+  type: {{ .Values.services.type }}
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: mta
+  ports:
+  - port: {{ .Values.services.mta.port }}
+    targetPort: smtp
+    protocol: TCP
+    name: smtp
+{{- end }}
+{{- end }}

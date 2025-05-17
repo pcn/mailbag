@@ -1,0 +1,48 @@
+#!/bin/bash
+# This script prepares the host directories and permissions for Mailbag deployment
+# Generated from prepare-host.sh.template
+
+set -e
+echo "Preparing host directories for Mailbag deployment..."
+
+# Create base directories
+mkdir -p {{ .mta.courierd_path_host }}
+mkdir -p {{ .mda.mail_path_host }}
+mkdir -p /mailbag/config/courier
+mkdir -p /mailbag/config/authlib
+
+# Create critical courier spool subdirectories
+mkdir -p {{ .mta.courierd_path_host }}/{msgq,msgs,track,tmp,filters,allfilters}
+
+# Create vmail user on host if it doesn't exist
+if ! id -u vmail > /dev/null 2>&1; then
+  echo "Creating vmail user with UID 300..."
+  groupadd -g 300 vmail || echo "Group vmail already exists"
+  useradd -M -r -d {{ .mda.mail_path_host }} -u 300 -g vmail vmail || echo "User vmail already exists"
+fi
+
+# Set correct permissions
+chmod 750 {{ .mta.courierd_path_host }}/msgq
+chmod 750 {{ .mta.courierd_path_host }}/msgs
+chmod 755 {{ .mta.courierd_path_host }}/track
+chmod 770 {{ .mta.courierd_path_host }}/tmp
+chmod 750 {{ .mta.courierd_path_host }}/filters
+chmod 750 {{ .mta.courierd_path_host }}/allfilters
+chmod 755 /mailbag/config/courier
+chmod 700 /mailbag/config/authlib
+
+# Set correct ownership
+chown -R vmail:vmail {{ .mda.mail_path_host }}
+chown -R vmail:vmail {{ .mta.courierd_path_host }}
+chown -R vmail:vmail /mailbag/config/courier
+chown -R vmail:vmail /mailbag/config/authlib
+
+# Copy context.json to the expected location
+mkdir -p /etc/mailbag
+cp /path/to/context.json /etc/mailbag/context.json
+
+echo "Host preparation complete!"
+echo "Next steps:"
+echo "1. Edit /etc/mailbag/context.json with your mail domain settings"
+echo "2. Ensure Let's Encrypt certificates are available at the paths specified in context.json"
+echo "3. Deploy the Kubernetes manifests with 'kubectl apply -f /path/to/k8s/manifests/'"

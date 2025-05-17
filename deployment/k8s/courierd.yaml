@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: courierd
+  namespace: mailbag
+  labels:
+    app: mailbag
+    component: courierd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailbag
+      component: courierd
+  template:
+    metadata:
+      labels:
+        app: mailbag
+        component: courierd
+    spec:
+      initContainers:
+      - name: init-dirs
+        image: busybox:latest
+        command: 
+        - sh
+        - -c
+        - |
+          mkdir -p /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+          chmod 750 /var/spool/courier/{msgq,msgs,filters,allfilters}
+          chmod 770 /var/spool/courier/tmp
+          chmod 755 /var/spool/courier/track
+          chown -R daemon:daemon /var/spool/courier
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: courierd
+        image: ghcr.io/pcn/mailbag/courier-courierd.service:main
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        - name: mail-storage
+          mountPath: /vmail
+        - name: context-config
+          mountPath: /context.json
+          subPath: context.json
+        securityContext:
+          runAsUser: 300
+          runAsGroup: 300
+      volumes:
+      - name: courier-spool
+        persistentVolumeClaim:
+          claimName: courier-spool-pvc
+      - name: mail-storage
+        persistentVolumeClaim:
+          claimName: mail-storage-pvc
+      - name: context-config
+        configMap:
+          name: mailbag-context

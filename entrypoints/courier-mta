@@ -12,8 +12,8 @@ export THEUSER=daemon
 /usr/lib/courier/share/makehosteddomains
 /usr/lib/courier/sbin/makesmtpaccess
 ( cd /etc/authlib && \
-      chmod 700 userdb && \
-      chown $THEUSER userdb )
+      chmod -R 700 userdb && \
+      chown -R $THEUSER userdb )
   
 /usr/sbin/makeuserdb
 /usr/lib/courier/sbin/makealiases
@@ -25,7 +25,17 @@ export THEUSER=daemon
   chmod 400 esmtpd.pem;
   chown daemon esmtpd.pem
 )
+
+# Ensure the directory structure is in place to communicate with courierd.
+# XXX This will work with goss
+# templates of scripts that generate scripts that run templates etc.
+mkdir -p  /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+chown -R daemon:daemon  /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+chmod 750  /var/spool/courier/{msgq,msgs,filters,allfilters}
+chmod 770  /var/spool/courier/tmp
+chmod 755  /var/spool/courier/track
+
 # start courierd in the background
-# /usr/lib/courier/share/courierctl.start
+/usr/lib/courier/share/courierctl.start
 # and the esmtpd
 /usr/lib/courier/sbin/esmtpd start
