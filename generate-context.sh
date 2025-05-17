@@ -120,4 +120,4 @@ cat > /etc/mailbag/context.json << EOF
 EOF
 
 echo "Generated context.json at /etc/mailbag/context.json"
-echo "Now run ./generate-host-scripts.sh to create the host preparation script"
+echo "Now run deployment/k8s/generate-host-scripts.sh to create the host preparation script"

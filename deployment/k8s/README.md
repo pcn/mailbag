@@ -25,9 +25,10 @@ Use the included script to generate a customized context.json file:
 ```bash
 # Make scripts executable
 chmod +x *.sh
+chmod +x ../../generate-context.sh
 
 # Generate context.json with your mail domain settings
-sudo ./generate-context.sh
+sudo ../../generate-context.sh
 ```
 
 This script will prompt you for:
@@ -140,6 +141,33 @@ The script automatically handles:
 
 3. Test mail delivery by sending a test email.
 
+## 5. Validating Your Deployment
+
+Mailbag includes a goss-based validation system to verify that your deployment is correctly set up. After completing all the deployment steps, run the following command to validate your configuration:
+
+```bash
+# Install goss if not already installed
+if ! command -v goss &> /dev/null; then
+  curl -L https://github.com/aelsabbahy/goss/releases/download/v0.4.8/goss-linux-amd64 -o goss
+  chmod +x goss
+  sudo mv goss /usr/local/bin/
+fi
+
+# Run validation using your context.json
+cd /home/pcn/dvcs/pcn/mailbag
+goss -g goss/goss.yaml --vars /etc/mailbag/context.json validate
+```
+
+This will check:
+- That all required Kubernetes resources exist (namespace, pods, services)
+- That all required processes are running
+- That all directory structures and file permissions are correct
+- That certificates exist and are accessible
+- That DNS resolution works for your mail domains
+- That the Kubernetes API is responding
+
+If any tests fail, goss will provide specific details about what's wrong, helping you troubleshoot your deployment.
+
 ## Troubleshooting
 
 - Check pod logs: `kubectl logs -n mailbag <pod-name>`
@@ -147,3 +175,4 @@ The script automatically handles:
 - Check permissions on host directories: `ls -la /mailbag/spool/courier/`
 - Check the context.json file: `cat /etc/mailbag/context.json`
 - Ensure certificates exist at the specified paths
+- Review goss validation output for specific failures
