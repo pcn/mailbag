@@ -6,52 +6,67 @@ This directory contains Kubernetes manifests for deploying the Mailbag mail syst
 
 1. A running Kubernetes cluster (k0s or k3s)
 2. `kubectl` configured to communicate with your cluster
-3. Host directories prepared for persistent storage
+3. Mailbag's render-template utility built (`make render-template` from the project root)
 4. TLS certificates (using Let's Encrypt or another provider)
 
-## Preparing Host Storage
+## Setup Process
 
-Before deploying, prepare the host directories for persistent storage:
+Mailbag deployment involves these key steps:
+
+1. Generate a customized context.json configuration
+2. Prepare the host machine with required directories and permissions
+3. Deploy the Kubernetes manifests
+4. Manage mail users as needed
+
+## 1. Configuration Setup
+
+Use the included script to generate a customized context.json file:
 
 ```bash
-# Base directories
-mkdir -p /mailbag/spool/courier
-mkdir -p /mailbag/config/courier
-mkdir -p /mailbag/config/authlib
-mkdir -p /vmail
+# Make scripts executable
+chmod +x *.sh
 
-# Critical courier spool subdirectories
-mkdir -p /mailbag/spool/courier/msgs
-mkdir -p /mailbag/spool/courier/msgq
-mkdir -p /mailbag/spool/courier/track
-mkdir -p /mailbag/spool/courier/tmp
-mkdir -p /mailbag/spool/courier/filters
-mkdir -p /mailbag/spool/courier/allfilters
-
-# Create vmail user on host for proper permissions
-groupadd -g 300 vmail
-useradd -M -r -d /vmail -u 300 -g vmail vmail
-
-# Set correct permissions
-chmod 750 /mailbag/spool/courier/msgs
-chmod 750 /mailbag/spool/courier/msgq
-chmod 755 /mailbag/spool/courier/track
-chmod 770 /mailbag/spool/courier/tmp
-chmod 750 /mailbag/spool/courier/filters
-chmod 750 /mailbag/spool/courier/allfilters
-chmod 755 /mailbag/config/courier
-chmod 700 /mailbag/config/authlib
-
-# Set correct ownership
-chown -R vmail:vmail /vmail
-chown -R vmail:vmail /mailbag/spool/courier
-chown -R vmail:vmail /mailbag/config/courier
-chown -R vmail:vmail /mailbag/config/authlib
+# Generate context.json with your mail domain settings
+sudo ./generate-context.sh
 ```
 
-## Deployment Instructions
+This script will prompt you for:
+- Your mail domain name
+- Hostnames for mail services
+- Storage paths
+- Certificate paths
 
-1. Edit the `configmap.yaml` file to configure your mail domains and other settings.
+## 2. Host Preparation
+
+After generating the context.json, prepare your host with the required directories and permissions:
+
+```bash
+# Generate the host preparation script from your context.json
+./generate-host-scripts.sh
+
+# Run the generated script to set up the host
+sudo ./prepare-host.sh
+```
+
+This automatically:
+- Creates all required directories
+- Sets up the vmail user
+- Configures proper permissions
+- Prepares storage locations
+
+## 3. Kubernetes Deployment
+
+After host preparation, apply the manifests to your Kubernetes cluster:
+
+1. First, update the ConfigMap with your context.json content:
+   ```bash
+   # Copy your context.json content to the configmap.yaml file
+   CONTEXT_JSON=$(cat /etc/mailbag/context.json)
+   sed -i "s|context.json: .*|context.json: |
+$CONTEXT_JSON|" configmap.yaml
+   ```
+   
+   Or manually edit configmap.yaml to include your context.json content.
 
 2. Deploy the namespace and storage resources:
    ```bash
@@ -92,28 +107,43 @@ chown -R vmail:vmail /mailbag/config/authlib
 
 3. Test mail delivery by sending a test email.
 
-## Managing User Accounts
+## 4. Managing User Accounts
 
-To create a mail user, you'll need to access the authlib directory:
+Use the included interactive user management script:
 
-1. Create a user entry:
+```bash
+sudo ./manage-mail-users.sh
+```
+
+This script provides a menu-driven interface to:
+- Add new mail users
+- Delete existing mail users
+- List all configured mail users
+
+The script automatically handles:
+- Creating userdb entries with proper settings
+- Creating maildir structures
+- Setting correct permissions
+- Updating the authentication database
+
+## Verifying the Deployment
+
+1. Check that all pods are running:
    ```bash
-   # On the host
-   cd /mailbag/config/authlib
-   userdbpw -hmac-md5 | userdb -f userdb user@example.com set hmac-md5pw
-   userdb -f userdb user@example.com set gid=300
-   userdb -f userdb user@example.com set uid=300
-   userdb -f userdb user@example.com set home=/vmail/example.com/user
-   makeuserdb
-   
-   # Create the maildir
-   mkdir -p /vmail/example.com/user
-   /usr/lib/courier/bin/maildirmake /vmail/example.com/user/Maildir
-   chown -R vmail:vmail /vmail/example.com/user
+   kubectl get pods -n mailbag
    ```
+
+2. Verify the services are exposed:
+   ```bash
+   kubectl get services -n mailbag
+   ```
+
+3. Test mail delivery by sending a test email.
 
 ## Troubleshooting
 
 - Check pod logs: `kubectl logs -n mailbag <pod-name>`
 - Verify volume mounts: `kubectl describe pod -n mailbag <pod-name>`
-- Check permissions on host directories
+- Check permissions on host directories: `ls -la /mailbag/spool/courier/`
+- Check the context.json file: `cat /etc/mailbag/context.json`
+- Ensure certificates exist at the specified paths
