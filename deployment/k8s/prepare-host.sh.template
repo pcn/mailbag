@@ -43,5 +43,7 @@ mkdir -p /etc/mailbag
 
 echo "Host preparation complete!"
 echo "Next steps:"
-echo "1. Ensure Let's Encrypt certificates are available at the paths specified in context.json"
+echo "1. Create Let's Encrypt certificates with the certbot container job:"
+echo "   - Run the script to create and deploy the certbot job as shown in the test-workflow.md"
+echo "   - Wait for the job to complete successfully"
 echo "2. Deploy the Kubernetes manifests using the template renderer and context.json"
