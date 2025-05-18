@@ -107,10 +107,10 @@ EOF
   --template certbot-initial-job.yaml \
   --context /etc/mailbag/context.json \
   --var NAMESPACE=mailbag \
-  --var MTA_HOSTNAME={{.mta.dns_name}} \
-  --var IMAPD_HOSTNAME={{.imapd_ssl.dns_name}} \
-  --var MTASSL_HOSTNAME={{.mta_ssl.dns_name}} \
-  --var DOMAIN={{.domain.zone}} \
+  --var MTA_HOSTNAME={{mta.dns_name}} \
+  --var IMAPD_HOSTNAME={{imapd_ssl.dns_name}} \
+  --var MTASSL_HOSTNAME={{mta_ssl.dns_name}} \
+  --var DOMAIN={{domain.zone}} \
   > certbot-initial-job-rendered.yaml
 
 # Apply the rendered job manifest
@@ -171,10 +171,10 @@ EOF
   --template certbot-initial-dns-job.yaml \
   --context /etc/mailbag/context.json \
   --var NAMESPACE=mailbag \
-  --var MTA_HOSTNAME={{.mta.dns_name}} \
-  --var IMAPD_HOSTNAME={{.imapd_ssl.dns_name}} \
-  --var MTASSL_HOSTNAME={{.mta_ssl.dns_name}} \
-  --var DOMAIN={{.domain.zone}} \
+  --var MTA_HOSTNAME={{mta.dns_name}} \
+  --var IMAPD_HOSTNAME={{imapd_ssl.dns_name}} \
+  --var MTASSL_HOSTNAME={{mta_ssl.dns_name}} \
+  --var DOMAIN={{domain.zone}} \
   > certbot-initial-dns-job-rendered.yaml
 
 # Apply the rendered job manifest
