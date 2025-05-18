@@ -69,6 +69,7 @@ NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
 kubectl create namespace $NAMESPACE
 
 # Create a temporary job manifest using your context.json
+# Note: We're using {{VAR}} syntax for minijinja variables that will be replaced by render-template
 cat > certbot-initial-job.yaml << "EOF"
 apiVersion: batch/v1
 kind: Job
@@ -103,10 +104,13 @@ spec:
 EOF
 
 # Use render-template to populate the job manifest with values from context.json
+# First, get the namespace from context.json
+NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+
 ./render-template \
   --template certbot-initial-job.yaml \
   --context /etc/mailbag/context.json \
-  --var NAMESPACE=mailbag \
+  --var NAMESPACE="$NAMESPACE" \
   --var MTA_HOSTNAME={{mta.dns_name}} \
   --var IMAPD_HOSTNAME={{imapd_ssl.dns_name}} \
   --var MTASSL_HOSTNAME={{mta_ssl.dns_name}} \
@@ -125,9 +129,12 @@ If port 80 is not accessible, create a custom job that uses DNS validation:
 
 ```bash
 # Create a ConfigMap with your DNS provider credentials
-kubectl create configmap -n mailbag dns-credentials --from-file=/path/to/your/credentials.ini
+# Using the namespace from context.json
+NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+kubectl create configmap -n $NAMESPACE dns-credentials --from-file=/path/to/your/credentials.ini
 
 # Create a temporary DNS validation job manifest using your context.json
+# Note: We're using {{VAR}} syntax for minijinja variables that will be replaced by render-template
 cat > certbot-initial-dns-job.yaml << "EOF"
 apiVersion: batch/v1
 kind: Job
@@ -167,10 +174,13 @@ spec:
 EOF
 
 # Use render-template to populate the job manifest with values from context.json
+# First, get the namespace from context.json
+NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+
 ./render-template \
   --template certbot-initial-dns-job.yaml \
   --context /etc/mailbag/context.json \
-  --var NAMESPACE=mailbag \
+  --var NAMESPACE="$NAMESPACE" \
   --var MTA_HOSTNAME={{mta.dns_name}} \
   --var IMAPD_HOSTNAME={{imapd_ssl.dns_name}} \
   --var MTASSL_HOSTNAME={{mta_ssl.dns_name}} \
