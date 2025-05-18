@@ -37,9 +37,9 @@ chown -R vmail:vmail {{ mta.courierd_path_host }}
 chown -R vmail:vmail /mailbag/config/courier
 chown -R vmail:vmail /mailbag/config/authlib
 
-# Copy context.json to the expected location
+# Ensure context.json directory exists
 mkdir -p /etc/mailbag
-cp /path/to/context.json /etc/mailbag/context.json
+# Context.json should already be in place from the generate-context.sh script
 
 echo "Host preparation complete!"
 echo "Next steps:"
