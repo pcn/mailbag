@@ -43,6 +43,5 @@ mkdir -p /etc/mailbag
 
 echo "Host preparation complete!"
 echo "Next steps:"
-echo "1. Edit /etc/mailbag/context.json with your mail domain settings"
-echo "2. Ensure Let's Encrypt certificates are available at the paths specified in context.json"
-echo "3. Deploy the Kubernetes manifests with 'kubectl apply -f /path/to/k8s/manifests/'"
+echo "1. Ensure Let's Encrypt certificates are available at the paths specified in context.json"
+echo "2. Deploy the Kubernetes manifests using the template renderer and context.json"
