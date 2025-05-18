@@ -54,9 +54,10 @@ spec:
           mountPath: /etc/authlib
         - name: courier-cert
           mountPath: /certs
-        - name: context-config
+        - name: context-json
           mountPath: /context.json
           subPath: context.json
+          readOnly: true
         - name: templates
           mountPath: /acceptmailfor.template
           subPath: acceptmailfor.template
@@ -82,9 +83,10 @@ spec:
       - name: courier-cert
         persistentVolumeClaim:
           claimName: courier-cert-pvc
-      - name: context-config
-        configMap:
-          name: mailbag-context
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File
       - name: templates
         configMap:
           name: mailbag-context

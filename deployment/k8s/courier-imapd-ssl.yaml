@@ -46,9 +46,10 @@ spec:
           mountPath: /etc/authlib
         - name: courier-cert
           mountPath: /certs
-        - name: context-config
+        - name: context-json
           mountPath: /context.json
           subPath: context.json
+          readOnly: true
         securityContext:
           runAsUser: 300
           runAsGroup: 300
@@ -62,9 +63,10 @@ spec:
       - name: courier-cert
         persistentVolumeClaim:
           claimName: courier-cert-pvc
-      - name: context-config
-        configMap:
-          name: mailbag-context
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File
 ---
 apiVersion: v1
 kind: Service

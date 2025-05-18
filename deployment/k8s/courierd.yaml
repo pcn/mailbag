@@ -43,9 +43,10 @@ spec:
           mountPath: /var/spool/courier
         - name: mail-storage
           mountPath: /vmail
-        - name: context-config
+        - name: context-json
           mountPath: /context.json
           subPath: context.json
+          readOnly: true
         securityContext:
           runAsUser: 300
           runAsGroup: 300
@@ -56,6 +57,7 @@ spec:
       - name: mail-storage
         persistentVolumeClaim:
           claimName: mail-storage-pvc
-      - name: context-config
-        configMap:
-          name: mailbag-context
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File

@@ -59,40 +59,97 @@ This automatically:
 
 After host preparation, apply the manifests to your Kubernetes cluster:
 
-1. First, update the ConfigMap with your context.json content:
+1. Use the render-template utility to create Kubernetes manifests that reference your host path for context.json:
    ```bash
-   # Copy your context.json content to the configmap.yaml file
-   CONTEXT_JSON=$(cat /etc/mailbag/context.json)
-   sed -i "s|context.json: .*|context.json: |
-$CONTEXT_JSON|" configmap.yaml
+   # Create a template for the context.json hostPath volume and volumeMount
+   cat > context-volume-patch.yaml << "EOF"
+   spec:
+     template:
+       spec:
+         volumes:
+         - name: context-json
+           hostPath:
+             path: /etc/mailbag/context.json
+             type: File
+         containers:
+         - name: {{CONTAINER_NAME}}
+           volumeMounts:
+           - name: context-json
+             mountPath: /etc/mailbag/context.json
+             subPath: context.json
+             readOnly: true
+EOF
    ```
-   
-   Or manually edit configmap.yaml to include your context.json content.
+
+   This way, all pods will directly use the original context.json file from the host, maintaining a single source of truth.
 
 2. Deploy the namespace and storage resources:
    ```bash
-   kubectl apply -f namespace.yaml
+   # Get the namespace from context.json
+   NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+   
+   # Create the namespace
+   kubectl create namespace $NAMESPACE
+   
+   # Apply storage resources
    kubectl apply -f storage.yaml
    ```
 
-3. Deploy the configuration:
+3. Create a unified deployment script to handle context.json mounting for all services:
    ```bash
-   kubectl apply -f configmap.yaml
+   # Create a deployment script
+   cat > deploy-services.sh << "EOF"
+   #!/bin/bash
+   set -e
+   
+   # Get the repository root
+   REPO_ROOT="$(git rev-parse --show-toplevel)"
+   
+   # Get namespace from context.json
+   NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+   
+   # Function to add hostPath volume for context.json to a manifest
+   add_context_volume() {
+     local service=$1
+     local tmpfile=$(mktemp)
+     
+     # First, render the base service manifest
+     "$REPO_ROOT/render-template" \
+       --template "$service.yaml" \
+       --context /etc/mailbag/context.json \
+       > "$tmpfile"
+     
+     # Add the volume and volumeMount using sed
+     # This is a simplified approach - in practice, a YAML parser would be better
+     sed -i '/volumes:/a \        - name: context-json\n          hostPath:\n            path: /etc/mailbag/context.json\n            type: File' "$tmpfile"
+     sed -i '/volumeMounts:/a \        - name: context-json\n          mountPath: /etc/mailbag/context.json\n          subPath: context.json\n          readOnly: true' "$tmpfile"
+     
+     # Apply the modified manifest
+     kubectl apply -f "$tmpfile"
+     rm "$tmpfile"
+   }
+   
+   # Deploy each service
+   for service in courierd courier-mta courier-mta-ssl courier-imapd-ssl courier-msa; do
+     echo "Deploying $service..."
+     add_context_volume "$service"
+   done
+   
+   # Also handle the cert-renewal cronjob
+   echo "Deploying cert-renewal job..."
+   add_context_volume "cert-renewal"
+   
+   echo "All services deployed successfully!"
+   EOF
+   
+   # Make the script executable
+   chmod +x deploy-services.sh
+   
+   # Run the deployment script
+   ./deploy-services.sh
    ```
 
-4. Deploy the core mail services:
-   ```bash
-   kubectl apply -f courierd.yaml
-   kubectl apply -f courier-mta.yaml
-   kubectl apply -f courier-mta-ssl.yaml
-   kubectl apply -f courier-imapd-ssl.yaml
-   kubectl apply -f courier-msa.yaml
-   ```
-
-5. (Optional) Deploy the certificate renewal cron job:
-   ```bash
-   kubectl apply -f cert-renewal.yaml
-   ```
+Note: The cert-renewal job is already deployed as part of the deployment script above.
 
 ## Verifying the Deployment
 
