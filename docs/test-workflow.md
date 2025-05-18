@@ -16,9 +16,21 @@ Before starting the test workflow, ensure you have:
 5. `kubectl` configured to interact with your cluster
 6. Necessary ports (25, 587, 993) accessible on your server
 
-## 0. Build the Template Renderer
+## 0. System Preparation
 
-Before starting the deployment, you'll need to build the `render-template` utility that's used throughout the process:
+### Install System Dependencies
+
+On a fresh Debian-based system (Ubuntu, Debian, etc.), you'll need to install some basic dependencies:
+
+```bash
+# Update package lists and install required packages
+sudo apt update
+sudo apt install -y git build-essential pkg-config libssl-dev jq curl
+```
+
+### Build the Template Renderer
+
+Next, build the `render-template` utility that's used throughout the deployment process:
 
 ```bash
 # Install Rust if not already installed

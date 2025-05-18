@@ -4,7 +4,23 @@ This is just [the example render-template from minijinja](https://github.com/mit
 
 ## Prerequisites
 
-This tool is written in Rust and requires the Rust toolchain to build. If you don't have Rust installed, visit [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install) and follow the installation instructions for your platform.
+### System Dependencies
+
+On a fresh Debian-based system, install required packages:
+
+```bash
+sudo apt update
+sudo apt install -y git build-essential pkg-config libssl-dev
+```
+
+### Rust Toolchain
+
+This tool is written in Rust and requires the Rust toolchain to build. If you don't have Rust installed, visit [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install) and follow the installation instructions:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+```
 
 ## Request certs that will be referenced later, using the web server challenge
 
