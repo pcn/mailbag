@@ -7,7 +7,7 @@ This directory contains Kubernetes manifests for deploying the Mailbag mail syst
 1. A running Kubernetes cluster (k0s or k3s)
 2. `kubectl` configured to communicate with your cluster
 3. Mailbag's render-template utility built (`make render-template` from the project root)
-4. TLS certificates (using Let's Encrypt or another provider)
+4. TLS certificates (will be set up in step 3)
 
 ## Setup Process
 
@@ -55,7 +55,167 @@ This automatically:
 - Configures proper permissions
 - Prepares storage locations
 
-## 3. Kubernetes Deployment
+## 3. Certificate Setup
+
+Before deploying services, you need to set up TLS certificates. First create the Kubernetes namespace that will be used for your deployment:
+
+```bash
+# Get namespace from context.json
+NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+
+# Create namespace
+kubectl create namespace $NAMESPACE
+```
+
+Then choose one of the following methods based on your environment:
+
+### Option 1: Using HTTP Validation (Port 80 must be accessible)
+
+This method requires that port 80 is accessible from the internet for the Let's Encrypt HTTP validation challenge.
+
+```bash
+# Create a temporary job manifest using your context.json
+cat > certbot-initial-job.yaml << "EOF"
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: certbot-initial
+  namespace: {{NAMESPACE}}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: certbot
+        image: ghcr.io/pcn/mailbag/support:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          certbot certonly --standalone \
+            -d {{MTA_HOSTNAME}} \
+            -d {{IMAPD_HOSTNAME}} \
+            -d {{MTASSL_HOSTNAME}} \
+            --agree-tos -m admin@{{DOMAIN}} --non-interactive
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: cert-storage
+          mountPath: /etc/letsencrypt
+      volumes:
+      - name: cert-storage
+        hostPath:
+          path: /etc/letsencrypt
+          type: DirectoryOrCreate
+EOF
+
+# Use render-template to populate the job manifest with values from context.json
+NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+
+./render-template \
+  --template certbot-initial-job.yaml \
+  --context /etc/mailbag/context.json \
+  --var NAMESPACE="$NAMESPACE" \
+  --var MTA_HOSTNAME=$(jq -r '.mta.dns_name' /etc/mailbag/context.json) \
+  --var IMAPD_HOSTNAME=$(jq -r '.imapd_ssl.dns_name' /etc/mailbag/context.json) \
+  --var MTASSL_HOSTNAME=$(jq -r '.mta_ssl.dns_name' /etc/mailbag/context.json) \
+  --var DOMAIN=$(jq -r '.domain.zone' /etc/mailbag/context.json) \
+  > certbot-initial-job-rendered.yaml
+
+# Apply the rendered job manifest
+kubectl apply -f certbot-initial-job-rendered.yaml
+
+# Check job status
+kubectl get jobs -n $NAMESPACE
+kubectl logs -n $NAMESPACE job/certbot-initial
+```
+
+### Option 2: Using DNS Validation (If port 80 is not accessible)
+
+If port 80 is blocked or not accessible, you can use DNS validation instead. This example uses Cloudflare, but you can adapt it to your DNS provider.
+
+```bash
+# Create a ConfigMap with your DNS provider credentials
+# First, create a credentials file for your DNS provider
+# For Cloudflare, create a file with:
+# dns_cloudflare_email = your-email@example.com
+# dns_cloudflare_api_key = your-global-api-key
+
+# Create a ConfigMap from this file
+NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+kubectl create configmap -n $NAMESPACE dns-credentials --from-file=/path/to/your/credentials.ini
+
+# Create a temporary DNS validation job manifest
+cat > certbot-initial-dns-job.yaml << "EOF"
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: certbot-initial-dns
+  namespace: {{NAMESPACE}}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: certbot
+        image: ghcr.io/pcn/mailbag/support:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          certbot certonly --dns-cloudflare \
+            --dns-cloudflare-credentials /etc/letsencrypt/credentials.ini \
+            -d {{MTA_HOSTNAME}} \
+            -d {{IMAPD_HOSTNAME}} \
+            -d {{MTASSL_HOSTNAME}} \
+            --agree-tos -m admin@{{DOMAIN}} --non-interactive
+        volumeMounts:
+        - name: cert-storage
+          mountPath: /etc/letsencrypt
+        - name: credentials
+          mountPath: /etc/letsencrypt/credentials.ini
+          subPath: credentials.ini
+      volumes:
+      - name: cert-storage
+        hostPath:
+          path: /etc/letsencrypt
+          type: DirectoryOrCreate
+      - name: credentials
+        configMap:
+          name: dns-credentials
+EOF
+
+# Use render-template to populate the job manifest
+NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
+
+./render-template \
+  --template certbot-initial-dns-job.yaml \
+  --context /etc/mailbag/context.json \
+  --var NAMESPACE="$NAMESPACE" \
+  --var MTA_HOSTNAME=$(jq -r '.mta.dns_name' /etc/mailbag/context.json) \
+  --var IMAPD_HOSTNAME=$(jq -r '.imapd_ssl.dns_name' /etc/mailbag/context.json) \
+  --var MTASSL_HOSTNAME=$(jq -r '.mta_ssl.dns_name' /etc/mailbag/context.json) \
+  --var DOMAIN=$(jq -r '.domain.zone' /etc/mailbag/context.json) \
+  > certbot-initial-dns-job-rendered.yaml
+
+# Apply the rendered job manifest
+kubectl apply -f certbot-initial-dns-job-rendered.yaml
+
+# Check job status
+kubectl get jobs -n $NAMESPACE
+kubectl logs -n $NAMESPACE job/certbot-initial-dns
+```
+
+### Verifying Certificate Creation
+
+After running one of the above methods, verify that the certificates were successfully created:
+
+```bash
+# Check if certificates were created on the host
+sudo ls -la /etc/letsencrypt/live/
+```
+
+The certificates should be successfully created on your host system at `/etc/letsencrypt/live/` and will be used by the Mailbag services when deployed in the next step.
+
+## 4. Kubernetes Deployment
 
 After host preparation, apply the manifests to your Kubernetes cluster:
 
@@ -94,7 +254,7 @@ Note: The cert-renewal job is already deployed as part of the deployment script 
 
 3. Test mail delivery by sending a test email.
 
-## 4. Managing User Accounts
+## 5. Managing User Accounts
 
 Use the included interactive user management script:
 
@@ -127,7 +287,7 @@ The script automatically handles:
 
 3. Test mail delivery by sending a test email.
 
-## 5. Validating Your Deployment
+## 6. Validating Your Deployment
 
 Mailbag includes a goss-based validation system to verify that your deployment is correctly set up. After completing all the deployment steps, run the following command to validate your configuration:
 
