@@ -37,7 +37,7 @@ spec:
           runAsUser: 0
       containers:
       - name: courierd
-        image: ghcr.io/pcn/mailbag/courier-courierd.service:main
+        image: ghcr.io/pcn/mailbag/courierd:main
         volumeMounts:
         - name: courier-spool
           mountPath: /var/spool/courier

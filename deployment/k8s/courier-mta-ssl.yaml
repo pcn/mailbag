@@ -39,7 +39,7 @@ spec:
           runAsUser: 0
       containers:
       - name: courier-mta-ssl
-        image: ghcr.io/pcn/mailbag/courier-mta-ssl.service:main
+        image: ghcr.io/pcn/mailbag/courier-mta-ssl:main
         ports:
         - containerPort: 465
           name: smtps

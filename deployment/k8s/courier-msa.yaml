@@ -39,7 +39,7 @@ spec:
           runAsUser: 0
       containers:
       - name: courier-msa
-        image: ghcr.io/pcn/mailbag/courier-msa.service:main
+        image: ghcr.io/pcn/mailbag/courier-msa:main
         ports:
         - containerPort: 587
           name: submission

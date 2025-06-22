@@ -167,7 +167,7 @@ jobs:
           labels: mta-ssl-${{ steps.meta.outputs.labels }}
           file: Dockerfile-mta-ssl
 
-  push_impad_ssl_to_registry:
+  push_imapd_ssl_to_registry:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -184,7 +184,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-impad-ssl
+            ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-imapd-ssl
 
       - name: Filter paths
         id: changes-imapd-ssl
@@ -196,7 +196,7 @@ jobs:
       - name: Build and push imapd-ssl image
         uses: docker/build-push-action@v5
         id: imapd-ssl
-        if: steps.changes-impad-ssl.outputs.build-packages == 'true'
+        if: steps.changes-imapd-ssl.outputs.build-packages == 'true'
         with:
           context: .
           push: true

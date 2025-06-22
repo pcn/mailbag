@@ -12,7 +12,7 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /mailbag/spool/courier
+    path: /home/mailbag/spool/courier-mta
     type: Directory
 
 ---
@@ -30,7 +30,7 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /vmail
+    path: /home/vmail
     type: Directory
 
 ---
@@ -48,7 +48,7 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /mailbag/config/courier
+    path: /home/mailbag/config/courier
     type: Directory
 
 ---
@@ -66,7 +66,7 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /mailbag/config/authlib
+    path: /home/mailbag/config/authlib
     type: Directory
 
 ---
@@ -84,7 +84,7 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /etc/letsencrypt
+    path: /home/mailbag/letsencrypt
     type: Directory
 
 ---
@@ -99,6 +99,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
+  storageClassName: ""
   selector:
     matchLabels:
       type: courier-spool
@@ -116,6 +117,7 @@ spec:
   resources:
     requests:
       storage: 50Gi
+  storageClassName: ""
   selector:
     matchLabels:
       type: mail-storage
@@ -133,6 +135,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
+  storageClassName: ""
   selector:
     matchLabels:
       type: courier-config
@@ -150,6 +153,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
+  storageClassName: ""
   selector:
     matchLabels:
       type: courier-auth
@@ -167,6 +171,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
+  storageClassName: ""
   selector:
     matchLabels:
       type: courier-cert

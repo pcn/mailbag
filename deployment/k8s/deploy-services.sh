@@ -10,8 +10,13 @@ NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
 # Create the namespace if it doesn't exist
 kubectl get namespace $NAMESPACE &>/dev/null || kubectl create namespace $NAMESPACE
 
-# Apply storage resources
-kubectl apply -f storage.yaml
+# Apply storage resources only if they don't exist
+if ! kubectl get pvc -n $NAMESPACE courier-spool-pvc &>/dev/null; then
+  echo "Applying storage configuration..."
+  kubectl apply -f storage.yaml
+else
+  echo "Storage already exists, skipping storage.yaml"
+fi
 
 # Function to add hostPath volume for context.json to a manifest
 add_context_volume() {

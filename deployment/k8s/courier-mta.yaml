@@ -39,7 +39,7 @@ spec:
           runAsUser: 0
       containers:
       - name: courier-mta
-        image: ghcr.io/pcn/mailbag/courier-mta.service:main
+        image: ghcr.io/pcn/mailbag/courier-mta:main
         ports:
         - containerPort: 25
           name: smtp
