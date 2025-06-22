@@ -1,5 +1,6 @@
 # Goals
 
+
 - Run a self-hosted MTA+MSA 
 - Run a self-hosted IMAPd
 - Support virtualhosted email
