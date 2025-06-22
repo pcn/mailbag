@@ -20,7 +20,7 @@ env:
   NAMESPACE: pcn
   SUPPORT_IMAGE_NAME: ${{ github.repository }}-support
   PACKAGES_IMAGE_NAME: ${{ github.repository }}-packages
-  BASE_IMAGE_NAME: ${{ github.repository }}-base
+  BASE_IMAGE_NAME: ${{ github.repository }}
   
 
 jobs:
