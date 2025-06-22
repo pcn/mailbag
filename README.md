@@ -114,7 +114,7 @@ Unit files will extract keys from the context via jq
 - secrets
 - the vmail network service needs configuration
 - ensure packages are installed
-
+- Nameing was wrong (~~impad~~ instead of imap)
 
 ### Past issues: courier-mtpd not working over ssl/tls/starttls
 solution: courier doesn't fool around with `\n` pretending to be `\r\n` and `openssl s_client`
