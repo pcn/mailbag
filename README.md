@@ -91,7 +91,7 @@ Unit files will extract keys from the context via jq
 
 - [X] Fix logging so that it comes out of stdout and is handled by docker, better yet systemd
 - [X] Confirm mta+starttls works
-- [X] spin up impad-ssl
+- [X] spin up imapd-ssl
 - [X] Figure out story for auto-building of dbs at startup (spam IPs, userdb, etc.)
 - [X] Figure out how to start authdaemond in each container so the local socket is available
 - [ ] document context for each component
