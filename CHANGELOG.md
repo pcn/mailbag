@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/pcn/mailbag/compare/v1.0.1...v1.0.2) (2025-06-22)
+
+
+### Bug Fixes
+
+* update the PAT ([#14](https://github.com/pcn/mailbag/issues/14)) ([33c03a0](https://github.com/pcn/mailbag/commit/33c03a043dad54d844b8471bd614b8133e99cff8))
+
 ## [1.0.1](https://github.com/pcn/mailbag/compare/v1.0.0...v1.0.1) (2025-06-22)
 
 
