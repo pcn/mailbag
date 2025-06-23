@@ -45,7 +45,6 @@ spec:
           mountPath: /vmail
         - name: context-json
           mountPath: /context.json
-          subPath: context.json
           readOnly: true
         securityContext:
           runAsUser: 300

@@ -56,7 +56,6 @@ spec:
           mountPath: /certs
         - name: context-json
           mountPath: /context.json
-          subPath: context.json
           readOnly: true
         - name: templates
           mountPath: /acceptmailfor.template

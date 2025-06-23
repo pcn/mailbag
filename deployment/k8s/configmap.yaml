@@ -18,7 +18,7 @@ data:
         "tls_keyfile": "/certs/live/example.com/privkey.pem",
         "service": "courier-mta",
         "accept_mail_for": ["example.com"],
-        "courierd_path_host": "/mailbag/spool/courier",
+        "courierd_path_host": "/home/mailbag/spool/courier",
         "courierd_path_container": "/var/spool/courier"
       },
       "imapd_ssl": {
@@ -33,7 +33,7 @@ data:
         "tls_keyfile": "/certs/live/example.com/privkey.pem",
         "service": "courier-mta-ssl",
         "accept_mail_for": ["example.com"],
-        "courierd_path_host": "/mailbag/spool/courier",
+        "courierd_path_host": "/home/mailbag/spool/courier",
         "courierd_path_container": "/var/spool/courier"
       },
       "msa": {
@@ -41,7 +41,7 @@ data:
         "tls_certfile": "/certs/live/example.com/fullchain.pem",
         "tls_keyfile": "/certs/live/example.com/privkey.pem",
         "service": "courier-msa",
-        "courierd_path_host": "/mailbag/spool/courier",
+        "courierd_path_host": "/home/mailbag/spool/courier",
         "courierd_path_container": "/var/spool/courier"
       },
       "userdb": {
