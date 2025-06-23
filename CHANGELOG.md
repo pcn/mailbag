@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.6](https://github.com/pcn/mailbag/compare/v1.0.5...v1.0.6) (2025-06-23)
+
+
+### Bug Fixes
+
+* correct template syntax from Go to minijinja ([0085078](https://github.com/pcn/mailbag/commit/008507881cda516e7f16494a03c6cfd255476d6c))
+* create empty esmtpaccess file before running makesmtpaccess ([0d9f097](https://github.com/pcn/mailbag/commit/0d9f09757807e08c6d41718c4ca3c4afa1a757c6))
+
 ## [1.0.5](https://github.com/pcn/mailbag/compare/v1.0.4...v1.0.5) (2025-06-23)
 
 
