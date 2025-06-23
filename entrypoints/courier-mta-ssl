@@ -8,6 +8,8 @@ set -e -x -o pipefail
 
 /usr/lib/courier/share/makeacceptmailfor
 /usr/lib/courier/share/makehosteddomains
+# Create empty esmtpaccess file if it doesn't exist
+touch /etc/courier/esmtpaccess
 /usr/lib/courier/sbin/makesmtpaccess
 /usr/sbin/makeuserdb
 /usr/lib/courier/sbin/makealiases

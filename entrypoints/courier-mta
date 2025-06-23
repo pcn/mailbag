@@ -10,6 +10,8 @@ export THEUSER=daemon
 
 /usr/lib/courier/share/makeacceptmailfor
 /usr/lib/courier/share/makehosteddomains
+# Create empty esmtpaccess file if it doesn't exist
+touch /etc/courier/esmtpaccess
 /usr/lib/courier/sbin/makesmtpaccess
 ( cd /etc/authlib && \
       chmod -R 700 userdb && \

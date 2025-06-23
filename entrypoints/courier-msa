@@ -7,6 +7,8 @@ set -e -x -o pipefail
 /render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
 
 /usr/lib/courier/share/makehosteddomains
+# Create empty esmtpaccess file if it doesn't exist
+touch /etc/courier/esmtpaccess
 /usr/lib/courier/sbin/makesmtpaccess
 /usr/sbin/makeuserdb
 
