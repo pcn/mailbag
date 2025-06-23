@@ -38,6 +38,7 @@ spec:
       containers:
       - name: courierd
         image: ghcr.io/pcn/mailbag/courier-courierd:main
+        imagePullPolicy: Always
         volumeMounts:
         - name: courier-spool
           mountPath: /var/spool/courier
@@ -47,8 +48,7 @@ spec:
           mountPath: /context.json
           readOnly: true
         securityContext:
-          runAsUser: 1
-          runAsGroup: 1
+          privileged: true
       volumes:
       - name: courier-spool
         persistentVolumeClaim:

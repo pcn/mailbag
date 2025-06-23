@@ -19,7 +19,5 @@ set -e -x -o pipefail
   chmod 400 esmtpd.pem;
   chown daemon esmtpd.pem
 )
-# start courierd in the background
-/usr/lib/courier/share/courierctl.start
-# and the esmtpd
+# start the esmtpd-ssl (courierd runs in separate container)
 /usr/lib/courier/sbin/esmtpd-ssl start
