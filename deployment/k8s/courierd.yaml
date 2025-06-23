@@ -47,8 +47,8 @@ spec:
           mountPath: /context.json
           readOnly: true
         securityContext:
-          runAsUser: 300
-          runAsGroup: 300
+          runAsUser: 1
+          runAsGroup: 1
       volumes:
       - name: courier-spool
         persistentVolumeClaim:
