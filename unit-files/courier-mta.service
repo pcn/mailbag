@@ -15,14 +15,12 @@ ExecStart=/usr/bin/docker run --rm --name $( jq -r .mta.service /etc/mailbag/con
     -v $( jq -r .mta.tls_certfile /etc/mailbag/context.json ):/usr/lib/courier/share/esmtpd_cert.pem \
     -v $( jq -r .mta.tls_keyfile /etc/mailbag/context.json ):/usr/lib/courier/share/esmtpd_private_key.pem \
     -v $( jq -r .mda.mail_path_host /etc/mailbag/context.json ):$( jq -r .mda.mail_path_container /etc/mailbag/context.json ) \
+    -v $( jq -r .mta.courierd_path_host /etc/mailbag/context.json ):$( jq -r .mta.courier_path_container /etc/mailbag/context.json ) \
     -v /run/systemd/journal/dev-log:/dev/log \
     -v /var/spool/mail:/var/spool/mail \
-    -v /var/spool/courier-mta:/var/spool/courier \
-    -v /var/lib/courier/tmp/:/var/lib/courier/tmp \
-    -v /etc/mailbag/context.json:/context.json \
-    -v /etc/mailbag/acceptmailfor.template:/acceptmailfor.template \
-    -v /etc/mailbag/hosteddomains.template:/hosteddomains.template \
-    -v /var/lib/courier/tmp/:/var/lib/courier/tmp/ \
+    -v /mailbag/context.json:/context.json \
+    -v /mailbag/acceptmailfor.template:/acceptmailfor.template \
+    -v /mailbag/hosteddomains.template:/hosteddomains.template \
     -p 25:25 \
     $( jq -r .mta.service /etc/mailbag/context.json ):latest
 

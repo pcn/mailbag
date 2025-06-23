@@ -1,0 +1,36 @@
+{{- if .Values.certificates.renewal.enabled -}}
+{{- $namespace := .Values.namespace.name -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-cert-renewal
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/component: cert-renewal
+spec:
+  schedule: "{{ .Values.certificates.renewal.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: certbot
+            image: certbot/certbot:latest
+            args:
+            - renew
+            - --quiet
+            volumeMounts:
+            - name: letsencrypt
+              mountPath: /etc/letsencrypt
+            securityContext:
+              runAsUser: 0  # Run as root for certbot
+          volumes:
+          - name: letsencrypt
+            persistentVolumeClaim:
+              claimName: {{ .Release.Name }}-courier-cert-pvc
+          restartPolicy: OnFailure
+{{- end }}

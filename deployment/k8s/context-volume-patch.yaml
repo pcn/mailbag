@@ -1,0 +1,15 @@
+spec:
+  template:
+    spec:
+      volumes:
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File
+      containers:
+      - name: {{CONTAINER_NAME}}
+        volumeMounts:
+        - name: context-json
+          mountPath: /context.json
+          subPath: context.json
+          readOnly: true

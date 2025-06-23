@@ -1,0 +1,142 @@
+# Default values for the Mailbag Helm chart
+
+# Namespace configuration
+namespace:
+  create: true
+  name: mailbag
+
+# Global image settings
+image:
+  registry: ghcr.io
+  repository: pcn/mailbag
+  pullPolicy: IfNotPresent
+  tag: main
+
+# Storage configuration
+storage:
+  hostPath:
+    # Host path for courier spool directory
+    courierSpool: /mailbag/spool/courier
+    # Host path for mail storage
+    mailStorage: /vmail
+    # Host path for courier configuration
+    courierConfig: /mailbag/config/courier
+    # Host path for authentication configuration
+    courierAuth: /mailbag/config/authlib
+    # Host path for certificates
+    certificates: /etc/letsencrypt
+  size:
+    courierSpool: 10Gi
+    mailStorage: 50Gi
+    courierConfig: 1Gi
+    courierAuth: 1Gi
+    certificates: 1Gi
+
+# Security context for mail containers
+securityContext:
+  runAsUser: 300
+  runAsGroup: 300
+  fsGroup: 300
+
+# Mail domain configuration
+mail:
+  domain: example.com
+  hostname: mail
+  imapHostname: imap
+  smtpHostname: smtp
+  acceptMailFor:
+    - example.com
+  
+# Certificate configuration
+certificates:
+  certPath: /certs/live/example.com/fullchain.pem
+  keyPath: /certs/live/example.com/privkey.pem
+  renewal:
+    enabled: true
+    schedule: "0 0 * * *"  # Daily at midnight
+
+# Service configuration
+services:
+  type: LoadBalancer  # Alternative: ClusterIP, NodePort
+  
+  # MTA (SMTP) service
+  mta:
+    enabled: true
+    port: 25
+    
+  # MTA-SSL (SMTPS) service
+  mtaSsl:
+    enabled: true
+    port: 465
+    
+  # MSA (Submission) service
+  msa:
+    enabled: true
+    port: 587
+    
+  # IMAP-SSL service
+  imapSsl:
+    enabled: true
+    port: 993
+
+# Component configuration
+components:
+  # Courier daemon
+  courierd:
+    enabled: true
+    replicas: 1
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+        
+  # Mail Transfer Agent (standard SMTP)
+  mta:
+    enabled: true
+    replicas: 1
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+        
+  # Mail Transfer Agent with SSL
+  mtaSsl:
+    enabled: true
+    replicas: 1
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+        
+  # Mail Submission Agent
+  msa:
+    enabled: true
+    replicas: 1
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+        
+  # IMAP server with SSL
+  imapSsl:
+    enabled: true
+    replicas: 1
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"

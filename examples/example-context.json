@@ -1,39 +1,41 @@
 {
-    "courierd": {
-        "service": "courier-courierd.service",
-        "image": "ghcr.io/pcn/mailbag/courier-courierd:main"
-    },
     "mda": {
-        "mail_path_host": "/opt/vmail",
-        "mail_path_container": "/opt/vmail",
+        "mail_path_host": "/vmail/the-domain.com",
+        "mail_path_container": "/vmail/the-domain.com",
         "owner": "300",
         "mode": "0755"
     },
     "mta": {
-        "dns_name": "testmail-mta.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
+        "dns_name": "the-domain.com",
+        "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
         "service": "courier-mta.service",
-        "accept_mail_for": ["testmail.rton.me"]
-    },
-    "mta_ssl": {
-        "dns_name": "testmail-mta.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
-        "service": "courier-mta-ssl.service",
-        "accept_mail_for": ["testmail.rton.me"]
-    },
-    "msa": {
-        "dns_name": "testmail-msa.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
-        "service": "courier-msa.service"
+        "accept_mail_for": ["the-domain.com"],
+        "courierd_path_host": "/mailbag/spool/courier-mta",
+        "courierd_path_container": "/var/spool/courier"
     },
     "imapd_ssl": {
         "dns_name": "testmail-imapd-ssl.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/testmail.rton.me/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/testmail.rton.me/privkey.pem",
+        "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
         "service": "courier-imapd-ssl.service"
+    },
+    "mta_ssl": {
+        "dns_name": "the-domain.com",
+        "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
+        "service": "courier-mta-ssl.service",
+        "accept_mail_for": ["the-domain.com"],
+        "courierd_path_host": "/mailbag/spool/courier-mta-ssl",
+        "courierd_path_container": "/var/spool/courier"
+    },
+    "msa": {
+        "dns_name": "testmail-msa.rton.me",
+        "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
+        "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
+        "service": "courier-msa.service",
+        "courierd_path_host": "/var/spool/courier-msa",
+        "courierd_path_container": "/var/spool/courier"
     },
     "docker": {
         "network_name": "vmail"
@@ -44,11 +46,7 @@
         "mode": "0700"
     },
     "domain": {
-        "name": "testmail",
-        "zone": "rton.me"
-    },
-    "paths" : {
-        "shared-tmp": "/var/lib/courier/tmp",
+        "name": "mail",
+        "zone": "the-domain.com"
     }
-    
 }

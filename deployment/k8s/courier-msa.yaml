@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: courier-msa
+  namespace: mailbag
+  labels:
+    app: mailbag
+    component: msa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailbag
+      component: msa
+  template:
+    metadata:
+      labels:
+        app: mailbag
+        component: msa
+    spec:
+      initContainers:
+      - name: init-dirs
+        image: busybox:latest
+        command: 
+        - sh
+        - -c
+        - |
+          mkdir -p /etc/courier/esmtpacceptmailfor.dir
+          mkdir -p /etc/authlib/userdb
+          chmod 700 /etc/authlib/userdb
+          chown -R daemon:daemon /etc/courier
+          chown -R daemon:daemon /etc/authlib
+        volumeMounts:
+        - name: courier-config
+          mountPath: /etc/courier
+        - name: courier-auth
+          mountPath: /etc/authlib
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: courier-msa
+        image: ghcr.io/pcn/mailbag/courier-msa:main
+        ports:
+        - containerPort: 587
+          name: submission
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        - name: mail-storage
+          mountPath: /vmail
+        - name: courier-config
+          mountPath: /etc/courier
+        - name: courier-auth
+          mountPath: /etc/authlib
+        - name: courier-cert
+          mountPath: /certs
+        - name: context-json
+          mountPath: /context.json
+          readOnly: true
+        - name: templates
+          mountPath: /acceptmailfor.template
+          subPath: acceptmailfor.template
+        - name: templates
+          mountPath: /hosteddomains.template
+          subPath: hosteddomains.template
+        securityContext:
+          runAsUser: 300
+          runAsGroup: 300
+      volumes:
+      - name: courier-spool
+        persistentVolumeClaim:
+          claimName: courier-spool-pvc
+      - name: mail-storage
+        persistentVolumeClaim:
+          claimName: mail-storage-pvc
+      - name: courier-config
+        persistentVolumeClaim:
+          claimName: courier-config-pvc
+      - name: courier-auth
+        persistentVolumeClaim:
+          claimName: courier-auth-pvc
+      - name: courier-cert
+        persistentVolumeClaim:
+          claimName: courier-cert-pvc
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File
+      - name: templates
+        configMap:
+          name: mailbag-context
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: msa
+  namespace: mailbag
+  labels:
+    app: mailbag
+    component: msa
+spec:
+  selector:
+    app: mailbag
+    component: msa
+  ports:
+  - port: 587
+    targetPort: submission
+    protocol: TCP
+    name: submission
+  type: LoadBalancer

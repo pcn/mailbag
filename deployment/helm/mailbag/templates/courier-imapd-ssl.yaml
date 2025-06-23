@@ -1,0 +1,107 @@
+{{- if .Values.components.imapSsl.enabled -}}
+{{- $namespace := .Values.namespace.name -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-courier-imapd-ssl
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/component: imapd-ssl
+spec:
+  replicas: {{ .Values.components.imapSsl.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: imapd-ssl
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/component: imapd-ssl
+    spec:
+      initContainers:
+      - name: init-dirs
+        image: busybox:latest
+        command: 
+        - sh
+        - -c
+        - |
+          mkdir -p /etc/authlib/userdb
+          chmod 700 /etc/authlib/userdb
+          chown -R daemon:daemon /etc/authlib
+        volumeMounts:
+        - name: courier-auth
+          mountPath: /etc/authlib
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: courier-imapd-ssl
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}/courier-imapd-ssl.service:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: 993
+          name: imaps
+        volumeMounts:
+        - name: mail-storage
+          mountPath: /vmail
+        - name: courier-auth
+          mountPath: /etc/authlib
+        - name: courier-cert
+          mountPath: /certs
+        - name: context-config
+          mountPath: /context.json
+          subPath: context.json
+        securityContext:
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+          runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        resources:
+          {{- toYaml .Values.components.imapSsl.resources | nindent 10 }}
+      volumes:
+      - name: mail-storage
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-mail-storage-pvc
+      - name: courier-auth
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-courier-auth-pvc
+      - name: courier-cert
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-courier-cert-pvc
+      - name: context-config
+        configMap:
+          name: {{ .Release.Name }}-context
+          items:
+          - key: context.json
+            path: context.json
+---
+{{- if .Values.services.imapSsl.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-imapd-ssl
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/component: imapd-ssl
+spec:
+  type: {{ .Values.services.type }}
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: imapd-ssl
+  ports:
+  - port: {{ .Values.services.imapSsl.port }}
+    targetPort: imaps
+    protocol: TCP
+    name: imaps
+{{- end }}
+{{- end }}

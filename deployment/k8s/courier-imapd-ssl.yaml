@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: courier-imapd-ssl
+  namespace: mailbag
+  labels:
+    app: mailbag
+    component: imapd-ssl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailbag
+      component: imapd-ssl
+  template:
+    metadata:
+      labels:
+        app: mailbag
+        component: imapd-ssl
+    spec:
+      initContainers:
+      - name: init-dirs
+        image: busybox:latest
+        command: 
+        - sh
+        - -c
+        - |
+          mkdir -p /etc/authlib/userdb
+          chmod 700 /etc/authlib/userdb
+          chown -R daemon:daemon /etc/authlib
+        volumeMounts:
+        - name: courier-auth
+          mountPath: /etc/authlib
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: courier-imapd-ssl
+        image: ghcr.io/pcn/mailbag/courier-imapd-ssl:main
+        ports:
+        - containerPort: 993
+          name: imaps
+        volumeMounts:
+        - name: mail-storage
+          mountPath: /vmail
+        - name: courier-auth
+          mountPath: /etc/authlib
+        - name: courier-cert
+          mountPath: /certs
+        - name: context-json
+          mountPath: /context.json
+          readOnly: true
+        securityContext:
+          runAsUser: 300
+          runAsGroup: 300
+      volumes:
+      - name: mail-storage
+        persistentVolumeClaim:
+          claimName: mail-storage-pvc
+      - name: courier-auth
+        persistentVolumeClaim:
+          claimName: courier-auth-pvc
+      - name: courier-cert
+        persistentVolumeClaim:
+          claimName: courier-cert-pvc
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: imapd-ssl
+  namespace: mailbag
+  labels:
+    app: mailbag
+    component: imapd-ssl
+spec:
+  selector:
+    app: mailbag
+    component: imapd-ssl
+  ports:
+  - port: 993
+    targetPort: imaps
+    protocol: TCP
+    name: imaps
+  type: LoadBalancer

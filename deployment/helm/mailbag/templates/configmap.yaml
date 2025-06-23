@@ -1,0 +1,70 @@
+{{- $namespace := .Values.namespace.name -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-context
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+data:
+  context.json: |-
+    {
+      "mda": {
+        "mail_path_host": "{{ .Values.storage.hostPath.mailStorage }}/{{ .Values.mail.domain }}",
+        "mail_path_container": "/vmail/{{ .Values.mail.domain }}",
+        "owner": "300",
+        "mode": "0755"
+      },
+      "mta": {
+        "dns_name": "{{ .Values.mail.hostname }}.{{ .Values.mail.domain }}",
+        "tls_certfile": "{{ .Values.certificates.certPath }}",
+        "tls_keyfile": "{{ .Values.certificates.keyPath }}",
+        "service": "courier-mta",
+        "accept_mail_for": {{ .Values.mail.acceptMailFor | toJson }},
+        "courierd_path_host": "{{ .Values.storage.hostPath.courierSpool }}",
+        "courierd_path_container": "/var/spool/courier"
+      },
+      "imapd_ssl": {
+        "dns_name": "{{ .Values.mail.imapHostname }}.{{ .Values.mail.domain }}",
+        "tls_certfile": "{{ .Values.certificates.certPath }}",
+        "tls_keyfile": "{{ .Values.certificates.keyPath }}",
+        "service": "courier-imapd-ssl"
+      },
+      "mta_ssl": {
+        "dns_name": "{{ .Values.mail.smtpHostname }}.{{ .Values.mail.domain }}",
+        "tls_certfile": "{{ .Values.certificates.certPath }}",
+        "tls_keyfile": "{{ .Values.certificates.keyPath }}",
+        "service": "courier-mta-ssl",
+        "accept_mail_for": {{ .Values.mail.acceptMailFor | toJson }},
+        "courierd_path_host": "{{ .Values.storage.hostPath.courierSpool }}",
+        "courierd_path_container": "/var/spool/courier"
+      },
+      "msa": {
+        "dns_name": "{{ .Values.mail.hostname }}.{{ .Values.mail.domain }}",
+        "tls_certfile": "{{ .Values.certificates.certPath }}",
+        "tls_keyfile": "{{ .Values.certificates.keyPath }}",
+        "service": "courier-msa",
+        "courierd_path_host": "{{ .Values.storage.hostPath.courierSpool }}",
+        "courierd_path_container": "/var/spool/courier"
+      },
+      "userdb": {
+        "directory": "/etc/authlib/userdb",
+        "owner": "daemon",
+        "mode": "0700"
+      },
+      "domain": {
+        "name": "{{ .Values.mail.hostname }}",
+        "zone": "{{ .Values.mail.domain }}"
+      }
+    }
+  acceptmailfor.template: |-
+    {{ "{{ range .mta.accept_mail_for -}}" }}
+    {{ "{{.}}" }}
+    {{ "{{ end }}" }}
+  hosteddomains.template: |-
+    {{ "{{ range .mta.accept_mail_for -}}" }}
+    {{ "{{.}}" }}
+    {{ "{{ end }}" }}

@@ -1,60 +1,185 @@
+# Goss validation file for Mailbag Kubernetes deployment
+# Uses context.json to validate configuration
+
 port:
-  tcp:25:
+  # Standard SMTP port
+  tcp:{{ .Vars.services.smtp_port }}:
     listening: true
     ip:
     - 0.0.0.0
-  tcp6:22:
+  # SSH port - verify if kubernetes control plane is accessible
+  tcp6:{{ .Vars.services.ssh_port }}:
     listening: true
     ip:
     - '::'
-  tcp:587:
+  tcp:{{ .Vars.services.submission_port }}:
     listening: true
     ip:
     - 0.0.0.0
-  tcp6:587:
+  tcp6:{{ .Vars.services.submission_port }}:
     listening: true
     ip:
     - '::'
-  tcp:993:
+  tcp:{{ .Vars.services.imaps_port }}:
     listening: true
     ip:
     - 0.0.0.0
-  tcp6:993:
+  tcp6:{{ .Vars.services.imaps_port }}:
     listening: true
     ip:
     - '::'
 
-service:
-  courier-msa.service:
-    enabled: true
+# For Kubernetes deployment, we check for running processes instead of systemd services
+process:
+  # Check for courier processes
+  courierd:
     running: true
-    skip: false
+  esmtpd:
+    running: true
+  courieresmtpd-ssl:
+    running: true
+  imapd-ssl:
+    running: true
 
-  courier-mta.service:
-    enabled: true
-    running: true
-    skip: false
-
-  courier-imapd-ssl.service:
-    enabled: true
-    running: true
-    skip: false
+# Check for kubernetes services and pods
+command:
+  "kubectl get namespace {{ .Vars.services.k8s_namespace }}":
+    exit-status: 0
+    stdout:
+      - "{{ .Vars.services.k8s_namespace }}"
+    timeout: 10000
+  
+  "kubectl get pods -n {{ .Vars.services.k8s_namespace }}":
+    exit-status: 0
+    stdout:
+    {{- range .Vars.services.k8s_pods }}
+      - "{{ . }}"
+    {{- end }}
+    timeout: 10000
+    
+  "kubectl get services -n {{ .Vars.services.k8s_namespace }}":
+    exit-status: 0
+    stdout:
+    {{- range .Vars.services.k8s_services }}
+      - "{{ . }}"
+    {{- end }}
+    timeout: 10000
 
 file:
-  /opt/vmail:
-    filetype: directory
-    exists: true
-    mode: 0755
-
-  {{ .Vars.mda.mail_path.host }}:
-    filetype: directory
-    exists: true
-    mode: 0700
-    # owner: 300
-    # group: 300
-
-  {{ .Vars.paths.shared-tmp }}:
-    filetype: directory
-    exists: true
-    mode: 0755
+  # Check for required host directories (as referenced in context.json)
   
+  # Mail storage directory
+  {{ .Vars.mda.mail_path_host | trimSuffix (printf "/%s" .Vars.domain.zone) }}:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.filesystem.base_storage_mode }}
+
+  # Domain-specific mail directory
+  {{ .Vars.mda.mail_path_host }}:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.mda.mode }}
+    owner: {{ .Vars.mda.owner }}
+
+
+  # MTA - Courier Spool Directory
+  {{ .Vars.mta.courierd_path_host }}:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.filesystem.base_storage_mode }}
+    owner: {{ .Vars.mda.owner_name }}
+
+  # Required subdirectories with correct permissions
+  {{ .Vars.mta.courierd_path_host }}/msgq:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.filesystem.msgq_mode }}
+    owner: {{ .Vars.mda.owner_name }}
+
+  {{ .Vars.mta.courierd_path_host }}/msgs:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.filesystem.msgs_mode }}
+    owner: {{ .Vars.mda.owner_name }}
+
+  {{ .Vars.mta.courierd_path_host }}/filters:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.filesystem.filters_mode }}
+    owner: {{ .Vars.mda.owner_name }}
+
+  {{ .Vars.mta.courierd_path_host }}/allfilters:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.filesystem.allfilters_mode }}
+    owner: {{ .Vars.mda.owner_name }}
+
+  {{ .Vars.mta.courierd_path_host }}/tmp:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.filesystem.tmp_mode }}
+    owner: {{ .Vars.mda.owner_name }}
+
+  {{ .Vars.mta.courierd_path_host }}/track:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.filesystem.track_mode }}
+    owner: {{ .Vars.mda.owner_name }}
+    
+
+
+  # Config directories
+  {{ .Vars.config.courier_path }}:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.config.courier_mode }}
+    owner: {{ .Vars.mda.owner_name }}
+
+  {{ .Vars.config.authlib_path }}:
+    filetype: directory
+    exists: true
+    mode: {{ .Vars.config.authlib_mode }}
+    owner: {{ .Vars.userdb.owner }}
+    
+  # Certificate directory
+  {{ .Vars.mta.tls_certfile | replace "/fullchain.pem" "" | dirname }}:
+    filetype: directory
+    exists: true
+  
+  # Certificate files
+  {{ .Vars.mta.tls_certfile }}:
+    filetype: file
+    exists: true
+    
+  {{ .Vars.mta.tls_keyfile }}:
+    filetype: file
+    exists: true
+
+
+    
+  # Context.json configuration file
+  /etc/mailbag/context.json:
+    filetype: file
+    exists: true
+    contains:
+      - "{{ .Vars.domain.zone }}"
+      - "{{ .Vars.mta.dns_name }}"
+      - "{{ .Vars.mda.mail_path_host }}"
+      
+# DNS tests - Basic connectivity
+dns:
+  {{ .Vars.mta.dns_name }}:
+    resolvable: true
+  {{ .Vars.imapd_ssl.dns_name }}:
+    resolvable: true
+  {{ .Vars.mta_ssl.dns_name }}:
+    resolvable: true
+    
+# HTTP tests for Kubernetes API
+http:
+  https://localhost:6443/healthz:
+    status: 200
+    allow-insecure: true
+
+
+    

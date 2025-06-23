@@ -1,0 +1,16 @@
+apiVersion: v2
+name: mailbag
+description: A Helm chart for deploying the Mailbag mail system
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - mail
+  - smtp
+  - imap
+  - courier
+home: https://github.com/pcn/mailbag
+maintainers:
+  - name: pcn
+sources:
+  - https://github.com/pcn/mailbag

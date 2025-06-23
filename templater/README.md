@@ -2,17 +2,37 @@
 
 This is just [the example render-template from minijinja](https://github.com/mitsuhiko/minijinja/tree/main/examples/render-template).
 
+## Prerequisites
+
+### System Dependencies
+
+On a fresh Debian-based system, install required packages:
+
+```bash
+sudo apt update
+sudo apt install -y git build-essential pkg-config libssl-dev
+```
+
+### Rust Toolchain
+
+This tool is written in Rust and requires the Rust toolchain to build. If you don't have Rust installed, visit [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install) and follow the installation instructions:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+```
+
 ## Request certs that will be referenced later, using the web server challenge
 
 ```
-sudo certbot certonly --standalone -d bust.spacey.org,bust-mta.spacey.org,bust-imap.spacey.org
+sudo certbot certonly --standalone -d mail.example.com,smtp.example.com,imap.example.com
 [ answer some questions here ... and then ]
 
 Obtaining a new certificate
 Performing the following challenges:
-http-01 challenge for bust-imap.spacey.org
-http-01 challenge for bust-mta.spacey.org
-http-01 challenge for bust.spacey.org
+http-01 challenge for imap.example.com
+http-01 challenge for smtp.example.com
+http-01 challenge for mail.example.com
 Waiting for verification...
 Cleaning up challenges
 
@@ -38,7 +58,7 @@ the following entries must be changed:
 Using the result of `cargo build`:
 
 ```
-pcn@peternorton-7f1729:~/mailbag$ templater/target/debug/render-template  --context context.json --template unit-files/courier-mta.service.template ; echo
+$ templater/target/debug/render-template --context context.json --template unit-files/courier-mta.service.template ; echo
 [Unit]
 Description=courier-mta Service
 After=docker.service

@@ -2,19 +2,14 @@
 
 set -e -x -o pipefail
 
-# context.json is added via the docker/container as a bind mount
-# /render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
-# /render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
+export THEUSER=daemon
 
-# /usr/lib/courier/share/makehosteddomains
+# Ensure the directory structure is in place for courier operation
+mkdir -p /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+chown -R daemon:daemon /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+chmod 750 /var/spool/courier/{msgq,msgs,filters,allfilters}
+chmod 770 /var/spool/courier/tmp
+chmod 755 /var/spool/courier/track
 
-# # And start the msa, based on /usr/lib/courier/share/courierctl.start.
-# we don't want to start this in the background
-prefix="/usr/lib/courier"
-exec_prefix="/usr/lib/courier"
-sysconfdir="/etc/courier"
-libexecdir="${exec_prefix}/libexec"
-
-cd ${prefix}
-
-/usr/bin/env -i /bin/bash -c "set -a ; . ${sysconfdir}/courierd; ${libexecdir}/courier/courierd "
+# Start courier daemon in foreground
+exec /usr/lib/courier/share/courierctl.start
