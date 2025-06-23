@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.3](https://github.com/pcn/mailbag/compare/v1.0.2...v1.0.3) (2025-06-23)
+
+
+### Bug Fixes
+
+* add missing courier-courierd entrypoint script ([9663189](https://github.com/pcn/mailbag/commit/9663189da7abe572ad83821e726cfdff7e367de8))
+* Ai changes ([4156823](https://github.com/pcn/mailbag/commit/4156823865370eab9b36bdf0348696b72b40f09e))
+* Merge pull request [#16](https://github.com/pcn/mailbag/issues/16) from pcn/ai-changes ([4156823](https://github.com/pcn/mailbag/commit/4156823865370eab9b36bdf0348696b72b40f09e))
+
 ## [1.0.2](https://github.com/pcn/mailbag/compare/v1.0.1...v1.0.2) (2025-06-22)
 
 
