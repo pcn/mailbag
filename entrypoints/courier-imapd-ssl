@@ -2,6 +2,8 @@
 
 set -e -x -o pipefail
 
+# Create empty esmtpaccess file if it doesn't exist
+touch /etc/courier/esmtpaccess
 /usr/lib/courier/sbin/makesmtpaccess
 /usr/sbin/makeuserdb
 
