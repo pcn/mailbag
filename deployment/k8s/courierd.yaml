@@ -48,12 +48,7 @@ spec:
           mountPath: /context.json
           readOnly: true
         securityContext:
-          runAsUser: 1
-          runAsGroup: 1
-          capabilities:
-            add:
-              - SETUID
-              - SETGID
+          privileged: true
       volumes:
       - name: courier-spool
         persistentVolumeClaim:
