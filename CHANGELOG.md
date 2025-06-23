@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.7](https://github.com/pcn/mailbag/compare/v1.0.6...v1.0.7) (2025-06-23)
+
+
+### Bug Fixes
+
+* add esmtpaccess file creation to IMAP entrypoint ([f42cf7e](https://github.com/pcn/mailbag/commit/f42cf7ed29ec6f1ab1a9ac4cd0f94be462e6784c))
+
 ## [1.0.6](https://github.com/pcn/mailbag/compare/v1.0.5...v1.0.6) (2025-06-23)
 
 
