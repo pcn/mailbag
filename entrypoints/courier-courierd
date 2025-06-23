@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e -x -o pipefail
+
+export THEUSER=daemon
+
+# Ensure the directory structure is in place for courier operation
+mkdir -p /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+chown -R daemon:daemon /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+chmod 750 /var/spool/courier/{msgq,msgs,filters,allfilters}
+chmod 770 /var/spool/courier/tmp
+chmod 755 /var/spool/courier/track
+
+# Start courier daemon in foreground
+exec /usr/lib/courier/share/courierctl.start
