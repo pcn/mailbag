@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.4](https://github.com/pcn/mailbag/compare/v1.0.3...v1.0.4) (2025-06-23)
+
+
+### Bug Fixes
+
+* Merge pull request [#18](https://github.com/pcn/mailbag/issues/18) from pcn/2025-06-23-ai-changes ([52a7d30](https://github.com/pcn/mailbag/commit/52a7d3061c6ebec36801ff44ae4d5be8e443c8d5))
+* run courierd container as daemon user (UID 1) ([52a7d30](https://github.com/pcn/mailbag/commit/52a7d3061c6ebec36801ff44ae4d5be8e443c8d5))
+* run courierd container as daemon user (UID 1) ([d4c9ee1](https://github.com/pcn/mailbag/commit/d4c9ee1a7725acf3da67cf44cbb0e62e9ed094b1))
+
 ## [1.0.3](https://github.com/pcn/mailbag/compare/v1.0.2...v1.0.3) (2025-06-23)
 
 
