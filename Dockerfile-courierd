@@ -17,6 +17,7 @@ RUN cd /etc/courier; \
 RUN cd /usr/lib/courier/share && \
   sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd 
 
+# Copy and setup the entrypoint script
 COPY entrypoints/courier-courierd /courier-courierd
 RUN chmod +x /courier-courierd
 ENTRYPOINT ["/courier-courierd"]
