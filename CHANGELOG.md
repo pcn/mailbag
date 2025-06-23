@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.5](https://github.com/pcn/mailbag/compare/v1.0.4...v1.0.5) (2025-06-23)
+
+
+### Bug Fixes
+
+* 2025 06 23 ai changes ([0eca526](https://github.com/pcn/mailbag/commit/0eca5266d36f160ff4243c8448773060f64a533c))
+* correct courier architecture and permissions ([1df0ec9](https://github.com/pcn/mailbag/commit/1df0ec943b0f774dabf8b54ee948dbc1f1fabaca))
+* force image pull for courierd deployment ([07283a1](https://github.com/pcn/mailbag/commit/07283a173f1c653a736364e44ede1d6fec7bcebc))
+* run courierd in foreground with proper environment ([eb46484](https://github.com/pcn/mailbag/commit/eb46484a9e1212a3c79e27436b5ca5fe6f25104c))
+* run courierd with privileged mode ([4f0995a](https://github.com/pcn/mailbag/commit/4f0995aa7b4194a36f3235534549fe79e486fca2))
+
 ## [1.0.4](https://github.com/pcn/mailbag/compare/v1.0.3...v1.0.4) (2025-06-23)
 
 
