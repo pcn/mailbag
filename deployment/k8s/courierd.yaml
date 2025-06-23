@@ -50,6 +50,10 @@ spec:
         securityContext:
           runAsUser: 1
           runAsGroup: 1
+          capabilities:
+            add:
+              - SETUID
+              - SETGID
       volumes:
       - name: courier-spool
         persistentVolumeClaim:

@@ -64,8 +64,8 @@ spec:
           mountPath: /hosteddomains.template
           subPath: hosteddomains.template
         securityContext:
-          runAsUser: 300
-          runAsGroup: 300
+          runAsUser: 1
+          runAsGroup: 1
       volumes:
       - name: courier-spool
         persistentVolumeClaim:
