@@ -1,4 +1,5 @@
 FROM ghcr.io/pcn/mailbag-base:main
+# Updated 2025-06-23 for entrypoint fixes
 
 RUN cd /etc/courier; sed -i.dist 's/ESMTPDSTART=NO/ESMTPDSTART=YES/g' esmtpd
 

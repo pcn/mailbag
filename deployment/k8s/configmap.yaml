@@ -55,10 +55,10 @@ data:
       }
     }
   acceptmailfor.template: |
-    {{ range .mta.accept_mail_for -}}
-    {{.}}
-    {{ end }}
+    {% for d in mta.accept_mail_for -%}
+    {{ d }}
+    {% endfor %}
   hosteddomains.template: |
-    {{ range .mta.accept_mail_for -}}
-    {{.}}
-    {{ end }}
+    {% for d in mta.accept_mail_for -%}
+    {{ d }}
+    {% endfor %}

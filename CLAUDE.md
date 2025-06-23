@@ -157,3 +157,72 @@ Alternative deployment via Kubernetes is supported:
 - Helm charts in `deployment/helm/mailbag/`
 - Raw K8s manifests in `deployment/k8s/`
 - Certificate management via cert-manager
+
+## Courier Service Architecture (Kubernetes)
+
+### Container Separation
+The Kubernetes deployment uses a **single courierd container** for mail processing/delivery and **separate containers** for each listening service:
+
+**courierd container**:
+- Runs main courierd process as PID 1 with privileged mode
+- Spawns worker processes with privilege separation:
+  - `courierlocal` (root) - local mail delivery with setuid/setgid to target users
+  - `courieresmtp` (daemon) - **outbound** SMTP delivery to remote servers
+  - `courierdsn` (daemon) - delivery status notifications
+  - `courieruucp` (uucp) - UUCP delivery
+  - `courierfax` (root) - fax delivery
+- These are **delivery agents**, not listening services
+- Requires privileged mode for setuid/setgid operations during mail delivery
+
+**Listening service containers**:
+- `courier-msa` - Port 587 mail submission (authenticated clients)
+- `courier-mta` - Port 25 incoming SMTP (external servers)
+- `courier-mta-ssl` - Port 465 SSL SMTP
+- `courier-imapd-ssl` - Port 993 IMAP access to mailboxes
+- These run as daemon user (UID 1) except IMAP which runs as vmail (UID 300)
+
+### Mail Flow
+1. **Inbound**: MTA containers accept SMTP → queue to courier spool
+2. **Submission**: MSA container accepts from clients → queue to courier spool  
+3. **Processing**: courierd processes queue → local or remote delivery
+4. **Local delivery**: courierlocal drops to target user → writes to `/vmail/user/Maildir/`
+5. **Remote delivery**: courieresmtp sends to external servers
+6. **Access**: IMAP reads maildirs as vmail user
+
+### Communication
+- Services communicate via **shared courier spool volume** (`/var/spool/courier`)
+- No direct network communication between containers
+- courierd must run privileged for mail delivery privilege separation
+- MTA/MSA containers do NOT run courierd themselves (fixed architecture issue)
+
+### User Permissions
+- **daemon (UID 1)**: Courier services (MTA/MSA), courierd workers
+- **vmail (UID 300)**: Mail storage access (IMAP, local delivery target)
+- **root**: courierd main process, privilege-dropping delivery agents
+
+## Current Deployment Status (2025-06-23)
+
+### Working Components
+- ✅ **courierd**: Running stably with privilege separation, processes mail queue
+- ✅ **Storage**: All PVCs bound, shared courier spool functional
+- ✅ **Configuration**: mailbag-context ConfigMap deployed
+- ✅ **Architecture**: Fixed duplicate courierd issue, proper container separation
+
+### Known Issues
+- 🔄 **MTA/MSA services**: Need updated container images with fixed entrypoints (removed duplicate courierd startup)
+- 🔄 **IMAP service**: CrashLoopBackOff, needs investigation
+- 🔄 **Authentication**: Need to populate `/etc/authlib/userdb/` with test users
+- 🔄 **Testing**: No end-to-end mail flow testing yet
+
+### Next Steps
+1. Wait for/deploy updated MTA/MSA/MTA-SSL container images (entrypoint fixes committed)
+2. Apply updated service configurations with corrected user permissions
+3. Create test user accounts in courier userdb
+4. Test mail submission → delivery → IMAP access flow
+5. Verify external mail reception works
+
+### Architecture Notes for Next Session
+- `courieresmtp` and `courierdsn` in courierd container are for **sending/delivery**, not listening
+- MTA/MSA containers handle **listening** on SMTP ports, queue mail to shared spool
+- Communication is **asynchronous** via filesystem, not direct container networking
+- Only courierd needs privileged mode for privilege-dropping during delivery
