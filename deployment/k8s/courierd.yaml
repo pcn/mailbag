@@ -38,6 +38,7 @@ spec:
       containers:
       - name: courierd
         image: ghcr.io/pcn/mailbag/courier-courierd:main
+        imagePullPolicy: Always
         volumeMounts:
         - name: courier-spool
           mountPath: /var/spool/courier
