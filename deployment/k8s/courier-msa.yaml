@@ -70,6 +70,9 @@ spec:
         - name: templates
           mountPath: /esmtpd-msa.template
           subPath: esmtpd-msa.template
+        - name: templates
+          mountPath: /smtpaccess-default.template
+          subPath: smtpaccess-default.template
         securityContext:
           runAsUser: 1
           runAsGroup: 1

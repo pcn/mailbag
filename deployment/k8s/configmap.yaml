@@ -114,6 +114,29 @@ data:
     # Access file and PID file for makesmtpaccess
     ACCESSFILE={{ msa.access_file | default("/etc/courier/smtpaccess") }}
     PIDFILE={{ msa.pid_file | default("/var/spool/courier/tmp/esmtpd.pid") }}
+  smtpaccess-default.template: |
+    # Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
+    # distribution information.
+    #
+    # Default access policies for courieresmtpd
+    # Generated from template using context.json
+    #
+    # By default, enable relaying for localhost.
+
+    127.0.0.1       allow,RELAYCLIENT
+    :0000:0000:0000:0000:0000:0000:0000:0001        allow,RELAYCLIENT
+
+    # Enable relaying for configured networks
+    {% for network in msa.relay_networks | default(["10", "192.168"]) -%}
+    {{ network }}       allow,RELAYCLIENT
+    {% endfor -%}
+
+    # Additional access rules
+    {% if msa.access_rules -%}
+    {% for rule in msa.access_rules -%}
+    {{ rule.network }}       {{ rule.action }}
+    {% endfor -%}
+    {% endif -%}
   esmtpd-base-mta.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
