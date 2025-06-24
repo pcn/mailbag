@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/pcn/mailbag/compare/v1.1.0...v1.1.1) (2025-06-24)
+
+
+### Bug Fixes
+
+* run mail services in foreground mode ([7e73c0b](https://github.com/pcn/mailbag/commit/7e73c0bddb540c14c128e71490cc26c1e703298a))
+* run mail services in foreground mode ([c12b74d](https://github.com/pcn/mailbag/commit/c12b74d37c9c9ff5f27ba3809170f82678523536))
+
 ## [1.1.0](https://github.com/pcn/mailbag/compare/v1.0.11...v1.1.0) (2025-06-24)
 
 
