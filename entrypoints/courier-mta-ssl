@@ -18,5 +18,5 @@ touch /etc/courier/esmtpaccess
 
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
-# start the esmtpd-ssl (courierd runs in separate container)
-/usr/lib/courier/sbin/esmtpd-ssl start
+# start the esmtpd-ssl in foreground (courierd runs in separate container)
+exec /usr/lib/courier/sbin/esmtpd-ssl run

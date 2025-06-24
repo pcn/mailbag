@@ -34,5 +34,5 @@ chmod 750  /var/spool/courier/{msgq,msgs,filters,allfilters}
 chmod 770  /var/spool/courier/tmp
 chmod 755  /var/spool/courier/track
 
-# start the esmtpd (courierd runs in separate container)
-/usr/lib/courier/sbin/esmtpd start
+# start the esmtpd in foreground (courierd runs in separate container)
+exec /usr/lib/courier/sbin/esmtpd run
