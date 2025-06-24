@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2](https://github.com/pcn/mailbag/compare/v1.1.1...v1.1.2) (2025-06-24)
+
+
+### Bug Fixes
+
+* use monitoring loop to keep containers alive ([af0400e](https://github.com/pcn/mailbag/commit/af0400e5406fe9052d95b3a5b64a465ea17bc988))
+* use monitoring loop to keep containers alive ([baca9d4](https://github.com/pcn/mailbag/commit/baca9d48cd0533c1b8585fb1ce2174141c353372))
+
 ## [1.1.1](https://github.com/pcn/mailbag/compare/v1.1.0...v1.1.1) (2025-06-24)
 
 
