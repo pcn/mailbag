@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.11](https://github.com/pcn/mailbag/compare/v1.0.10...v1.0.11) (2025-06-24)
+
+
+### Bug Fixes
+
+* add authdaemonrc configuration template ([c0a1cc9](https://github.com/pcn/mailbag/commit/c0a1cc9d43b3ebac6fe997ce796819c6d9191d20))
+* use actual certificate files for esmtpd.pem creation ([15e51b8](https://github.com/pcn/mailbag/commit/15e51b80ed6edc78cbcc5ffb89e097cb242bd058))
+
 ## [1.0.10](https://github.com/pcn/mailbag/compare/v1.0.9...v1.0.10) (2025-06-24)
 
 
