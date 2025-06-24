@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/pcn/mailbag/compare/v1.0.11...v1.1.0) (2025-06-24)
+
+
+### Features
+
+* add Let's Encrypt ClusterIssuer configuration ([eb89d2d](https://github.com/pcn/mailbag/commit/eb89d2d3a38ac3b8fd8fd15085825f5458a5d9ac))
+* create certificates for correct DNS names ([1f11f79](https://github.com/pcn/mailbag/commit/1f11f794a5889a1faa5726a4001b9ddb569c5788))
+
+
+### Bug Fixes
+
+* update all mail services to use cert-manager secrets ([bdeebe2](https://github.com/pcn/mailbag/commit/bdeebe2c60bbeb85e63f822500b1247e18dbc079))
+
 ## [1.0.11](https://github.com/pcn/mailbag/compare/v1.0.10...v1.0.11) (2025-06-24)
 
 
