@@ -49,7 +49,22 @@ data:
         "max_daemons": "40",
         "max_per_ip": "4",
         "auth_methods": "PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256",
-        "log_level": "2"
+        "log_level": "2",
+        "ulimit": "65536",
+        "bofh_check_dns": "0",
+        "tarpit": "1",
+        "no_add_msgid": "1",
+        "no_add_date": "1",
+        "no_addr_rewrite": "0",
+        "esmtp_log_dialog": "0",
+        "auth_required": "0",
+        "mail_user": "daemon",
+        "mail_group": "daemon",
+        "port": "smtp",
+        "tls_certfile_internal": "/usr/lib/courier/share/esmtpd.pem",
+        "tls_dhparams": "/usr/lib/courier/share/dhparams.pem",
+        "tls_trustcerts": "/etc/ssl/certs/ca-certificates.crt",
+        "tls_verifypeer": "NONE"
       },
       "userdb": {
         "directory": "/etc/authlib/userdb",
@@ -95,6 +110,33 @@ data:
     # Connection limits
     MAXDAEMONS={{ msa.max_daemons | default("40") }}
     MAXPERIP={{ msa.max_per_ip | default("4") }}
+
+    # Access file and PID file for makesmtpaccess
+    ACCESSFILE={{ msa.access_file | default("/etc/courier/smtpaccess") }}
+    PIDFILE={{ msa.pid_file | default("/var/spool/courier/tmp/esmtpd.pid") }}
+  smtpaccess-default.template: |
+    # Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
+    # distribution information.
+    #
+    # Default access policies for courieresmtpd
+    # Generated from template using context.json
+    #
+    # By default, enable relaying for localhost.
+
+    127.0.0.1       allow,RELAYCLIENT
+    :0000:0000:0000:0000:0000:0000:0000:0001        allow,RELAYCLIENT
+
+    # Enable relaying for configured networks
+    {% for network in msa.relay_networks | default(["10", "192.168"]) -%}
+    {{ network }}       allow,RELAYCLIENT
+    {% endfor -%}
+
+    # Additional access rules
+    {% if msa.access_rules -%}
+    {% for rule in msa.access_rules -%}
+    {{ rule.network }}       {{ rule.action }}
+    {% endfor -%}
+    {% endif -%}
   esmtpd-base-mta.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
