@@ -63,6 +63,12 @@ spec:
         - name: templates
           mountPath: /hosteddomains.template
           subPath: hosteddomains.template
+        - name: templates
+          mountPath: /esmtpd.template
+          subPath: esmtpd.template
+        - name: templates
+          mountPath: /esmtpd-msa.template
+          subPath: esmtpd-msa.template
         securityContext:
           runAsUser: 1
           runAsGroup: 1
