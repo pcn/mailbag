@@ -49,7 +49,22 @@ data:
         "max_daemons": "40",
         "max_per_ip": "4",
         "auth_methods": "PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256",
-        "log_level": "2"
+        "log_level": "2",
+        "ulimit": "65536",
+        "bofh_check_dns": "0",
+        "tarpit": "1",
+        "no_add_msgid": "1",
+        "no_add_date": "1",
+        "no_addr_rewrite": "0",
+        "esmtp_log_dialog": "0",
+        "auth_required": "0",
+        "mail_user": "daemon",
+        "mail_group": "daemon",
+        "port": "smtp",
+        "tls_certfile_internal": "/usr/lib/courier/share/esmtpd.pem",
+        "tls_dhparams": "/usr/lib/courier/share/dhparams.pem",
+        "tls_trustcerts": "/etc/ssl/certs/ca-certificates.crt",
+        "tls_verifypeer": "NONE"
       },
       "userdb": {
         "directory": "/etc/authlib/userdb",
@@ -95,6 +110,10 @@ data:
     # Connection limits
     MAXDAEMONS={{ msa.max_daemons | default("40") }}
     MAXPERIP={{ msa.max_per_ip | default("4") }}
+
+    # Access file and PID file for makesmtpaccess
+    ACCESSFILE={{ msa.access_file | default("/etc/courier/smtpaccess") }}
+    PIDFILE={{ msa.pid_file | default("/var/spool/courier/tmp/esmtpd.pid") }}
   esmtpd-base-mta.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
