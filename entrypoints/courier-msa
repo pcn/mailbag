@@ -13,6 +13,9 @@ set -e -x -o pipefail
 mkdir -p /etc/courier/smtpaccess
 /render-template --context /context.json --template /smtpaccess-default.template > /etc/courier/smtpaccess/default
 /usr/lib/courier/sbin/makesmtpaccess
+
+# Generate authdaemonrc configuration file
+/render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
 /usr/sbin/makeuserdb
 
 /usr/sbin/authdaemond start

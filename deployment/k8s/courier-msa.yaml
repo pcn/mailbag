@@ -73,6 +73,9 @@ spec:
         - name: templates
           mountPath: /smtpaccess-default.template
           subPath: smtpaccess-default.template
+        - name: templates
+          mountPath: /authdaemonrc.template
+          subPath: authdaemonrc.template
         securityContext:
           runAsUser: 1
           runAsGroup: 1
