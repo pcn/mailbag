@@ -9,10 +9,7 @@ touch /etc/courier/esmtpaccess
 
 /usr/sbin/authdaemond start
 
-( cd /usr/lib/courier/share;
-  cat imapd_cert.pem imapd_private_key.pem >> imapd.pem ;
-  chmod 400 imapd.pem;
-  chown daemon imapd.pem
-)
+# Certificates are now mounted directly from cert-manager secrets at /certs/
+# No need to copy or create certificate files - Courier uses them directly
 
 bash -x /usr/lib/courier/sbin/imapd-ssl start

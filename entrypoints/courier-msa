@@ -20,19 +20,8 @@ mkdir -p /etc/courier/smtpaccess
 
 /usr/sbin/authdaemond start
 
-# Create combined esmtpd.pem from mounted certificate files
-( cd /usr/lib/courier/share;
-  if [ -f /certs/live/farout.rton.me/fullchain.pem ] && [ -f /certs/live/farout.rton.me/privkey.pem ]; then
-    cat /certs/live/farout.rton.me/fullchain.pem /certs/live/farout.rton.me/privkey.pem > esmtpd.pem
-    chmod 400 esmtpd.pem
-    chown daemon esmtpd.pem
-  else
-    echo "Warning: Certificate files not found, creating dummy esmtpd.pem"
-    touch esmtpd.pem
-    chmod 400 esmtpd.pem
-    chown daemon esmtpd.pem
-  fi
-)
+# Certificates are now mounted directly from cert-manager secrets at /certs/
+# No need to copy or create certificate files - Courier uses them directly
 
 # start the msa (courierd runs in separate container)
 /usr/lib/courier/sbin/esmtpd-msa start
