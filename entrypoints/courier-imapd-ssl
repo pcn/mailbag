@@ -12,4 +12,14 @@ touch /etc/courier/esmtpaccess
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
 
-exec /usr/lib/courier/sbin/imapd-ssl run
+# start the imapd-ssl and keep container alive
+/usr/lib/courier/sbin/imapd-ssl start
+
+# Keep container alive by monitoring the service
+while true; do
+    if ! pgrep -f imapd-ssl > /dev/null; then
+        echo "imapd-ssl stopped, restarting..."
+        /usr/lib/courier/sbin/imapd-ssl start
+    fi
+    sleep 10
+done
