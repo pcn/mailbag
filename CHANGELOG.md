@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.8](https://github.com/pcn/mailbag/compare/v1.0.7...v1.0.8) (2025-06-24)
+
+
+### Bug Fixes
+
+* add templated esmtpd configuration files ([a3e51f0](https://github.com/pcn/mailbag/commit/a3e51f0039ec2ea6c38bcdb9d14a6ebbde92994a))
+* add templated esmtpd configuration files ([afed91a](https://github.com/pcn/mailbag/commit/afed91aef203a19d240e7d70df8ee7da1e4bd918))
+
 ## [1.0.7](https://github.com/pcn/mailbag/compare/v1.0.6...v1.0.7) (2025-06-23)
 
 
