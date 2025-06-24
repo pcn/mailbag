@@ -62,3 +62,131 @@ data:
     {% for d in mta.accept_mail_for -%}
     {{ d }}
     {% endfor %}
+  esmtpd.template: |
+    ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
+    #
+    # Base esmtpd configuration 
+    # Generated from template using context.json
+    #
+
+    PATH=/usr/lib/courier/bin:/bin:/usr/bin:/usr/local/bin
+    SHELL=/bin/bash
+
+    # Default syslog name (can be overridden by service-specific configs)
+    SYSLOGNAME={{ courier.syslog_name | default("courieresmtpd") }}
+
+    # Enable ESMTP daemon
+    ESMTPDSTART=YES
+
+    # Hide EXPN and VRFY commands
+    BOFHNOEXPN=1
+    BOFHNOVRFY=1
+
+    # TLS protocol version
+    TLS_PROTOCOL={{ courier.tls_protocol | default("TLSv1.2++") }}
+
+    # Connection limits
+    MAXDAEMONS={{ courier.max_daemons | default("40") }}
+    MAXPERIP={{ courier.max_per_ip | default("4") }}
+  esmtpd-msa.template: |
+    ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
+    #
+    # esmtpd-msa configuration for MSA (Mail Submission Agent)
+    # Generated from template using context.json
+    #
+
+    # MSA-specific syslog name
+    SYSLOGNAME={{ msa.syslog_name | default("courieresmtpd-msa") }}
+
+    # Enable ESMTP daemon
+    ESMTPDSTART=YES
+
+    # Authentication required for mail submission
+    AUTH_REQUIRED=1
+
+    # Disable DNS checks for faster submission
+    BOFHCHECKDNS=0
+
+    # TLS authentication methods
+    ESMTPAUTH_TLS="{{ msa.auth_methods | default("PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256") }}"
+
+    # Enable detailed logging
+    ESMTP_LOG_DIALOG={{ msa.log_level | default("2") }}
+  esmtpd-mta.template: |
+    ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
+    #
+    # esmtpd configuration for MTA (Mail Transfer Agent)
+    # Generated from template using context.json
+    #
+
+    PATH=/usr/lib/courier/bin:/bin:/usr/bin:/usr/local/bin
+    SHELL=/bin/bash
+
+    # MTA-specific syslog name
+    SYSLOGNAME={{ mta.syslog_name | default("courieresmtpd-mta") }}
+
+    # Enable ESMTP daemon
+    ESMTPDSTART=YES
+
+    # No authentication required for incoming mail
+    AUTH_REQUIRED=0
+
+    # Enable DNS checks for incoming mail
+    BOFHCHECKDNS={{ mta.dns_checks | default("1") }}
+
+    # Hide EXPN and VRFY commands
+    BOFHNOEXPN=1
+    BOFHNOVRFY=1
+
+    # TLS authentication methods (optional for incoming)
+    ESMTPAUTH_TLS="{{ mta.auth_methods | default("PLAIN LOGIN") }}"
+
+    # TLS protocol version
+    TLS_PROTOCOL={{ mta.tls_protocol | default("TLSv1.2++") }}
+
+    # Connection limits
+    MAXDAEMONS={{ mta.max_daemons | default("40") }}
+    MAXPERIP={{ mta.max_per_ip | default("4") }}
+
+    # TLS certificate files
+    TLS_CERTFILE={{ mta.tls_certfile }}
+    TLS_PRIVATE={{ mta.tls_keyfile }}
+  esmtpd-mta-ssl.template: |
+    ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
+    #
+    # esmtpd configuration for MTA-SSL (SSL SMTP)
+    # Generated from template using context.json
+    #
+
+    PATH=/usr/lib/courier/bin:/bin:/usr/bin:/usr/local/bin
+    SHELL=/bin/bash
+
+    # MTA-SSL-specific syslog name  
+    SYSLOGNAME={{ mta_ssl.syslog_name | default("courieresmtpd-mta-ssl") }}
+
+    # Enable ESMTP daemon
+    ESMTPDSTART=YES
+
+    # No authentication required for incoming mail
+    AUTH_REQUIRED=0
+
+    # Enable DNS checks for incoming mail
+    BOFHCHECKDNS={{ mta_ssl.dns_checks | default("1") }}
+
+    # Hide EXPN and VRFY commands
+    BOFHNOEXPN=1
+    BOFHNOVRFY=1
+
+    # TLS authentication methods
+    ESMTPAUTH_TLS="{{ mta_ssl.auth_methods | default("PLAIN LOGIN") }}"
+
+    # TLS protocol version
+    TLS_PROTOCOL={{ mta_ssl.tls_protocol | default("TLSv1.2++") }}
+
+    # Connection limits
+    MAXDAEMONS={{ mta_ssl.max_daemons | default("40") }}
+    MAXPERIP={{ mta_ssl.max_per_ip | default("4") }}
+
+    # TLS certificate files
+    TLS_CERTFILE={{ mta_ssl.tls_certfile }}
+    TLS_PRIVATE={{ mta_ssl.tls_keyfile }}
