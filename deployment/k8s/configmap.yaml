@@ -42,7 +42,14 @@ data:
         "tls_keyfile": "/certs/live/example.com/privkey.pem",
         "service": "courier-msa",
         "courierd_path_host": "/home/mailbag/spool/courier",
-        "courierd_path_container": "/var/spool/courier"
+        "courierd_path_container": "/var/spool/courier",
+        "base_syslog_name": "courieresmtpd",
+        "syslog_name": "courieresmtpd-msa",
+        "tls_protocol": "TLSv1.2++",
+        "max_daemons": "40",
+        "max_per_ip": "4",
+        "auth_methods": "PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256",
+        "log_level": "2"
       },
       "userdb": {
         "directory": "/etc/authlib/userdb",
