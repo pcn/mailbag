@@ -42,7 +42,14 @@ data:
         "tls_keyfile": "/certs/live/example.com/privkey.pem",
         "service": "courier-msa",
         "courierd_path_host": "/home/mailbag/spool/courier",
-        "courierd_path_container": "/var/spool/courier"
+        "courierd_path_container": "/var/spool/courier",
+        "base_syslog_name": "courieresmtpd",
+        "syslog_name": "courieresmtpd-msa",
+        "tls_protocol": "TLSv1.2++",
+        "max_daemons": "40",
+        "max_per_ip": "4",
+        "auth_methods": "PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256",
+        "log_level": "2"
       },
       "userdb": {
         "directory": "/etc/authlib/userdb",
@@ -62,18 +69,18 @@ data:
     {% for d in mta.accept_mail_for -%}
     {{ d }}
     {% endfor %}
-  esmtpd.template: |
+  esmtpd-base-msa.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
-    # Base esmtpd configuration 
+    # Base esmtpd configuration for MSA service
     # Generated from template using context.json
     #
 
     PATH=/usr/lib/courier/bin:/bin:/usr/bin:/usr/local/bin
     SHELL=/bin/bash
 
-    # Default syslog name (can be overridden by service-specific configs)
-    SYSLOGNAME={{ courier.syslog_name | default("courieresmtpd") }}
+    # Base syslog name
+    SYSLOGNAME={{ msa.base_syslog_name | default("courieresmtpd") }}
 
     # Enable ESMTP daemon
     ESMTPDSTART=YES
@@ -83,11 +90,63 @@ data:
     BOFHNOVRFY=1
 
     # TLS protocol version
-    TLS_PROTOCOL={{ courier.tls_protocol | default("TLSv1.2++") }}
+    TLS_PROTOCOL={{ msa.tls_protocol | default("TLSv1.2++") }}
 
     # Connection limits
-    MAXDAEMONS={{ courier.max_daemons | default("40") }}
-    MAXPERIP={{ courier.max_per_ip | default("4") }}
+    MAXDAEMONS={{ msa.max_daemons | default("40") }}
+    MAXPERIP={{ msa.max_per_ip | default("4") }}
+  esmtpd-base-mta.template: |
+    ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
+    #
+    # Base esmtpd configuration for MTA service
+    # Generated from template using context.json
+    #
+
+    PATH=/usr/lib/courier/bin:/bin:/usr/bin:/usr/local/bin
+    SHELL=/bin/bash
+
+    # Base syslog name
+    SYSLOGNAME={{ mta.base_syslog_name | default("courieresmtpd") }}
+
+    # Enable ESMTP daemon
+    ESMTPDSTART=YES
+
+    # Hide EXPN and VRFY commands
+    BOFHNOEXPN=1
+    BOFHNOVRFY=1
+
+    # TLS protocol version
+    TLS_PROTOCOL={{ mta.tls_protocol | default("TLSv1.2++") }}
+
+    # Connection limits
+    MAXDAEMONS={{ mta.max_daemons | default("40") }}
+    MAXPERIP={{ mta.max_per_ip | default("4") }}
+  esmtpd-base-mta-ssl.template: |
+    ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
+    #
+    # Base esmtpd configuration for MTA-SSL service
+    # Generated from template using context.json
+    #
+
+    PATH=/usr/lib/courier/bin:/bin:/usr/bin:/usr/local/bin
+    SHELL=/bin/bash
+
+    # Base syslog name
+    SYSLOGNAME={{ mta_ssl.base_syslog_name | default("courieresmtpd") }}
+
+    # Enable ESMTP daemon
+    ESMTPDSTART=YES
+
+    # Hide EXPN and VRFY commands
+    BOFHNOEXPN=1
+    BOFHNOVRFY=1
+
+    # TLS protocol version
+    TLS_PROTOCOL={{ mta_ssl.tls_protocol | default("TLSv1.2++") }}
+
+    # Connection limits
+    MAXDAEMONS={{ mta_ssl.max_daemons | default("40") }}
+    MAXPERIP={{ mta_ssl.max_per_ip | default("4") }}
   esmtpd-msa.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
