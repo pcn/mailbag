@@ -22,11 +22,8 @@ touch /etc/courier/esmtpaccess
 
 /usr/sbin/authdaemond start
 
-( cd /usr/lib/courier/share;
-  cat esmtpd_cert.pem esmtpd_private_key.pem >> esmtpd.pem ; 
-  chmod 400 esmtpd.pem;
-  chown daemon esmtpd.pem
-)
+# Certificates are now mounted directly from cert-manager secrets at /certs/
+# No need to copy or create certificate files - Courier uses them directly
 
 # Ensure the directory structure is in place to communicate with courierd.
 # XXX This will work with goss

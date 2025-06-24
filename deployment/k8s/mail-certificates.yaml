@@ -1,0 +1,35 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: courier-mta-cert
+  namespace: mailbag
+spec:
+  # Secret name where the certificate will be stored
+  secretName: courier-mta-cert-tls
+  # Reference to the ClusterIssuer
+  issuerRef:
+    name: letsencrypt-staging  # Start with staging for testing
+    kind: ClusterIssuer
+  # Common name for the certificate
+  commonName: farout-mta.rton.me
+  # Subject Alternative Names
+  dnsNames:
+  - farout-mta.rton.me
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: courier-imap-cert
+  namespace: mailbag
+spec:
+  # Secret name where the certificate will be stored
+  secretName: courier-imap-cert-tls
+  # Reference to the ClusterIssuer
+  issuerRef:
+    name: letsencrypt-staging  # Start with staging for testing
+    kind: ClusterIssuer
+  # Common name for the certificate
+  commonName: farout-imap.rton.me
+  # Subject Alternative Names
+  dnsNames:
+  - farout-imap.rton.me

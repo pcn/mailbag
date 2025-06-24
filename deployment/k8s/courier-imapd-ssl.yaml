@@ -46,6 +46,7 @@ spec:
           mountPath: /etc/authlib
         - name: courier-cert
           mountPath: /certs
+          readOnly: true
         - name: context-json
           mountPath: /context.json
           readOnly: true
@@ -60,8 +61,8 @@ spec:
         persistentVolumeClaim:
           claimName: courier-auth-pvc
       - name: courier-cert
-        persistentVolumeClaim:
-          claimName: courier-cert-pvc
+        secret:
+          secretName: courier-imap-cert-tls
       - name: context-json
         hostPath:
           path: /etc/mailbag/context.json
