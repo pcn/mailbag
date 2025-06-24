@@ -217,6 +217,42 @@ The Kubernetes deployment uses a **single courierd container** for mail processi
 
 **Current Status**: MSA service certificate handling is BLOCKED due to security concerns.
 
+## Certificate Management with cert-manager (2025-06-24)
+
+### Progress Made
+- ✅ **cert-manager installed**: Deployed cert-manager v1.15.3 to Kubernetes cluster
+- ✅ **Security decision**: Chose cert-manager over external certbot for proper K8s integration
+- ✅ **CRDs deployed**: All cert-manager Custom Resource Definitions are available
+
+### Next Steps (CONTINUE HERE NEXT SESSION)
+1. **Wait for cert-manager pods**: Verify all cert-manager pods are Running
+   ```bash
+   kubectl get pods -n cert-manager
+   ```
+
+2. **Create Let's Encrypt ClusterIssuer**: Configure ACME issuer for farout.rton.me
+   - Use HTTP-01 challenge for domain validation
+   - Configure email for Let's Encrypt notifications
+
+3. **Create Certificate resources**: Generate certificates for mail services
+   - `mail.farout.rton.me` (MSA/MTA)
+   - `smtp.farout.rton.me` (MTA-SSL)
+   - `imap.farout.rton.me` (IMAP-SSL)
+
+4. **Update deployments**: Modify courier services to use cert-manager secrets
+   - Mount certificates as read-only volumes
+   - Remove insecure certificate copying from entrypoints
+   - Configure Courier to use mounted certificates directly
+
+5. **Test certificate validation**: Verify certificates are valid and auto-renewing
+
+### Why cert-manager over certbot
+- ✅ Kubernetes-native certificate management
+- ✅ Automatic renewal and secret updates
+- ✅ Read-only certificate mounting (security best practice)
+- ✅ No host-level dependencies
+- ✅ Proper RBAC integration
+
 ## Current Deployment Status (2025-06-23)
 
 ### Working Components
