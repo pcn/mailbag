@@ -137,6 +137,74 @@ data:
     {{ rule.network }}       {{ rule.action }}
     {% endfor -%}
     {% endif -%}
+  authdaemonrc.template: |
+    ##VERSION: $Id$
+    #
+    # Copyright 1998 - 2007 Double Precision, Inc.  See COPYING for
+    # distribution information.
+    #
+    # authdaemonrc created from authdaemonrc.dist by sysconftool
+    #
+    # Do not alter lines that begin with ##, they are used when upgrading
+    # this configuration.
+    #
+    # This file configures authdaemond, the resident authentication daemon.
+    #
+    # Comments in this file are ignored.  Although this file is intended to
+    # be sourced as a shell script, authdaemond parses it manually, so
+    # the acceptable syntax is somewhat limited.  Multiline variable
+    # contents, and other advanced shell features, are not supported.
+
+    ##NAME: authmodulelist:2
+    #
+    # The authentication modules that are linked into authdaemond.  The
+    # default list is installed.  You may selectively disable modules simply
+    # by removing them from the following list.  The available modules you
+    # can use are: authuserdb authpam authpgsql authldap authmysql authcustom authpipe
+
+    authmodulelist="{{ userdb.auth_modules | default("authuserdb authpam") }}"
+
+    ##NAME: authmodulelistorig:2
+    #
+    # This setting is used by Courier's webadmin module, and should be left
+    # alone
+
+    authmodulelistorig="{{ userdb.auth_modules_orig | default("authuserdb authpam authpgsql authldap authmysql authcustom authpipe") }}"
+
+    ##NAME: daemons:0
+    #
+    # The number of daemon processes that are started.  authdaemond automatically
+    # increases or decreases the number of daemon processes, but this is the
+    # minimum number of daemon processes that are running at any given time.
+
+    daemons={{ userdb.daemons | default("5") }}
+
+    ##NAME: authdaemonvar:0
+    #
+    # authdaemond saves the process ID of the head daemon process in
+    # $authdaemonvar/pid.  The logs are saved in $authdaemonvar/log (if authdaemond
+    # is started by a non-root process, and if syslog is not used).
+
+    authdaemonvar=/var/spool/courier/authdaemon
+
+    ##NAME: DEBUG_LOGIN:0
+    #
+    # Set DEBUG_LOGIN to 1 to turn on authentication debugging (warning:
+    # verbose logging).  Set DEBUG_LOGIN to 2 to turn on authentication
+    # debugging as well as show all exchanged passwords in the logfile.
+    # For obvious reasons DEBUG_LOGIN is turned off by default.
+
+    DEBUG_LOGIN={{ userdb.debug_login | default("0") }}
+
+    ##NAME: DEFAULTOPTIONS:0
+    #
+    # A comma-separated list of option=value pairs.  Each option is applied
+    # to every authenticated user, unless the authenticated user has an
+    # explicit setting that overrides it.
+    #
+    # Example: wantgid=65534,wantuid=65534,maildir=/home/mail,quota=100MB
+
+    DEFAULTOPTIONS="{{ userdb.default_options | default("") }}"
   esmtpd-base-mta.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
