@@ -23,5 +23,14 @@ mkdir -p /etc/courier/smtpaccess
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
 
-# start the msa in foreground (courierd runs in separate container)
-exec /usr/lib/courier/sbin/esmtpd-msa run
+# start the msa and keep container alive (courierd runs in separate container)
+/usr/lib/courier/sbin/esmtpd-msa start
+
+# Keep container alive by monitoring the service
+while true; do
+    if ! pgrep -f esmtpd-msa > /dev/null; then
+        echo "esmtpd-msa stopped, restarting..."
+        /usr/lib/courier/sbin/esmtpd-msa start
+    fi
+    sleep 10
+done

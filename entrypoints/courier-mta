@@ -34,5 +34,14 @@ chmod 750  /var/spool/courier/{msgq,msgs,filters,allfilters}
 chmod 770  /var/spool/courier/tmp
 chmod 755  /var/spool/courier/track
 
-# start the esmtpd in foreground (courierd runs in separate container)
-exec /usr/lib/courier/sbin/esmtpd run
+# start the esmtpd and keep container alive (courierd runs in separate container)
+/usr/lib/courier/sbin/esmtpd start
+
+# Keep container alive by monitoring the service
+while true; do
+    if ! pgrep -f esmtpd > /dev/null; then
+        echo "esmtpd stopped, restarting..."
+        /usr/lib/courier/sbin/esmtpd start
+    fi
+    sleep 10
+done
