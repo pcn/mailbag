@@ -200,6 +200,23 @@ The Kubernetes deployment uses a **single courierd container** for mail processi
 - **vmail (UID 300)**: Mail storage access (IMAP, local delivery target)
 - **root**: courierd main process, privilege-dropping delivery agents
 
+## Security Considerations
+
+### Certificate Handling (CRITICAL ISSUE)
+**⚠️ SECURITY WARNING**: The current MSA entrypoint attempts to create `esmtpd.pem` in `/usr/lib/courier/share/` which is a shared directory. This is a security anti-pattern:
+
+- Certificates and private keys should NOT be writable by daemon processes
+- Shared directories should NOT have write permissions for service users
+- Certificate material should be properly mounted with read-only permissions
+
+**Action Required**: 
+1. Stop using `/usr/lib/courier/share/esmtpd.pem` for certificate storage
+2. Use proper certificate mounting with read-only permissions
+3. Configure Courier to use the mounted certificate files directly
+4. Implement proper certificate validation before deployment
+
+**Current Status**: MSA service certificate handling is BLOCKED due to security concerns.
+
 ## Current Deployment Status (2025-06-23)
 
 ### Working Components
