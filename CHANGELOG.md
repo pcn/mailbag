@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.10](https://github.com/pcn/mailbag/compare/v1.0.9...v1.0.10) (2025-06-24)
+
+
+### Bug Fixes
+
+* add ACCESSFILE and PIDFILE variables to esmtpd template ([833a6b2](https://github.com/pcn/mailbag/commit/833a6b2b82799c04c9329c9e4594545247c568b4))
+* add templated smtpaccess configuration ([eab0ed6](https://github.com/pcn/mailbag/commit/eab0ed6356503150522abe75a0036a014f7b8d91))
+
+## [1.0.9](https://github.com/pcn/mailbag/compare/v1.0.8...v1.0.9) (2025-06-24)
+
+
+### Bug Fixes
+
+* add missing MSA configuration fields to context.json ([6bfc8e2](https://github.com/pcn/mailbag/commit/6bfc8e2646d3c31d6c442b340abb0cab77c35f42))
+* create service-specific esmtpd base templates ([e66f064](https://github.com/pcn/mailbag/commit/e66f064d02a3d2ce7a3ceb7386e8846db52668e4))
+* set imagePullPolicy to Always for MSA container ([a6072c1](https://github.com/pcn/mailbag/commit/a6072c1bf63b08ea09aa7e65966dd15d498c4ca5))
+
 ## [1.0.8](https://github.com/pcn/mailbag/compare/v1.0.7...v1.0.8) (2025-06-24)
 
 
