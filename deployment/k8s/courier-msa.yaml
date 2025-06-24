@@ -65,8 +65,8 @@ spec:
           mountPath: /hosteddomains.template
           subPath: hosteddomains.template
         - name: templates
-          mountPath: /esmtpd.template
-          subPath: esmtpd.template
+          mountPath: /esmtpd-base-msa.template
+          subPath: esmtpd-base-msa.template
         - name: templates
           mountPath: /esmtpd-msa.template
           subPath: esmtpd-msa.template
