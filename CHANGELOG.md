@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.3](https://github.com/pcn/mailbag/compare/v1.1.2...v1.1.3) (2025-06-25)
+
+
+### Bug Fixes
+
+* resolve MTA aliases and IMAP user issues ([7261ae5](https://github.com/pcn/mailbag/commit/7261ae5435eb9311ef54ae2912b90fd41eab7ff0))
+* resolve MTA aliases and IMAP user issues ([24d730c](https://github.com/pcn/mailbag/commit/24d730cb5e269c2b348d903a1e80a267f1c19eee))
+
 ## [1.1.2](https://github.com/pcn/mailbag/compare/v1.1.1...v1.1.2) (2025-06-24)
 
 
