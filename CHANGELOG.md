@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.4](https://github.com/pcn/mailbag/compare/v1.1.3...v1.1.4) (2025-06-25)
+
+
+### Bug Fixes
+
+* remove unnecessary SMTP access files from IMAP service ([01c904b](https://github.com/pcn/mailbag/commit/01c904bdbc3ce350788fab94473accb68fc9c9db))
+* remove unnecessary SMTP access files from IMAP service ([1179260](https://github.com/pcn/mailbag/commit/11792606c2a23c229b4907cf92149e3babc5aa58))
+
 ## [1.1.3](https://github.com/pcn/mailbag/compare/v1.1.2...v1.1.3) (2025-06-25)
 
 
