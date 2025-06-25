@@ -14,7 +14,12 @@ set -e -x -o pipefail
 touch /etc/courier/esmtpaccess
 # Skip makesmtpaccess if esmtpaccess is empty
 [ -s /etc/courier/esmtpaccess ] && /usr/lib/courier/sbin/makesmtpaccess || echo "Empty esmtpaccess file, skipping makesmtpaccess"
-/usr/sbin/makeuserdb
+# Skip makeuserdb if userdb directory is empty (no test users configured yet)
+if [ "$(ls -A /etc/authlib/userdb 2>/dev/null)" ]; then
+    /usr/sbin/makeuserdb
+else
+    echo "Empty userdb directory, skipping makeuserdb (no test users configured)"
+fi
 /usr/lib/courier/sbin/makealiases
 
 /usr/sbin/authdaemond start

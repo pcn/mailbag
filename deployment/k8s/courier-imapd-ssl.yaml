@@ -29,9 +29,13 @@ spec:
           touch /etc/authlib/userdb/dummy
           chmod 700 /etc/authlib/userdb
           chown -R 300:300 /etc/authlib
+          mkdir -p /var/spool/authdaemon
+          chown 300:300 /var/spool/authdaemon
         volumeMounts:
         - name: courier-auth
           mountPath: /etc/authlib
+        - name: authdaemon-pid-dir
+          mountPath: /var/spool/authdaemon
         securityContext:
           runAsUser: 0
       containers:
@@ -52,6 +56,8 @@ spec:
         - name: context-json
           mountPath: /context.json
           readOnly: true
+        - name: authdaemon-pid-dir
+          mountPath: /var/spool/authdaemon
         securityContext:
           runAsUser: 300
           runAsGroup: 300
@@ -69,6 +75,8 @@ spec:
         hostPath:
           path: /etc/mailbag/context.json
           type: File
+      - name: authdaemon-pid-dir
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
