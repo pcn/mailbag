@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.10](https://github.com/pcn/mailbag/compare/v1.1.9...v1.1.10) (2025-06-25)
+
+
+### Bug Fixes
+
+* resolve SSL service startup issues ([83aa4bb](https://github.com/pcn/mailbag/commit/83aa4bb48c66c54269592412781d4c9b7f6fd3e0))
+
 ## [1.1.9](https://github.com/pcn/mailbag/compare/v1.1.8...v1.1.9) (2025-06-25)
 
 
