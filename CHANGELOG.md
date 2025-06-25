@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.8](https://github.com/pcn/mailbag/compare/v1.1.7...v1.1.8) (2025-06-25)
+
+
+### Bug Fixes
+
+* resolve makesmtpaccess and IMAP userdb directory issues ([fffd7b6](https://github.com/pcn/mailbag/commit/fffd7b668b18ad681e8b9d0ce85b24a660e5e59b))
+* resolve makesmtpaccess and IMAP userdb directory issues ([4932e98](https://github.com/pcn/mailbag/commit/4932e98f374de87f28188c5ff11064fadd7dedc8))
+
 ## [1.1.7](https://github.com/pcn/mailbag/compare/v1.1.6...v1.1.7) (2025-06-25)
 
 
