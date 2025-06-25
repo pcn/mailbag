@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.7](https://github.com/pcn/mailbag/compare/v1.1.6...v1.1.7) (2025-06-25)
+
+
+### Bug Fixes
+
+* resolve IMAP userdb and MTA-SSL template issues ([5647963](https://github.com/pcn/mailbag/commit/56479630d7e80812248a81c24f8e8e3a8daa4db5))
+* resolve IMAP userdb and MTA-SSL template issues ([7bc74f1](https://github.com/pcn/mailbag/commit/7bc74f16d7ef8a66c04246210dd0ed02ca2377bb))
+
 ## [1.1.6](https://github.com/pcn/mailbag/compare/v1.1.5...v1.1.6) (2025-06-25)
 
 
