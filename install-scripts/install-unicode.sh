@@ -2,7 +2,7 @@
 
 set -e -u -o pipefail
 
-VER=2.3.0
+VER=2.3.2
 # Download per https://www.courier-mta.org/download.html
 mkdir /tmp/unicode
 cd /tmp/unicode
