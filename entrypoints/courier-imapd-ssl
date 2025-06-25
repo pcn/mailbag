@@ -2,9 +2,7 @@
 
 set -e -x -o pipefail
 
-# Create empty esmtpaccess file if it doesn't exist
-touch /etc/courier/esmtpaccess
-/usr/lib/courier/sbin/makesmtpaccess
+# IMAP service doesn't need SMTP access control files
 /usr/sbin/makeuserdb
 
 /usr/sbin/authdaemond start
