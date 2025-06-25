@@ -34,7 +34,7 @@ spec:
         volumeMounts:
         - name: courier-auth
           mountPath: /etc/authlib
-        - name: authdaemon-spool
+        - name: authdaemon-pid-dir
           mountPath: /var/spool/authdaemon
         securityContext:
           runAsUser: 0
@@ -56,7 +56,7 @@ spec:
         - name: context-json
           mountPath: /context.json
           readOnly: true
-        - name: authdaemon-spool
+        - name: authdaemon-pid-dir
           mountPath: /var/spool/authdaemon
         securityContext:
           runAsUser: 300
@@ -75,7 +75,7 @@ spec:
         hostPath:
           path: /etc/mailbag/context.json
           type: File
-      - name: authdaemon-spool
+      - name: authdaemon-pid-dir
         emptyDir: {}
 ---
 apiVersion: v1
