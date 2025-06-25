@@ -5,6 +5,8 @@ set -e -x -o pipefail
 # context.json is added via the docker/container as a bind mount
 /render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
 /render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
+/render-template --context /context.json --template /esmtpd-base-mta-ssl.template > /etc/courier/esmtpd
+/render-template --context /context.json --template /esmtpd-mta-ssl.template > /etc/courier/esmtpd-ssl
 
 /usr/lib/courier/share/makeacceptmailfor
 /usr/lib/courier/share/makehosteddomains

@@ -26,6 +26,7 @@ spec:
         - -c
         - |
           mkdir -p /etc/authlib/userdb
+          touch /etc/authlib/userdb
           chmod 700 /etc/authlib/userdb
           chown -R 300:300 /etc/authlib
         volumeMounts:

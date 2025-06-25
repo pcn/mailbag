@@ -65,6 +65,12 @@ spec:
         - name: templates
           mountPath: /hosteddomains.template
           subPath: hosteddomains.template
+        - name: templates
+          mountPath: /esmtpd-base-mta-ssl.template
+          subPath: esmtpd-base-mta-ssl.template
+        - name: templates
+          mountPath: /esmtpd-mta-ssl.template
+          subPath: esmtpd-mta-ssl.template
         securityContext:
           runAsUser: 1
           runAsGroup: 1
