@@ -36,6 +36,7 @@ spec:
       containers:
       - name: courier-imapd-ssl
         image: ghcr.io/pcn/mailbag/courier-imapd-ssl:main
+        imagePullPolicy: Always
         ports:
         - containerPort: 993
           name: imaps

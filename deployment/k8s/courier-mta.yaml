@@ -40,6 +40,7 @@ spec:
       containers:
       - name: courier-mta
         image: ghcr.io/pcn/mailbag/courier-mta:main
+        imagePullPolicy: Always
         ports:
         - containerPort: 25
           name: smtp
