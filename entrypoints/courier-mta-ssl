@@ -8,6 +8,9 @@ set -e -x -o pipefail
 /render-template --context /context.json --template /esmtpd-base-mta-ssl.template > /etc/courier/esmtpd
 /render-template --context /context.json --template /esmtpd-mta-ssl.template > /etc/courier/esmtpd-ssl
 
+# Generate authdaemonrc configuration file
+/render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
+
 /usr/lib/courier/share/makeacceptmailfor
 /usr/lib/courier/share/makehosteddomains
 # Create empty esmtpaccess file if it doesn't exist
