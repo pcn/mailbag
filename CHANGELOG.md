@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.9](https://github.com/pcn/mailbag/compare/v1.1.8...v1.1.9) (2025-06-25)
+
+
+### Bug Fixes
+
+* skip makeuserdb when no test users configured ([7cd68ef](https://github.com/pcn/mailbag/commit/7cd68ef3ce4a81c7f4e65e3148e7bc26192f4b1d))
+* skip makeuserdb when no test users configured ([ec3ad66](https://github.com/pcn/mailbag/commit/ec3ad66cd56013b87897f3ad5768acb52d2a6827))
+
 ## [1.1.8](https://github.com/pcn/mailbag/compare/v1.1.7...v1.1.8) (2025-06-25)
 
 
