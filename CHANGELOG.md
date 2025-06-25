@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.11](https://github.com/pcn/mailbag/compare/v1.1.10...v1.1.11) (2025-06-25)
+
+
+### Bug Fixes
+
+* add missing authdaemonrc template to MTA-SSL service ([a1d2843](https://github.com/pcn/mailbag/commit/a1d284392081e11e6137273c5825d97ae92da399))
+* Update courier package versions ([997e7cc](https://github.com/pcn/mailbag/commit/997e7cc7431a82a6ef0ab83a4c8c7f50766049fe))
+
 ## [1.1.10](https://github.com/pcn/mailbag/compare/v1.1.9...v1.1.10) (2025-06-25)
 
 
