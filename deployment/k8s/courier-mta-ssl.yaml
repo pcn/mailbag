@@ -71,6 +71,9 @@ spec:
         - name: templates
           mountPath: /esmtpd-mta-ssl.template
           subPath: esmtpd-mta-ssl.template
+        - name: templates
+          mountPath: /authdaemonrc.template
+          subPath: authdaemonrc.template
         securityContext:
           runAsUser: 1
           runAsGroup: 1
