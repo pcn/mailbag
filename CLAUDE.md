@@ -253,29 +253,40 @@ The Kubernetes deployment uses a **single courierd container** for mail processi
 - ✅ No host-level dependencies
 - ✅ Proper RBAC integration
 
-## Current Deployment Status (2025-06-23)
+## Current Deployment Status (2025-06-25)
 
 ### Working Components
+- ✅ **cert-manager**: Let's Encrypt certificates automatically provisioned and managed
+- ✅ **MSA (Port 587)**: Running with cert-manager certificates, handles mail submission
+- ✅ **MTA (Port 25)**: Running with cert-manager certificates, handles mail reception  
+- ✅ **IMAP-SSL (Port 993)**: Running with cert-manager certificates, uses couriertcpd successfully
 - ✅ **courierd**: Running stably with privilege separation, processes mail queue
 - ✅ **Storage**: All PVCs bound, shared courier spool functional
-- ✅ **Configuration**: mailbag-context ConfigMap deployed
-- ✅ **Architecture**: Fixed duplicate courierd issue, proper container separation
+- ✅ **Configuration**: Complete template system with cert-manager secrets
+- ✅ **Package Updates**: Updated to Courier 1.4.1, authlib 0.72.4, unicode 2.3.2
 
-### Known Issues
-- 🔄 **MTA/MSA services**: Need updated container images with fixed entrypoints (removed duplicate courierd startup)
-- 🔄 **IMAP service**: CrashLoopBackOff, needs investigation
-- 🔄 **Authentication**: Need to populate `/etc/authlib/userdb/` with test users
-- 🔄 **Testing**: No end-to-end mail flow testing yet
+### Current Issue
+- ❌ **MTA-SSL (Port 465)**: Segmentation fault in couriertcpd during SSL startup
+  - IMAP-SSL works fine with same couriertcpd binary and certificates
+  - Indicates MTA-SSL specific configuration issue, not binary/cert problem
+  - MTA/MSA use STARTTLS (don't read certs until STARTTLS command)
+  - Only IMAP-SSL and MTA-SSL directly use certificates via couriertcpd
 
-### Next Steps
-1. Wait for/deploy updated MTA/MSA/MTA-SSL container images (entrypoint fixes committed)
-2. Apply updated service configurations with corrected user permissions
-3. Create test user accounts in courier userdb
-4. Test mail submission → delivery → IMAP access flow
-5. Verify external mail reception works
+### Achievements
+- **Secure Certificate Management**: All services use cert-manager secrets instead of insecure copying
+- **Automated Renewal**: Certificates automatically renewed by cert-manager
+- **4/5 Core Services Running**: Mail submission, reception, IMAP access, and processing functional
+- **Template System**: Complete configuration rendering from context.json
+- **Monitoring Loops**: Proper container lifecycle management
 
-### Architecture Notes for Next Session
-- `courieresmtp` and `courierdsn` in courierd container are for **sending/delivery**, not listening
-- MTA/MSA containers handle **listening** on SMTP ports, queue mail to shared spool
-- Communication is **asynchronous** via filesystem, not direct container networking
-- Only courierd needs privileged mode for privilege-dropping during delivery
+### Certificate Architecture
+- Certificates mounted from cert-manager secrets as `/certs/tls.crt` and `/certs/tls.key`
+- Services access certificates directly, no copying or transformation needed
+- Let's Encrypt staging certificates working, can switch to production when ready
+
+### Next Steps for Next Session
+1. Debug MTA-SSL configuration causing couriertcpd segfault
+2. Compare working IMAP-SSL vs failing MTA-SSL configurations
+3. Create test user accounts in courier userdb for mail delivery testing
+4. Test end-to-end mail flow: submission → delivery → IMAP access
+5. Switch to production Let's Encrypt certificates
