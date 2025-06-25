@@ -12,7 +12,8 @@ set -e -x -o pipefail
 /usr/lib/courier/share/makehosteddomains
 # Create empty esmtpaccess file if it doesn't exist
 touch /etc/courier/esmtpaccess
-/usr/lib/courier/sbin/makesmtpaccess
+# Skip makesmtpaccess if esmtpaccess is empty
+[ -s /etc/courier/esmtpaccess ] && /usr/lib/courier/sbin/makesmtpaccess || echo "Empty esmtpaccess file, skipping makesmtpaccess"
 /usr/sbin/makeuserdb
 /usr/lib/courier/sbin/makealiases
 
