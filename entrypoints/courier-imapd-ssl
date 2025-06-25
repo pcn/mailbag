@@ -3,6 +3,8 @@
 set -e -x -o pipefail
 
 # IMAP service doesn't need SMTP access control files
+# Create empty userdb file if it doesn't exist
+touch /etc/authlib/userdb
 /usr/sbin/makeuserdb
 
 /usr/sbin/authdaemond start
