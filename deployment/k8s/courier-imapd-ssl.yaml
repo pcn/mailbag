@@ -27,7 +27,7 @@ spec:
         - |
           mkdir -p /etc/authlib/userdb
           chmod 700 /etc/authlib/userdb
-          chown -R vmail:vmail /etc/authlib
+          chown -R 300:300 /etc/authlib
         volumeMounts:
         - name: courier-auth
           mountPath: /etc/authlib

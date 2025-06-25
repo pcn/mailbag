@@ -18,6 +18,8 @@ touch /etc/courier/esmtpaccess
       chown -R $THEUSER userdb )
   
 /usr/sbin/makeuserdb
+# Create empty aliases file if it doesn't exist
+touch /etc/courier/aliases
 /usr/lib/courier/sbin/makealiases
 
 /usr/sbin/authdaemond start
