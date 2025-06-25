@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.5](https://github.com/pcn/mailbag/compare/v1.1.4...v1.1.5) (2025-06-25)
+
+
+### Bug Fixes
+
+* add imagePullPolicy Always to all mail services ([0b3a5e0](https://github.com/pcn/mailbag/commit/0b3a5e0efdc4e40416160c4c045b925fe2822754))
+* add imagePullPolicy Always to all mail services ([0047aa8](https://github.com/pcn/mailbag/commit/0047aa8f5dfd71458486131242c60dcc8da1cd65))
+
 ## [1.1.4](https://github.com/pcn/mailbag/compare/v1.1.3...v1.1.4) (2025-06-25)
 
 
