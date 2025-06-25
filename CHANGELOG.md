@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.6](https://github.com/pcn/mailbag/compare/v1.1.5...v1.1.6) (2025-06-25)
+
+
+### Bug Fixes
+
+* create missing directories and files for MTA and IMAP ([8990247](https://github.com/pcn/mailbag/commit/8990247e7d76c85ae5b4cec011b798981ba46102))
+* create missing directories and files for MTA and IMAP ([642ba70](https://github.com/pcn/mailbag/commit/642ba7001d7d9cbc0776ae3ebde32710646b01b6))
+
 ## [1.1.5](https://github.com/pcn/mailbag/compare/v1.1.4...v1.1.5) (2025-06-25)
 
 
