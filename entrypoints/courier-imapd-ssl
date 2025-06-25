@@ -3,8 +3,12 @@
 set -e -x -o pipefail
 
 # IMAP service doesn't need SMTP access control files  
-# userdb file should be created by init container as root
-/usr/sbin/makeuserdb
+# Skip makeuserdb if userdb directory is empty (no test users configured yet)
+if [ "$(ls -A /etc/authlib/userdb 2>/dev/null)" ]; then
+    /usr/sbin/makeuserdb
+else
+    echo "Empty userdb directory, skipping makeuserdb (no test users configured)"
+fi
 
 /usr/sbin/authdaemond start
 
