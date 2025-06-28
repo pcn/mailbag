@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.12](https://github.com/pcn/mailbag/compare/v1.1.11...v1.1.12) (2025-06-28)
+
+
+### Bug Fixes
+
+* new artifacts to deploy changed init container ([c8d3cb8](https://github.com/pcn/mailbag/commit/c8d3cb88b4ddfe2b4978a6b32fd5067adc52bbc1))
+* new artifacts to deploy changed init container ([4a8b8ee](https://github.com/pcn/mailbag/commit/4a8b8ee09acec373627d8045916e83d394ecdf94))
+
 ## [1.1.11](https://github.com/pcn/mailbag/compare/v1.1.10...v1.1.11) (2025-06-25)
 
 
