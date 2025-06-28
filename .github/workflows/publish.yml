@@ -1,4 +1,4 @@
-name: Publish populated conatiners to Docker
+name: Publish populated containers to Docker
 on:
   workflow_run:
     workflows:
