@@ -36,6 +36,12 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-mta
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Filter paths
         id: changes-mta
@@ -74,6 +80,12 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-msa
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Filter paths
         id: changes-msa
@@ -112,6 +124,12 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-courierd
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Filter paths
         id: changes-courierd
@@ -150,6 +168,12 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-mta-ssl
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Filter paths
         id: changes-mta-ssl
@@ -188,6 +212,12 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.COURIER_IMGE_BASE_NAME }}-imapd-ssl
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Filter paths
         id: changes-imapd-ssl
@@ -225,6 +255,12 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.DJBDNS_IMGE_BASE_NAME }}-tinydns
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Filter paths
         id: changes-tinydns
