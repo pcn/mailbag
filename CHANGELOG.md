@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.13](https://github.com/pcn/mailbag/compare/v1.1.12...v1.1.13) (2025-06-28)
+
+
+### Bug Fixes
+
+* correct COURIERTLS path to /usr/lib/courier/bin/couriertls ([044995b](https://github.com/pcn/mailbag/commit/044995b172de55633592179847ab78427bd915d4))
+* correct TLS configuration for MTA and MTA-SSL services ([3aef324](https://github.com/pcn/mailbag/commit/3aef324b88c38bdcad5c866dcb1ba666f5b97c42))
+
 ## [1.1.12](https://github.com/pcn/mailbag/compare/v1.1.11...v1.1.12) (2025-06-28)
 
 
