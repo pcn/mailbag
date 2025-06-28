@@ -319,7 +319,10 @@ data:
 
     # TLS certificate files
     TLS_CERTFILE={{ mta.tls_certfile }}
-    TLS_PRIVATE={{ mta.tls_keyfile }}
+    TLS_PRIVATE_KEYFILE={{ mta.tls_keyfile }}
+
+    # Courier TLS binary location
+    COURIERTLS=/usr/bin/couriertls
   esmtpd-mta-ssl.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
@@ -358,4 +361,7 @@ data:
 
     # TLS certificate files
     TLS_CERTFILE={{ mta_ssl.tls_certfile }}
-    TLS_PRIVATE={{ mta_ssl.tls_keyfile }}
+    TLS_PRIVATE_KEYFILE={{ mta_ssl.tls_keyfile }}
+
+    # Courier TLS binary location
+    COURIERTLS=/usr/bin/couriertls
