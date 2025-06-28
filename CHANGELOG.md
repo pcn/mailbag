@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.16](https://github.com/pcn/mailbag/compare/v1.1.15...v1.1.16) (2025-06-28)
+
+
+### Bug Fixes
+
+* point TLS_CERTFILE directly to /shared-certs/esmtpd.pem ([57da746](https://github.com/pcn/mailbag/commit/57da7469adc3c877e0f8752d2528b93073d50b72))
+* point TLS_CERTFILE directly to /shared-certs/esmtpd.pem ([b5a14aa](https://github.com/pcn/mailbag/commit/b5a14aae538c6947d0e6c2079c8048e1133dd3a4))
+
 ## [1.1.15](https://github.com/pcn/mailbag/compare/v1.1.14...v1.1.15) (2025-06-28)
 
 
