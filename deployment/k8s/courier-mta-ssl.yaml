@@ -31,10 +31,10 @@ spec:
           chown -R daemon:daemon /etc/courier
           chown -R daemon:daemon /etc/authlib
           # Create combined certificate file for Courier SSL
-          mkdir -p /courier-share
-          cat /certs/tls.crt /certs/tls.key > /courier-share/esmtpd.pem
-          chmod 600 /courier-share/esmtpd.pem
-          chown daemon:daemon /courier-share/esmtpd.pem
+          mkdir -p /shared-certs
+          cat /certs/tls.crt /certs/tls.key > /shared-certs/esmtpd.pem
+          chmod 600 /shared-certs/esmtpd.pem
+          chown daemon:daemon /shared-certs/esmtpd.pem
         volumeMounts:
         - name: courier-config
           mountPath: /etc/courier
@@ -44,7 +44,7 @@ spec:
           mountPath: /certs
           readOnly: true
         - name: courier-share
-          mountPath: /courier-share
+          mountPath: /shared-certs
         securityContext:
           runAsUser: 0
       containers:
@@ -67,7 +67,7 @@ spec:
           mountPath: /certs
           readOnly: true
         - name: courier-share
-          mountPath: /usr/lib/courier/share
+          mountPath: /shared-certs
         - name: context-json
           mountPath: /context.json
           readOnly: true
