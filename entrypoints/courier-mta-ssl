@@ -27,8 +27,9 @@ fi
 
 /usr/sbin/authdaemond start
 
-# Certificates are now mounted directly from cert-manager secrets at /certs/
-# No need to copy or create certificate files - Courier uses them directly
+# Copy combined certificate file from shared volume to courier directory
+cp /shared-certs/esmtpd.pem /usr/lib/courier/share/esmtpd.pem
+
 # start the esmtpd-ssl and keep container alive (courierd runs in separate container)
 /usr/lib/courier/sbin/esmtpd-ssl start
 
