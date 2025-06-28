@@ -317,9 +317,8 @@ data:
     MAXDAEMONS={{ mta.max_daemons | default("40") }}
     MAXPERIP={{ mta.max_per_ip | default("4") }}
 
-    # TLS certificate files
-    TLS_CERTFILE={{ mta.tls_certfile }}
-    TLS_PRIVATE_KEYFILE={{ mta.tls_keyfile }}
+    # TLS certificate files (use combined file approach like IMAP-SSL)
+    TLS_CERTFILE=/usr/lib/courier/share/esmtpd.pem
 
     # Courier TLS binary location
     COURIERTLS=/usr/lib/courier/bin/couriertls
@@ -359,9 +358,8 @@ data:
     MAXDAEMONS={{ mta_ssl.max_daemons | default("40") }}
     MAXPERIP={{ mta_ssl.max_per_ip | default("4") }}
 
-    # TLS certificate files
-    TLS_CERTFILE={{ mta_ssl.tls_certfile }}
-    TLS_PRIVATE_KEYFILE={{ mta_ssl.tls_keyfile }}
+    # TLS certificate files (use combined file approach like IMAP-SSL)
+    TLS_CERTFILE=/usr/lib/courier/share/esmtpd.pem
 
     # Courier TLS binary location
     COURIERTLS=/usr/lib/courier/bin/couriertls
