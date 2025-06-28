@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.15](https://github.com/pcn/mailbag/compare/v1.1.14...v1.1.15) (2025-06-28)
+
+
+### Bug Fixes
+
+* mount shared certificate volume at /shared-certs to avoid hiding courier utilities ([b7808af](https://github.com/pcn/mailbag/commit/b7808af5d1b7822e55c7c7270ccf9e3dbc7a4d35))
+* mount shared certificate volume at /shared-certs to avoid hiding… ([ed8fa38](https://github.com/pcn/mailbag/commit/ed8fa3848276bc4a09e79506ce37814ad584923d))
+
 ## [1.1.14](https://github.com/pcn/mailbag/compare/v1.1.13...v1.1.14) (2025-06-28)
 
 
