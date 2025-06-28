@@ -27,9 +27,8 @@ fi
 
 /usr/sbin/authdaemond start
 
-# Copy combined certificate file from shared volume to courier directory
-cp /shared-certs/esmtpd.pem /usr/lib/courier/share/esmtpd.pem
-
+# Combined certificate file created by init container at /shared-certs/esmtpd.pem
+# Configuration points directly to this location
 # start the esmtpd-ssl and keep container alive (courierd runs in separate container)
 /usr/lib/courier/sbin/esmtpd-ssl start
 
