@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.14](https://github.com/pcn/mailbag/compare/v1.1.13...v1.1.14) (2025-06-28)
+
+
+### Bug Fixes
+
+* create combined certificate file for MTA-SSL using init container ([857bc68](https://github.com/pcn/mailbag/commit/857bc68daa30a0d31b456fb7c184f614845f14b6))
+* create combined certificate file for MTA-SSL using init container ([4a61283](https://github.com/pcn/mailbag/commit/4a612837cb42f35ddb55c0ed70016e2d1a349f87))
+
 ## [1.1.13](https://github.com/pcn/mailbag/compare/v1.1.12...v1.1.13) (2025-06-28)
 
 
