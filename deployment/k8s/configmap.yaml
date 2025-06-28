@@ -318,7 +318,7 @@ data:
     MAXPERIP={{ mta.max_per_ip | default("4") }}
 
     # TLS certificate files (use combined file approach like IMAP-SSL)
-    TLS_CERTFILE=/usr/lib/courier/share/esmtpd.pem
+    TLS_CERTFILE=/shared-certs/esmtpd.pem
 
     # Courier TLS binary location
     COURIERTLS=/usr/lib/courier/bin/couriertls
@@ -359,7 +359,7 @@ data:
     MAXPERIP={{ mta_ssl.max_per_ip | default("4") }}
 
     # TLS certificate files (use combined file approach like IMAP-SSL)
-    TLS_CERTFILE=/usr/lib/courier/share/esmtpd.pem
+    TLS_CERTFILE=/shared-certs/esmtpd.pem
 
     # Courier TLS binary location
     COURIERTLS=/usr/lib/courier/bin/couriertls
