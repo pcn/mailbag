@@ -36,6 +36,7 @@ spec:
           chmod 600 /shared-certs/esmtpd.pem
           chown daemon:daemon /shared-certs/esmtpd.pem
           # Also copy to legacy location for compatibility
+          mkdir -p /usr/lib/courier/share
           cp /shared-certs/esmtpd.pem /usr/lib/courier/share/esmtpd.pem
         volumeMounts:
         - name: courier-config
