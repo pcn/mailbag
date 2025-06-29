@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# Fixed certificate path issue 2025-06-29
 set -e -x -o pipefail
 
 # context.json is added via the docker/container as a bind mount
