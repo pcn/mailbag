@@ -35,6 +35,8 @@ spec:
           cat /certs/tls.crt /certs/tls.key > /shared-certs/esmtpd.pem
           chmod 600 /shared-certs/esmtpd.pem
           chown daemon:daemon /shared-certs/esmtpd.pem
+          # Also copy to legacy location for compatibility
+          cp /shared-certs/esmtpd.pem /usr/lib/courier/share/esmtpd.pem
         volumeMounts:
         - name: courier-config
           mountPath: /etc/courier
