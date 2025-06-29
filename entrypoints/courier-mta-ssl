@@ -13,10 +13,8 @@ set -e -x -o pipefail
 
 /usr/lib/courier/share/makeacceptmailfor
 /usr/lib/courier/share/makehosteddomains
-# Create empty esmtpaccess file if it doesn't exist
-touch /etc/courier/esmtpaccess
-# Skip makesmtpaccess if esmtpaccess is empty
-[ -s /etc/courier/esmtpaccess ] && /usr/lib/courier/sbin/makesmtpaccess || echo "Empty esmtpaccess file, skipping makesmtpaccess"
+# Process esmtpaccess file (created by init container)
+/usr/lib/courier/sbin/makesmtpaccess
 # Skip makeuserdb if userdb directory is empty (no test users configured yet)
 if [ "$(ls -A /etc/authlib/userdb 2>/dev/null)" ]; then
     /usr/sbin/makeuserdb
