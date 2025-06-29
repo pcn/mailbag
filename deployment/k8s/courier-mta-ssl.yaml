@@ -52,7 +52,7 @@ spec:
           runAsUser: 0
       containers:
       - name: courier-mta-ssl
-        image: ghcr.io/pcn/mailbag/courier-mta-ssl:v1.2.0
+        image: ghcr.io/pcn/mailbag/courier-mta-ssl:main
         imagePullPolicy: Always
         ports:
         - containerPort: 465
