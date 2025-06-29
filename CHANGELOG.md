@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.1](https://github.com/pcn/mailbag/compare/v1.2.0...v1.2.1) (2025-06-29)
+
+
+### Bug Fixes
+
+* create directory before copying certificate to legacy location ([ea100a7](https://github.com/pcn/mailbag/commit/ea100a7e3122e74d42f9e077c08e247cb29cd4a1))
+* run MTA-SSL container as privileged root user ([52c7338](https://github.com/pcn/mailbag/commit/52c733810db694efef26db5e3e1e9a28c0946b86))
+* update MTA-SSL to use v1.2.0 container image ([ce2d836](https://github.com/pcn/mailbag/commit/ce2d836e52713fd63c7ab5d6a7f075f0b208c640))
+
+
+### Reverts
+
+* use main tag instead of v1.2.0 for MTA-SSL image ([1014886](https://github.com/pcn/mailbag/commit/1014886a0307ffbf6749f57a0aa15443863715c5))
+
 ## [1.2.0](https://github.com/pcn/mailbag/compare/v1.1.16...v1.2.0) (2025-06-29)
 
 
