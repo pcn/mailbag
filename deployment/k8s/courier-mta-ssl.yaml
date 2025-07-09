@@ -38,6 +38,13 @@ spec:
           # Also copy to legacy location for compatibility
           mkdir -p /usr/lib/courier/share
           cp /shared-certs/esmtpd.pem /usr/lib/courier/share/esmtpd.pem
+          # Create minimal esmtpaccess file for MTA-SSL
+          cat > /etc/courier/esmtpaccess << 'EOF'
+          # Default access policies for MTA-SSL
+          # Allow connections (no relaying restrictions for incoming mail)
+          0.0.0.0/0	allow
+          ::/0		allow
+          EOF
         volumeMounts:
         - name: courier-config
           mountPath: /etc/courier
