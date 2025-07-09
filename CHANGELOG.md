@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/pcn/mailbag/compare/v1.2.1...v1.2.2) (2025-07-09)
+
+
+### Bug Fixes
+
+* generate proper esmtpaccess file for couriertcpd ([1ebe760](https://github.com/pcn/mailbag/commit/1ebe760b0ca3748f8f7acad0f81d423f6c8cb246))
+
 ## [1.2.1](https://github.com/pcn/mailbag/compare/v1.2.0...v1.2.1) (2025-06-29)
 
 
