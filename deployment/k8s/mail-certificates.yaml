@@ -1,35 +1,20 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: courier-mta-cert
+  name: courier-mail-cert
   namespace: mailbag
 spec:
   # Secret name where the certificate will be stored
-  secretName: courier-mta-cert-tls
+  secretName: courier-mail-cert-tls
   # Reference to the ClusterIssuer
   issuerRef:
     name: letsencrypt-staging  # Start with staging for testing
     kind: ClusterIssuer
   # Common name for the certificate
-  commonName: farout-mta.rton.me
-  # Subject Alternative Names
+  commonName: do-testmail.rton.me
+  # Subject Alternative Names - All mail service hostnames
   dnsNames:
-  - farout-mta.rton.me
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: courier-imap-cert
-  namespace: mailbag
-spec:
-  # Secret name where the certificate will be stored
-  secretName: courier-imap-cert-tls
-  # Reference to the ClusterIssuer
-  issuerRef:
-    name: letsencrypt-staging  # Start with staging for testing
-    kind: ClusterIssuer
-  # Common name for the certificate
-  commonName: farout-imap.rton.me
-  # Subject Alternative Names
-  dnsNames:
-  - farout-imap.rton.me
+  - do-testmail.rton.me        # MTA (port 25)
+  - mail.do-testmail.rton.me   # MSA (port 587)
+  - smtp.do-testmail.rton.me   # MTA-SSL (port 465)
+  - imap.do-testmail.rton.me   # IMAP-SSL (port 993)
