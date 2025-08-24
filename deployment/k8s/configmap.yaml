@@ -19,7 +19,9 @@ data:
         "service": "courier-mta",
         "accept_mail_for": ["example.com"],
         "courierd_path_host": "/home/mailbag/spool/courier",
-        "courierd_path_container": "/var/spool/courier"
+        "courierd_path_container": "/var/spool/courier",
+        "mail_user": "daemon",
+        "mail_group": "daemon"
       },
       "imapd_ssl": {
         "dns_name": "imap.example.com",
@@ -87,7 +89,7 @@ data:
   esmtpd-base-msa.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
-    # Base esmtpd configuration for MSA service
+    # Base esmtpd configuration for ESMTPD service
     # Generated from template using context.json
     #
 
@@ -231,6 +233,14 @@ data:
     # Connection limits
     MAXDAEMONS={{ mta.max_daemons | default("40") }}
     MAXPERIP={{ mta.max_per_ip | default("4") }}
+
+    # User and group for privilege dropping
+    MAILUSER={{ mta.mail_user | default("daemon") }}
+    MAILGROUP={{ mta.mail_group | default("daemon") }}
+
+    # Access file and PID file
+    ACCESSFILE={{ mta.access_file | default("/etc/courier/smtpaccess") }}
+    PIDFILE={{ mta.pid_file | default("/var/spool/courier/tmp/esmtpd.pid") }}
   esmtpd-base-mta-ssl.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
