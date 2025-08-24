@@ -238,6 +238,15 @@ data:
     MAILUSER={{ mta.mail_user | default("daemon") }}
     MAILGROUP={{ mta.mail_group | default("daemon") }}
 
+    # Port for SMTP
+    PORT={{ mta.port | default("25") }}
+
+    # Connection limits (MAXPERC needed to avoid empty parameter)
+    MAXPERC={{ mta.max_perc | default("4") }}
+
+    # Enable detailed logging
+    ESMTP_LOG_DIALOG={{ mta.log_dialog | default("1") }}
+
     # Access file and PID file
     ACCESSFILE={{ mta.access_file | default("/etc/courier/smtpaccess") }}
     PIDFILE={{ mta.pid_file | default("/var/spool/courier/tmp/esmtpd.pid") }}
