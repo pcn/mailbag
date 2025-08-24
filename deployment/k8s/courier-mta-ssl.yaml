@@ -114,7 +114,7 @@ spec:
           claimName: courier-auth-pvc
       - name: courier-cert
         secret:
-          secretName: courier-mta-cert-tls
+          secretName: courier-mail-cert-tls
       - name: courier-share
         emptyDir: {}
       - name: context-json

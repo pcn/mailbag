@@ -70,7 +70,7 @@ spec:
           claimName: courier-auth-pvc
       - name: courier-cert
         secret:
-          secretName: courier-imap-cert-tls
+          secretName: courier-mail-cert-tls
       - name: context-json
         hostPath:
           path: /etc/mailbag/context.json
