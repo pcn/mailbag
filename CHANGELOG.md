@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.2](https://github.com/pcn/mailbag/compare/v1.2.1...v1.2.2) (2025-08-24)
+
+
+### Bug Fixes
+
+* generate proper esmtpaccess file for couriertcpd ([1ebe760](https://github.com/pcn/mailbag/commit/1ebe760b0ca3748f8f7acad0f81d423f6c8cb246))
+* Stop trying to fix things in the mta that the daemon controlls ([1ec0a30](https://github.com/pcn/mailbag/commit/1ec0a302b6d5f2e498c5bfde8db4181bcd4ce450))
+* Stop trying to fix things in the mta that the daemon controlls ([80d97c4](https://github.com/pcn/mailbag/commit/80d97c4c6674c9248f3cd072a9e8a1b408aacd4c))
+* use one cert with SANs, and generat the cert deployment ([9bdcb9a](https://github.com/pcn/mailbag/commit/9bdcb9a4a5c49dcca071153fed5ef63d6bbf21bd))
+* use one cert with SANs, and generat the cert deployment ([d3688c2](https://github.com/pcn/mailbag/commit/d3688c2b0bff6b0fec15e3212f3dac53920c63c6))
+
 ## [1.2.1](https://github.com/pcn/mailbag/compare/v1.2.0...v1.2.1) (2025-06-29)
 
 
