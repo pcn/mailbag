@@ -14,6 +14,10 @@ on:
       - main
     tags:
       - 'v*'
+  # Manual trigger: the path filters gate each build on its own inputs, so a
+  # rebuild that is needed for another reason (a stale published base, a
+  # rebuilt dependency image) has no file change to trigger it.
+  workflow_dispatch:
 
 # Cancel superseded runs for the same ref; a release tag always runs to completion.
 concurrency:

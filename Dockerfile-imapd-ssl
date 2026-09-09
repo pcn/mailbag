@@ -1,4 +1,4 @@
-FROM ghcr.io/pcn/mailbag-base:main
+FROM ghcr.io/pcn/mailbag:main
 # Updated 2025-06-23 for entrypoint fixes
 
 RUN cd /etc/courier; \
