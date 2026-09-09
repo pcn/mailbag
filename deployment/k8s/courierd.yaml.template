@@ -20,7 +20,9 @@ spec:
     spec:
       initContainers:
       - name: init-dirs
-        image: busybox:latest
+        # Pinned by digest: an init container that runs as root and chowns the mail
+        # store is not somewhere to accept a mutable upstream tag.
+        image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
         command: 
         - sh
         - -c
@@ -37,7 +39,7 @@ spec:
           runAsUser: 0
       containers:
       - name: courierd
-        image: ghcr.io/pcn/mailbag/courier-courierd:main
+        image: ghcr.io/pcn/mailbag/courier-courierd:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         volumeMounts:
         - name: courier-spool

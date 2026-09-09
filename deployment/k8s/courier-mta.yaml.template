@@ -1,29 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: courier-mta-ssl
+  name: courier-mta
   namespace: mailbag
   labels:
     app: mailbag
-    component: mta-ssl
+    component: mta
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: mailbag
-      component: mta-ssl
+      component: mta
   template:
     metadata:
       labels:
         app: mailbag
-        component: mta-ssl
+        component: mta
     spec:
       securityContext:
         fsGroup: 1
         fsGroupChangePolicy: OnRootMismatch
       initContainers:
       - name: init-dirs
-        image: busybox:latest
+        # Pinned by digest: an init container that runs as root and chowns the mail
+        # store is not somewhere to accept a mutable upstream tag.
+        image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
         command: 
         - sh
         - -c
@@ -38,18 +40,15 @@ spec:
           mountPath: /etc/courier
         - name: courier-auth
           mountPath: /etc/authlib
-        - name: courier-cert
-          mountPath: /certs
-          readOnly: true
         securityContext:
           runAsUser: 0
       containers:
-      - name: courier-mta-ssl
-        image: ghcr.io/pcn/mailbag/courier-mta-ssl:main
+      - name: courier-mta
+        image: ghcr.io/pcn/mailbag/courier-mta:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         ports:
-        - containerPort: 465
-          name: smtps
+        - containerPort: 25
+          name: smtp
         volumeMounts:
         - name: courier-spool
           mountPath: /var/spool/courier
@@ -71,15 +70,6 @@ spec:
         - name: templates
           mountPath: /hosteddomains.template
           subPath: hosteddomains.template
-        - name: templates
-          mountPath: /esmtpd-base-mta-ssl.template
-          subPath: esmtpd-base-mta-ssl.template
-        - name: templates
-          mountPath: /esmtpd-mta-ssl.template
-          subPath: esmtpd-mta-ssl.template
-        - name: templates
-          mountPath: /authdaemonrc.template
-          subPath: authdaemonrc.template
         securityContext:
           runAsUser: 1
           runAsGroup: 1
@@ -113,18 +103,18 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mta-ssl
+  name: mta
   namespace: mailbag
   labels:
     app: mailbag
-    component: mta-ssl
+    component: mta
 spec:
   selector:
     app: mailbag
-    component: mta-ssl
+    component: mta
   ports:
-  - port: 465
-    targetPort: smtps
+  - port: 25
+    targetPort: smtp
     protocol: TCP
-    name: smtps
+    name: smtp
   type: LoadBalancer

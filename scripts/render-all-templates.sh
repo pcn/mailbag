@@ -33,6 +33,11 @@ TEMPLATES=(
     "host/Makefile.template:$CONTEXT"
     "deployment/k8s/prepare-host.sh.template:$CONTEXT"
     "deployment/k8s/mail-certificates.yaml.template:$CONTEXT"
+    "deployment/k8s/courierd.yaml.template:$CONTEXT"
+    "deployment/k8s/courier-mta.yaml.template:$CONTEXT"
+    "deployment/k8s/courier-mta-ssl.yaml.template:$CONTEXT"
+    "deployment/k8s/courier-imapd-ssl.yaml.template:$CONTEXT"
+    "deployment/k8s/courier-msa.yaml.template:$CONTEXT"
     "unit-files/Makefile.template:unit-files/files.json"
 )
 

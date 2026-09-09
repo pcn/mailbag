@@ -10,7 +10,9 @@
         "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
         "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
         "service": "courier-mta.service",
-        "accept_mail_for": ["the-domain.com"],
+        "accept_mail_for": [
+            "the-domain.com"
+        ],
         "courierd_path_host": "/mailbag/spool/courier-mta",
         "courierd_path_container": "/var/spool/courier"
     },
@@ -25,7 +27,9 @@
         "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
         "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
         "service": "courier-mta-ssl.service",
-        "accept_mail_for": ["the-domain.com"],
+        "accept_mail_for": [
+            "the-domain.com"
+        ],
         "courierd_path_host": "/mailbag/spool/courier-mta-ssl",
         "courierd_path_container": "/var/spool/courier"
     },
@@ -49,6 +53,9 @@
         "name": "mail",
         "zone": "the-domain.com"
     },
+    "image": {
+        "tag": "main"
+    },
     "config": {
         "courier_path": "/home/mailbag/config/courier",
         "courier_mode": "0755",
@@ -70,7 +77,18 @@
         "imaps_port": 993,
         "ssh_port": 22,
         "k8s_namespace": "mailbag",
-        "k8s_services": ["mta", "mta-ssl", "imapd-ssl", "msa"],
-        "k8s_pods": ["courier-mta", "courier-mta-ssl", "courier-imapd-ssl", "courier-msa", "courierd"]
+        "k8s_services": [
+            "mta",
+            "mta-ssl",
+            "imapd-ssl",
+            "msa"
+        ],
+        "k8s_pods": [
+            "courier-mta",
+            "courier-mta-ssl",
+            "courier-imapd-ssl",
+            "courier-msa",
+            "courierd"
+        ]
     }
 }

@@ -28,6 +28,20 @@ if [ ! -x "$RENDERER" ]; then
     exit 1
 fi
 
+# Deploy a specific build: IMAGE_TAG=sha-<sha> ./deploy-services.sh
+# Rolling back is the same command with an earlier tag. Without it, the tag
+# comes from .image.tag in context.json, defaulting to main.
+if [ -n "${IMAGE_TAG:-}" ]; then
+    RENDER_CONTEXT=$(mktemp)
+    trap 'rm -f "$RENDER_CONTEXT"' EXIT
+    jq --arg t "$IMAGE_TAG" '.image = (.image // {}) | .image.tag = $t' \
+        "$CONTEXT" > "$RENDER_CONTEXT"
+    echo "Deploying image tag: $IMAGE_TAG"
+else
+    RENDER_CONTEXT="$CONTEXT"
+    echo "Deploying image tag: $(jq -r '.image.tag // "main"' "$CONTEXT")"
+fi
+
 NAMESPACE=$(jq -r '.services.k8s_namespace' "$CONTEXT")
 if [ -z "$NAMESPACE" ] || [ "$NAMESPACE" = "null" ]; then
     echo "ERROR: .services.k8s_namespace is missing from $CONTEXT" >&2
@@ -43,11 +57,11 @@ MANIFESTS=(
     letsencrypt-clusterissuer.yaml
     mail-certificates.yaml.template
     storage.yaml
-    courierd.yaml
-    courier-mta.yaml
-    courier-mta-ssl.yaml
-    courier-imapd-ssl.yaml
-    courier-msa.yaml
+    courierd.yaml.template
+    courier-mta.yaml.template
+    courier-mta-ssl.yaml.template
+    courier-imapd-ssl.yaml.template
+    courier-msa.yaml.template
 )
 
 apply_one() {
@@ -66,7 +80,7 @@ apply_one() {
             tmp=$(mktemp)
             # shellcheck disable=SC2064
             trap "rm -f '$tmp'" RETURN
-            "$RENDERER" --context "$CONTEXT" --template "$path" > "$tmp"
+            "$RENDERER" --context "$RENDER_CONTEXT" --template "$path" > "$tmp"
             kubectl apply -f "$tmp"
             ;;
         *)
@@ -87,3 +101,6 @@ echo "Certificates are issued asynchronously by cert-manager. Check with:"
 echo "  kubectl get certificate,certificaterequest,order,challenge -n $NAMESPACE"
 echo
 echo "Pods stay in ContainerCreating until the certificate Secret exists."
+echo
+echo "Verify the deployed image tags with:"
+echo "  kubectl get pods -n $NAMESPACE -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[*].image}{\"\\n\"}{end}'"
