@@ -24,8 +24,21 @@ stop: unit-files
 	cd unit-files && $(MAKE) stop-services
 
 ## Pre-requisites
-render-template:
-	cd templater && cargo build; cd ..;  cp templater/target/debug/render-template .
+# Declare the sources as prerequisites. Without them make reports "up to date"
+# whenever the binary merely exists, so a source change never reaches the copy
+# at the repo root that the deploy scripts invoke.
+render-template: templater/src/main.rs templater/Cargo.toml
+	cd templater && cargo build
+	cp templater/target/debug/render-template .
+
+# Render every template against its context; fails on any reference to a
+# context key that is not provided.
+check-templates:
+	./scripts/render-all-templates.sh
+
+# Unit tests for the renderer itself, including the undefined-value behaviour.
+test-templater:
+	cd templater && cargo test
 
 goss-bin:
 	curl -L https://github.com/aelsabbahy/goss/releases/download/v$(GOSS_VER)/goss-linux-amd64 > goss-bin && \
