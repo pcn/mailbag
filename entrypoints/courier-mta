@@ -29,14 +29,8 @@ touch /etc/courier/aliases
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
 
-# Ensure the directory structure is in place to communicate with courierd.
-# XXX This will work with goss
-# templates of scripts that generate scripts that run templates etc.
-mkdir -p  /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
-chown -R daemon:daemon  /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
-chmod 750  /var/spool/courier/{msgq,msgs,filters,allfilters}
-chmod 770  /var/spool/courier/tmp
-chmod 755  /var/spool/courier/track
+# Directory structure is created by courierd container
+# No need to create or modify spool directories here
 
 # start the esmtpd and keep container alive (courierd runs in separate container)
 /usr/lib/courier/sbin/esmtpd start

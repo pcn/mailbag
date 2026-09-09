@@ -35,6 +35,15 @@ spec:
           chmod 700 /etc/authlib/userdb
           chown -R daemon:daemon /etc/courier
           chown -R daemon:daemon /etc/authlib
+          # esmtpaccess must exist and be non-empty: the entrypoint runs
+          # makesmtpaccess, and `set -e` kills the container if it fails.
+          # `allow` permits the connection only -- relaying still requires
+          # RELAYCLIENT, so this is not an open relay.
+          cat > /etc/courier/esmtpaccess << 'EOF'
+          # Default access policies for MTA-SSL
+          0.0.0.0/0	allow
+          ::/0		allow
+          EOF
         volumeMounts:
         - name: courier-config
           mountPath: /etc/courier
@@ -83,8 +92,12 @@ spec:
           mountPath: /authdaemonrc.template
           subPath: authdaemonrc.template
         securityContext:
-          runAsUser: 1
-          runAsGroup: 1
+          # Retained from main (52c7338), which added it while chasing the
+          # couriertcpd segfault on 465. Kept deliberately rather than reverted
+          # to runAsUser 1: removing the combined-PEM workaround may have made
+          # this unnecessary, but that is untested. PROJ-021 owns dropping it.
+          runAsUser: 0
+          privileged: true
       volumes:
       - name: courier-spool
         persistentVolumeClaim:

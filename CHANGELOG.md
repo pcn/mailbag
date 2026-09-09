@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.2.1](https://github.com/pcn/mailbag/compare/v1.2.0...v1.2.1) (2025-06-29)
+
+
+### Bug Fixes
+
+* create directory before copying certificate to legacy location ([ea100a7](https://github.com/pcn/mailbag/commit/ea100a7e3122e74d42f9e077c08e247cb29cd4a1))
+* run MTA-SSL container as privileged root user ([52c7338](https://github.com/pcn/mailbag/commit/52c733810db694efef26db5e3e1e9a28c0946b86))
+* update MTA-SSL to use v1.2.0 container image ([ce2d836](https://github.com/pcn/mailbag/commit/ce2d836e52713fd63c7ab5d6a7f075f0b208c640))
+
+
+### Reverts
+
+* use main tag instead of v1.2.0 for MTA-SSL image ([1014886](https://github.com/pcn/mailbag/commit/1014886a0307ffbf6749f57a0aa15443863715c5))
+
+## [1.2.0](https://github.com/pcn/mailbag/compare/v1.1.16...v1.2.0) (2025-06-29)
+
+
+### Features
+
+* add semantic version tagging to container images ([eda10a8](https://github.com/pcn/mailbag/commit/eda10a86bdb252fa49a3fbd9d6b824184982f6ac))
+* add semantic version tagging to container images ([b6b2b96](https://github.com/pcn/mailbag/commit/b6b2b9693f2f1d72849eaab8ee70b281a1aac4e0))
+
+
+### Bug Fixes
+
+* add certificate copy to legacy location for MTA-SSL compatibility ([e064d75](https://github.com/pcn/mailbag/commit/e064d75777a58d6e0eca30ee1bec90e2f0e2ec4d))
+* add certificate copy to legacy location for MTA-SSL compatibility ([9ff68bb](https://github.com/pcn/mailbag/commit/9ff68bbeabecfe5d7f8962f76e102204051d366b))
+
 ## [1.1.16](https://github.com/pcn/mailbag/compare/v1.1.15...v1.1.16) (2025-06-28)
 
 
