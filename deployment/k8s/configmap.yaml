@@ -14,8 +14,8 @@ data:
       },
       "mta": {
         "dns_name": "mail.example.com",
-        "tls_certfile": "/certs/live/example.com/fullchain.pem",
-        "tls_keyfile": "/certs/live/example.com/privkey.pem",
+        "tls_certfile": "/certs/tls.crt",
+        "tls_keyfile": "/certs/tls.key",
         "service": "courier-mta",
         "accept_mail_for": ["example.com"],
         "courierd_path_host": "/home/mailbag/spool/courier",
@@ -23,14 +23,14 @@ data:
       },
       "imapd_ssl": {
         "dns_name": "imap.example.com",
-        "tls_certfile": "/certs/live/example.com/fullchain.pem",
-        "tls_keyfile": "/certs/live/example.com/privkey.pem",
+        "tls_certfile": "/certs/tls.crt",
+        "tls_keyfile": "/certs/tls.key",
         "service": "courier-imapd-ssl"
       },
       "mta_ssl": {
         "dns_name": "smtp.example.com",
-        "tls_certfile": "/certs/live/example.com/fullchain.pem",
-        "tls_keyfile": "/certs/live/example.com/privkey.pem",
+        "tls_certfile": "/certs/tls.crt",
+        "tls_keyfile": "/certs/tls.key",
         "service": "courier-mta-ssl",
         "accept_mail_for": ["example.com"],
         "courierd_path_host": "/home/mailbag/spool/courier",
@@ -38,8 +38,8 @@ data:
       },
       "msa": {
         "dns_name": "mail.example.com",
-        "tls_certfile": "/certs/live/example.com/fullchain.pem",
-        "tls_keyfile": "/certs/live/example.com/privkey.pem",
+        "tls_certfile": "/certs/tls.crt",
+        "tls_keyfile": "/certs/tls.key",
         "service": "courier-msa",
         "courierd_path_host": "/home/mailbag/spool/courier",
         "courierd_path_container": "/var/spool/courier",
@@ -61,7 +61,6 @@ data:
         "mail_user": "daemon",
         "mail_group": "daemon",
         "port": "smtp",
-        "tls_certfile_internal": "/usr/lib/courier/share/esmtpd.pem",
         "tls_dhparams": "/usr/lib/courier/share/dhparams.pem",
         "tls_trustcerts": "/etc/ssl/certs/ca-certificates.crt",
         "tls_verifypeer": "NONE"
@@ -317,8 +316,12 @@ data:
     MAXDAEMONS={{ mta.max_daemons | default("40") }}
     MAXPERIP={{ mta.max_per_ip | default("4") }}
 
-    # TLS certificate files (use combined file approach like IMAP-SSL)
-    TLS_CERTFILE=/shared-certs/esmtpd.pem
+    # Cert and key are read straight from the mounted cert-manager Secret.
+    # Separate files rather than a concatenated PEM: a combined file has to be
+    # built by something, and anything that builds it at pod start freezes it,
+    # so a renewed certificate would never be picked up.
+    TLS_CERTFILE=/certs/tls.crt
+    TLS_PRIVATE_KEYFILE=/certs/tls.key
 
     # Courier TLS binary location
     COURIERTLS=/usr/lib/courier/bin/couriertls
@@ -358,8 +361,12 @@ data:
     MAXDAEMONS={{ mta_ssl.max_daemons | default("40") }}
     MAXPERIP={{ mta_ssl.max_per_ip | default("4") }}
 
-    # TLS certificate files (use combined file approach like IMAP-SSL)
-    TLS_CERTFILE=/shared-certs/esmtpd.pem
+    # Cert and key are read straight from the mounted cert-manager Secret.
+    # Separate files rather than a concatenated PEM: a combined file has to be
+    # built by something, and anything that builds it at pod start freezes it,
+    # so a renewed certificate would never be picked up.
+    TLS_CERTFILE=/certs/tls.crt
+    TLS_PRIVATE_KEYFILE=/certs/tls.key
 
     # Courier TLS binary location
     COURIERTLS=/usr/lib/courier/bin/couriertls

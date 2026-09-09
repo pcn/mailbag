@@ -1,0 +1,20 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: courier-mail-cert
+  namespace: mailbag
+spec:
+  # Secret name where the certificate will be stored
+  secretName: courier-mail-cert-tls
+  # Reference to the ClusterIssuer
+  issuerRef:
+    name: letsencrypt-staging  # Start with staging for testing
+    kind: ClusterIssuer
+  # Common name for the certificate
+  commonName: {{ domain.zone }}
+  # Subject Alternative Names - All mail service hostnames
+  dnsNames:
+  - {{ domain.zone }}                # MTA (port 25)
+  - {{ msa.dns_name }}               # MSA (port 587)
+  - {{ mta_ssl.dns_name }}           # MTA-SSL (port 465)
+  - {{ imapd_ssl.dns_name }}         # IMAP-SSL (port 993)

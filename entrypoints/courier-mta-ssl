@@ -27,8 +27,9 @@ fi
 
 /usr/sbin/authdaemond start
 
-# Combined certificate file created by init container at /shared-certs/esmtpd.pem
-# Configuration points directly to this location
+# Cert and key are read directly from the mounted cert-manager Secret via
+# TLS_CERTFILE and TLS_PRIVATE_KEYFILE. Nothing copies or combines them, so a
+# renewed certificate is picked up on the next connection.
 # start the esmtpd-ssl and keep container alive (courierd runs in separate container)
 /usr/lib/courier/sbin/esmtpd-ssl start
 

@@ -18,6 +18,9 @@ spec:
         app: mailbag
         component: mta-ssl
     spec:
+      securityContext:
+        fsGroup: 1
+        fsGroupChangePolicy: OnRootMismatch
       initContainers:
       - name: init-dirs
         image: busybox:latest
@@ -30,11 +33,6 @@ spec:
           chmod 700 /etc/authlib/userdb
           chown -R daemon:daemon /etc/courier
           chown -R daemon:daemon /etc/authlib
-          # Create combined certificate file for Courier SSL
-          mkdir -p /shared-certs
-          cat /certs/tls.crt /certs/tls.key > /shared-certs/esmtpd.pem
-          chmod 600 /shared-certs/esmtpd.pem
-          chown daemon:daemon /shared-certs/esmtpd.pem
         volumeMounts:
         - name: courier-config
           mountPath: /etc/courier
@@ -43,8 +41,6 @@ spec:
         - name: courier-cert
           mountPath: /certs
           readOnly: true
-        - name: courier-share
-          mountPath: /shared-certs
         securityContext:
           runAsUser: 0
       containers:
@@ -66,8 +62,6 @@ spec:
         - name: courier-cert
           mountPath: /certs
           readOnly: true
-        - name: courier-share
-          mountPath: /shared-certs
         - name: context-json
           mountPath: /context.json
           readOnly: true
@@ -104,9 +98,10 @@ spec:
           claimName: courier-auth-pvc
       - name: courier-cert
         secret:
-          secretName: courier-mta-cert-tls
-      - name: courier-share
-        emptyDir: {}
+          secretName: courier-mail-cert-tls
+          # Readable by the service group, never world-readable. Ownership comes
+          # from the pod fsGroup below; Secret volumes are root-owned otherwise.
+          defaultMode: 0440
       - name: context-json
         hostPath:
           path: /etc/mailbag/context.json

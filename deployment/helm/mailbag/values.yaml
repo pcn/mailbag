@@ -49,8 +49,8 @@ mail:
   
 # Certificate configuration
 certificates:
-  certPath: /certs/live/example.com/fullchain.pem
-  keyPath: /certs/live/example.com/privkey.pem
+  certPath: /certs/tls.crt
+  keyPath: /certs/tls.key
   renewal:
     enabled: true
     schedule: "0 0 * * *"  # Daily at midnight

@@ -18,6 +18,9 @@ spec:
         app: mailbag
         component: msa
     spec:
+      securityContext:
+        fsGroup: 1
+        fsGroupChangePolicy: OnRootMismatch
       initContainers:
       - name: init-dirs
         image: busybox:latest
@@ -95,7 +98,10 @@ spec:
           claimName: courier-auth-pvc
       - name: courier-cert
         secret:
-          secretName: courier-mta-cert-tls
+          secretName: courier-mail-cert-tls
+          # Readable by the service group, never world-readable. Ownership comes
+          # from the pod fsGroup below; Secret volumes are root-owned otherwise.
+          defaultMode: 0440
       - name: context-json
         hostPath:
           path: /etc/mailbag/context.json
