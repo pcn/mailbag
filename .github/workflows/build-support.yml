@@ -8,11 +8,17 @@
 
 name: Build supporting artifacts and push them in container images
 on:
-  workflow_run:
-    workflows:
-      - release-please
-    types:
-      - completed
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+# Cancel superseded runs for the same ref; a release tag always runs to completion.
+concurrency:
+  group: build-support-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 
 env:
@@ -26,6 +32,9 @@ env:
 jobs:
   push_support_to_registry:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: checkout repository and build template 
         uses: actions/checkout@v4
@@ -54,12 +63,14 @@ jobs:
         with:
           filters: |
             renderer:
-            - 'renderer/**'
+            - 'templater/**'
+            - 'Dockerfile-support'
+            - 'install-scripts/packages.sh'
             
       - name: Build and push the render binary
         uses: docker/build-push-action@v6
         id: build
-        if: steps.changes-renderer.outputs.renderer == 'true'
+        if: steps.changes-renderer.outputs.renderer == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true
@@ -69,6 +80,9 @@ jobs:
 
   push_packages_to_registry:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: checkout repository and packages
         uses: actions/checkout@v4
@@ -88,7 +102,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.PACKAGES_IMAGE_NAME }}
 
       - name: Filter paths
-        id: changes-builld-packages
+        id: changes-build-packages
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -99,7 +113,7 @@ jobs:
       - name: Build and push the built deb packages
         uses: docker/build-push-action@v6
         id: build-packages
-        if: steps.changes-build-packages.outputs.build-packages == 'true'
+        if: steps.changes-build-packages.outputs.build-packages == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true
@@ -110,6 +124,9 @@ jobs:
 
   push_base_to_registry:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: checkout repository and push a base image
         uses: actions/checkout@v4
@@ -136,12 +153,13 @@ jobs:
             - 'Dockerfile'
             - 'Dockerfile-base'
             - 'install-scripts/**'
-            - 'entrypoints/**'
+            - 'acceptmailfor.template'
+            - 'hosteddomains.template'
           
       - name: Build and push the base packages
         uses: docker/build-push-action@v6
         id: build
-        if: steps.changes-base-deps.outputs.base-deps == 'true'
+        if: steps.changes-base-deps.outputs.base-deps == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true

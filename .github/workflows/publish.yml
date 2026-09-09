@@ -1,10 +1,16 @@
 name: Publish populated containers to Docker
 on:
-  workflow_run:
-    workflows:
-      - release-please
-    types:
-      - completed
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+# Cancel superseded runs for the same ref; a release tag always runs to completion.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 
 env:
@@ -39,6 +45,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
@@ -49,12 +56,14 @@ jobs:
         with:
           filters: |
             build-packages:
-            - 'Dockerfile-*'
+            - 'Dockerfile-mta'
+            - 'entrypoints/courier-mta'
+            - 'Dockerfile-base'
 
       - name: Build and push mta image
         uses: docker/build-push-action@v5
         id: mta
-        if: steps.changes-mta.outputs.build-packages == 'true'
+        if: steps.changes-mta.outputs.build-packages == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true
@@ -64,6 +73,9 @@ jobs:
 
   push_msa_to_registry:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -83,6 +95,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
@@ -93,12 +106,14 @@ jobs:
         with:
           filters: |
             build-packages:
-            - 'Dockerfile-*'
+            - 'Dockerfile-msa'
+            - 'entrypoints/courier-msa'
+            - 'Dockerfile-base'
 
       - name: Build and push msa image
         uses: docker/build-push-action@v5
         id: msa
-        if: steps.changes-msa.outputs.build-packages == 'true'
+        if: steps.changes-msa.outputs.build-packages == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true
@@ -108,6 +123,9 @@ jobs:
 
   push_courierd_to_registry:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -127,6 +145,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
@@ -137,12 +156,14 @@ jobs:
         with:
           filters: |
             build-packages:
-            - 'Dockerfile-*'
+            - 'Dockerfile-courierd'
+            - 'entrypoints/courier-courierd'
+            - 'Dockerfile-base'
 
       - name: Build and push courierd image
         uses: docker/build-push-action@v5
         id: courierd
-        if: steps.changes-courierd.outputs.build-packages == 'true'
+        if: steps.changes-courierd.outputs.build-packages == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true
@@ -152,6 +173,9 @@ jobs:
           
   push_mta_ssl_to_registry:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -171,6 +195,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
@@ -181,12 +206,14 @@ jobs:
         with:
           filters: |
             build-packages:
-            - 'Dockerfile-*'
+            - 'Dockerfile-mta-ssl'
+            - 'entrypoints/courier-mta-ssl'
+            - 'Dockerfile-base'
 
       - name: Build and push mta-ssl image
         uses: docker/build-push-action@v5
         id: mta-ssl
-        if: steps.changes-mta-ssl.outputs.build-packages == 'true'
+        if: steps.changes-mta-ssl.outputs.build-packages == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true
@@ -196,6 +223,9 @@ jobs:
 
   push_imapd_ssl_to_registry:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -215,6 +245,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
@@ -225,11 +256,13 @@ jobs:
         with:
           filters: |
             build-packages:
-            - 'Dockerfile-*'
+            - 'Dockerfile-imapd-ssl'
+            - 'entrypoints/courier-imapd-ssl'
+            - 'Dockerfile-base'
       - name: Build and push imapd-ssl image
         uses: docker/build-push-action@v5
         id: imapd-ssl
-        if: steps.changes-imapd-ssl.outputs.build-packages == 'true'
+        if: steps.changes-imapd-ssl.outputs.build-packages == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true
@@ -239,6 +272,9 @@ jobs:
         
   push_tinydns_to_registry:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -258,6 +294,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
@@ -268,12 +305,14 @@ jobs:
         with:
           filters: |
             build-packages:
-            - 'Dockerfile-*'
+            - 'Dockerfile-tinydns'
+            - 'entrypoints/tinydns'
+            - 'Dockerfile-base'
 
       - name: Build and push tinydns image
         uses: docker/build-push-action@v5
         id: tinydns
-        if: steps.changes-tinydns.outputs.build-packages == 'true'
+        if: steps.changes-tinydns.outputs.build-packages == 'true' || startsWith(github.ref, 'refs/tags/')
         with:
           context: .
           push: true
