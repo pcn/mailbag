@@ -154,8 +154,7 @@ makeuserdb
 ## Kubernetes Support
 
 Alternative deployment via Kubernetes is supported:
-- Helm charts in `deployment/helm/mailbag/`
-- Raw K8s manifests in `deployment/k8s/`
+- Raw K8s manifests in `deployment/k8s/` -- the single deployment path
 - Certificate management via cert-manager
 
 ## Courier Service Architecture (Kubernetes)
