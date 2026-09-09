@@ -1,7 +1,13 @@
+# Overridden by the build workflow with the exact upstream built in the same
+# run, so the base is never assembled from a half-updated dependency set.
+# The :main defaults keep a plain `docker build` working locally.
+ARG SUPPORT_IMAGE=ghcr.io/pcn/mailbag-support:main
+ARG PACKAGES_IMAGE=ghcr.io/pcn/mailbag-packages:main
+
 # support is the render-template binary
-FROM ghcr.io/pcn/mailbag-support:main AS support
+FROM ${SUPPORT_IMAGE} AS support
 # export-stage is the packaged .debs for the courier components
-FROM ghcr.io/pcn/mailbag-packages:main AS packages
+FROM ${PACKAGES_IMAGE} AS packages
 FROM ubuntu:noble
 
 
