@@ -1,0 +1,323 @@
+# Builds and publishes every image, in dependency order.
+#
+# Replaces build-support.yml and publish.yml, which were separate workflows and
+# so could not express ordering: `needs:` cannot span workflows. They ran
+# concurrently while the service images built FROM a base another workflow might
+# be rewriting at that moment, and nothing rebuilt the base when the support or
+# packages images it FROMs changed. That is why the published base sat at
+# courier 1.3.10 for a year while install-scripts pinned 1.4.1.
+#
+# Dependency graph:
+#
+#   support ─┐
+#            ├─> base ─> {mta, msa, mta-ssl, imapd-ssl, courierd}
+#   packages ┘
+#
+#   tinydns has no dependency on base.
+#
+# A single `changes` job runs paths-filter once and exposes every filter as an
+# output. Downstream jobs both `needs:` their upstream (for ordering) and gate
+# on those outputs (to skip work). A job also rebuilds when an upstream
+# actually rebuilt, which is what makes the base self-heal.
+
+name: Build and publish images
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  # Needed to rebuild something whose own inputs did not change -- a stale
+  # published image, or recovering from a partial run.
+  workflow_dispatch:
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      support: ${{ steps.filter.outputs.support }}
+      packages: ${{ steps.filter.outputs.packages }}
+      base: ${{ steps.filter.outputs.base }}
+      mta: ${{ steps.filter.outputs.mta }}
+      msa: ${{ steps.filter.outputs.msa }}
+      mta_ssl: ${{ steps.filter.outputs.mta_ssl }}
+      imapd_ssl: ${{ steps.filter.outputs.imapd_ssl }}
+      courierd: ${{ steps.filter.outputs.courierd }}
+      tinydns: ${{ steps.filter.outputs.tinydns }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # This workflow file appears in every filter on purpose: it defines
+          # how each image is built, so changing it should rebuild them.
+          filters: |
+            support:
+              - 'templater/**'
+              - 'Dockerfile-support'
+              - 'install-scripts/packages.sh'
+              - '.github/workflows/build-and-publish.yml'
+            packages:
+              - 'Dockerfile'
+              - 'install-scripts/**'
+              - '.github/workflows/build-and-publish.yml'
+            base:
+              - 'Dockerfile-base'
+              - 'acceptmailfor.template'
+              - 'hosteddomains.template'
+              - '.github/workflows/build-and-publish.yml'
+            mta:
+              - 'Dockerfile-mta'
+              - 'entrypoints/courier-mta'
+              - '.github/workflows/build-and-publish.yml'
+            msa:
+              - 'Dockerfile-msa'
+              - 'entrypoints/courier-msa'
+              - '.github/workflows/build-and-publish.yml'
+            mta_ssl:
+              - 'Dockerfile-mta-ssl'
+              - 'entrypoints/courier-mta-ssl'
+              - '.github/workflows/build-and-publish.yml'
+            imapd_ssl:
+              - 'Dockerfile-imapd-ssl'
+              - 'entrypoints/courier-imapd-ssl'
+              - '.github/workflows/build-and-publish.yml'
+            courierd:
+              - 'Dockerfile-courierd'
+              - 'entrypoints/courier-courierd'
+              - '.github/workflows/build-and-publish.yml'
+            tinydns:
+              - 'Dockerfile-tinydns'
+              - 'entrypoints/tinydns'
+              - 'tinydns/**'
+              - '.github/workflows/build-and-publish.yml'
+
+  support:
+    needs: changes
+    if: >-
+      needs.changes.outputs.support == 'true'
+      || github.event_name == 'workflow_dispatch'
+      || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      built: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: make render-template
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-support
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=long,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-support
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  packages:
+    needs: changes
+    if: >-
+      needs.changes.outputs.packages == 'true'
+      || github.event_name == 'workflow_dispatch'
+      || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      built: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-packages
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=long,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  base:
+    needs: [changes, support, packages]
+    # Rebuild when the base's own inputs changed OR when support or packages
+    # actually rebuilt -- the transitive case that previously left the base
+    # stale. `!cancelled()` plus the failure guards let this run when an
+    # upstream was skipped (nothing to do) but not when one failed.
+    if: >-
+      !cancelled()
+      && needs.support.result != 'failure'
+      && needs.packages.result != 'failure'
+      && (needs.changes.outputs.base == 'true'
+          || needs.support.result == 'success'
+          || needs.packages.result == 'success'
+          || github.event_name == 'workflow_dispatch'
+          || startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      built: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=long,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-base
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          # Consume the exact upstream built in this run when there was one,
+          # otherwise the current published :main. Without this the base could
+          # be assembled from a half-updated set of dependencies.
+          build-args: |
+            SUPPORT_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-support:${{ needs.support.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
+            PACKAGES_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-packages:${{ needs.packages.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
+
+  services:
+    needs: [changes, base]
+    if: >-
+      !cancelled()
+      && needs.base.result != 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - key: mta
+            image: courier-mta
+            file: Dockerfile-mta
+          - key: msa
+            image: courier-msa
+            file: Dockerfile-msa
+          - key: mta_ssl
+            image: courier-mta-ssl
+            file: Dockerfile-mta-ssl
+          - key: imapd_ssl
+            image: courier-imapd-ssl
+            file: Dockerfile-imapd-ssl
+          - key: courierd
+            image: courier-courierd
+            file: Dockerfile-courierd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+      # Gated at the step rather than the job: a matrix job's own `if:` cannot
+      # index outputs by matrix.key, and the checkout above is cheap anyway.
+      - uses: docker/build-push-action@v6
+        if: >-
+          needs.changes.outputs[matrix.key] == 'true'
+          || needs.base.result == 'success'
+          || github.event_name == 'workflow_dispatch'
+          || startsWith(github.ref, 'refs/tags/')
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}:${{ needs.base.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
+
+  tinydns:
+    needs: changes
+    if: >-
+      needs.changes.outputs.tinydns == 'true'
+      || github.event_name == 'workflow_dispatch'
+      || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/djbdns-tinydns
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=long,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-tinydns
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}

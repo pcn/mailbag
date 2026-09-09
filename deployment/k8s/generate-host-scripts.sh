@@ -23,8 +23,12 @@ fi
 # Generate prepare-host.sh from template
 "$REPO_ROOT/render-template" --context /etc/mailbag/context.json --template "$REPO_ROOT/deployment/k8s/prepare-host.sh.template" > "$REPO_ROOT/deployment/k8s/prepare-host.sh"
 
+# Generate mail-certificates.yaml from template
+"$REPO_ROOT/render-template" --context /etc/mailbag/context.json --template "$REPO_ROOT/deployment/k8s/mail-certificates.yaml.template" > "$REPO_ROOT/deployment/k8s/mail-certificates.yaml"
+
 # Make it executable
 chmod +x "$REPO_ROOT/deployment/k8s/prepare-host.sh"
 
 echo "Host preparation script generated at $REPO_ROOT/deployment/k8s/prepare-host.sh"
+echo "Certificate configuration generated at $REPO_ROOT/deployment/k8s/mail-certificates.yaml"
 echo "Run this script as root to prepare your host for Mailbag deployment"

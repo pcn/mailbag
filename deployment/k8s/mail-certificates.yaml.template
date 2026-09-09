@@ -11,10 +11,10 @@ spec:
     name: letsencrypt-staging  # Start with staging for testing
     kind: ClusterIssuer
   # Common name for the certificate
-  commonName: do-testmail.rton.me
+  commonName: {{ domain.zone }}
   # Subject Alternative Names - All mail service hostnames
   dnsNames:
-  - do-testmail.rton.me        # MTA (port 25)
-  - mail.do-testmail.rton.me   # MSA (port 587)
-  - smtp.do-testmail.rton.me   # MTA-SSL (port 465)
-  - imap.do-testmail.rton.me   # IMAP-SSL (port 993)
+  - {{ domain.zone }}                # MTA (port 25)
+  - {{ msa.dns_name }}               # MSA (port 587)
+  - {{ mta_ssl.dns_name }}           # MTA-SSL (port 465)
+  - {{ imapd_ssl.dns_name }}         # IMAP-SSL (port 993)

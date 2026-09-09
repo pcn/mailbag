@@ -1,4 +1,6 @@
-FROM ghcr.io/pcn/mailbag-base:main
+# Overridden by the build workflow with the base built in the same run.
+ARG BASE_IMAGE=ghcr.io/pcn/mailbag:main
+FROM ${BASE_IMAGE}
 
 # Oh, this is so much better than configuration management
 # :rolls eyes:
