@@ -96,14 +96,14 @@ spec:
           subPath: authdaemonrc.template
         readinessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 465 --expect "220" --tls']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 465 --expect "220" --tls --quit "QUIT"']
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
         livenessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 465 --expect "220" --tls']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 465 --expect "220" --tls --quit "QUIT"']
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10

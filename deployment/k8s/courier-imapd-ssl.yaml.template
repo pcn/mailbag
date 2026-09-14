@@ -84,14 +84,14 @@ spec:
           mountPath: /var/spool/authdaemon
         readinessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 993 --expect "* OK" --tls']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 993 --expect "* OK" --tls --quit "a LOGOUT"']
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
         livenessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 993 --expect "* OK" --tls']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 993 --expect "* OK" --tls --quit "a LOGOUT"']
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10

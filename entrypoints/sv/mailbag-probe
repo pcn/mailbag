@@ -16,14 +16,15 @@
 # answer; verified on the running MTA, where connect succeeded while the SMTP
 # banner timed out.
 #
-# Usage: mailbag-probe [--port N --expect PREFIX [--tls]]
+# Usage: mailbag-probe [--port N --expect PREFIX [--tls] [--quit CMD]]
 set -u
 
-port=""; expect=""; tls=0
+port=""; expect=""; tls=0; quit_cmd=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --port)   port=${2:?--port needs a value}; shift 2 ;;
         --expect) expect=${2:?--expect needs a value}; shift 2 ;;
+        --quit)   quit_cmd=${2:?--quit needs a value}; shift 2 ;;
         --tls)    tls=1; shift ;;
         *) echo "probe: unknown argument '$1'" >&2; exit 2 ;;
     esac
@@ -76,8 +77,22 @@ if [ "$tls" = 1 ]; then
     #
     # No -verify_return_error: this probes the service, not the chain, and must
     # not start failing when the deployment uses a locally generated test CA.
-    greeting=$(timeout "$timeout_s" openssl s_client -connect "127.0.0.1:$port" \
-        -quiet -ign_eof </dev/null 2>/dev/null | head -1)
+    # Send the protocol's quit command so the *server* closes the connection.
+    # head -1 closing the pipe is not enough: s_client sits blocked reading the
+    # socket, never writes again, so it never sees SIGPIPE and runs until
+    # `timeout` kills it. Measured on the node, that cost a full 5000ms per
+    # probe -- every 10s, on two containers, on a 1.5GB box -- and left
+    # timeoutSeconds: 10 with very little margin. Sending "a LOGOUT" took the
+    # same probe from 5003ms to 125ms. It is also politer: the server gets a
+    # clean close rather than a half-open connection to time out.
+    if [ -n "$quit_cmd" ]; then
+        greeting=$(printf '%s\r\n' "$quit_cmd" \
+            | timeout "$timeout_s" openssl s_client -connect "127.0.0.1:$port" \
+              -quiet -ign_eof 2>/dev/null | head -1)
+    else
+        greeting=$(timeout "$timeout_s" openssl s_client -connect "127.0.0.1:$port" \
+            -quiet -ign_eof </dev/null 2>/dev/null | head -1)
+    fi
 else
     greeting=$(timeout "$timeout_s" bash -c "
         exec 3<>/dev/tcp/127.0.0.1/$port || exit 1
