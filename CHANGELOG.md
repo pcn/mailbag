@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.3.0](https://github.com/pcn/mailbag/compare/v1.2.1...v1.3.0) (2026-09-14)
+
+
+### Features
+
+* **config:** assert replaced courier configs cover their .dist ([15414ff](https://github.com/pcn/mailbag/commit/15414ff054be6613aced5e136f65c35aa316d9ad))
+* **deploy:** deploy a named image tag, and pin every image reference ([cbd4d90](https://github.com/pcn/mailbag/commit/cbd4d9084f5fb824f57ac3c321f7df99a1e5360d))
+* **deploy:** make cert-manager optional and add a test-cert generator ([91cffb7](https://github.com/pcn/mailbag/commit/91cffb7a5a98930baa8442b5a54b199f0a8c7324))
+* **supervision:** supervise courier daemons with runit and probe them properly ([e49cfaf](https://github.com/pcn/mailbag/commit/e49cfafa31eac6980e9fbf1140da2f2d15597bf4))
+
+
+### Bug Fixes
+
+* **authlib:** build the userdb shadow database as the mail user ([dc401ca](https://github.com/pcn/mailbag/commit/dc401cad4b2e89f7c9d61cac7ba15f7a9da8c2be))
+* **authlib:** stop pretending the userdb source path is configurable ([ecceb1e](https://github.com/pcn/mailbag/commit/ecceb1e8592cd3f41c6fcf5a755f0a618f7ed1e8))
+* **build:** point service images at the base image name that is published ([e16f782](https://github.com/pcn/mailbag/commit/e16f78250523bcd1938500383ba842d303e3346c))
+* **ci:** build on PRs and branches, and fix path-filter gating ([72aa027](https://github.com/pcn/mailbag/commit/72aa027b3905892750c1b0e4dfe425c7f246560b))
+* **ci:** order the image builds and make the build graph pinnable ([d321f88](https://github.com/pcn/mailbag/commit/d321f882cf354c9d88070adb503b5e1af5bcd259))
+* **config:** make BOFHCHECKDNS a per-environment setting, not a hardcoded default ([c0eb645](https://github.com/pcn/mailbag/commit/c0eb645812ea30e080668b4132f608c623af4929))
+* **courierd:** give courierd what it needs to deliver mail locally ([9119c2c](https://github.com/pcn/mailbag/commit/9119c2c5a419f21a3c84a99e500aa28a2991812c))
+* **deploy:** courier state is daemon-owned, and imapd-ssl needs the spool ([78a08d8](https://github.com/pcn/mailbag/commit/78a08d85f3e72e5d0498e7bf67359252c901229f))
+* **deploy:** issue one cert, read cert+key directly, and apply every resource ([0499a08](https://github.com/pcn/mailbag/commit/0499a08354baa43aab34f0f941dfa7431d40ec76))
+* **deploy:** use Recreate, not RollingUpdate, for every mail deployment ([6e93773](https://github.com/pcn/mailbag/commit/6e937730f4e5cf4d08802d9d3a8ef33c2665c3ed))
+* **docker:** stop comment line continuations swallowing instructions ([59efba5](https://github.com/pcn/mailbag/commit/59efba5fc9fb075752b0b47f9f1aa0e322cc4139))
+* generate proper esmtpaccess file for couriertcpd ([1ebe760](https://github.com/pcn/mailbag/commit/1ebe760b0ca3748f8f7acad0f81d423f6c8cb246))
+* **imapd-ssl:** init container must chown /etc/authlib to daemon, not vmail ([9a80254](https://github.com/pcn/mailbag/commit/9a80254796efe5595a1881603b65f5262272dcd0))
+* **imapd-ssl:** run as daemon and serve the real certificate ([578178e](https://github.com/pcn/mailbag/commit/578178ebdf193b054de4aec267f51f7dd5e6f499))
+* **imapd-ssl:** run as root so imaplogin can setuid to the mail user ([704d341](https://github.com/pcn/mailbag/commit/704d341131a75043f7e93489ebddb2e1168df925))
+* **mta-ssl:** run unprivileged and drop dead build-time config ([2fd8c41](https://github.com/pcn/mailbag/commit/2fd8c41dc4d821722c7fea966a2beee88c8e94c3))
+* **probe:** read the TLS greeting instead of hanging up before it arrives ([42149d8](https://github.com/pcn/mailbag/commit/42149d8964881e60fc4bb53c334baf99a9efc5f9))
+* Stop trying to fix things in the mta that the daemon controlls ([1ec0a30](https://github.com/pcn/mailbag/commit/1ec0a302b6d5f2e498c5bfde8db4181bcd4ce450))
+* Stop trying to fix things in the mta that the daemon controlls ([80d97c4](https://github.com/pcn/mailbag/commit/80d97c4c6674c9248f3cd072a9e8a1b408aacd4c))
+* **supervision:** let runsv create supervise/ when the container is not root ([886737f](https://github.com/pcn/mailbag/commit/886737fb620f753d8f3a7a5975f084cab8f84a9d))
+* **supervision:** survive service restarts, and don't treat them as crashes ([fbf10ed](https://github.com/pcn/mailbag/commit/fbf10ed42d71fbd4f5dd0b400e88c46e15b79195))
+* **templater:** reject undefined values instead of rendering them empty ([1cc208d](https://github.com/pcn/mailbag/commit/1cc208d1cc5cd0271161ba689659c31df4b69420))
+* use one cert with SANs, and generat the cert deployment ([9bdcb9a](https://github.com/pcn/mailbag/commit/9bdcb9a4a5c49dcca071153fed5ef63d6bbf21bd))
+* use one cert with SANs, and generat the cert deployment ([d3688c2](https://github.com/pcn/mailbag/commit/d3688c2b0bff6b0fec15e3212f3dac53920c63c6))
+
+
+### Performance Improvements
+
+* **probe:** close the TLS connection instead of waiting to be killed ([c59d3af](https://github.com/pcn/mailbag/commit/c59d3af356f82f70f3decb7e23413be6990f9623))
+
 ## [1.2.1](https://github.com/pcn/mailbag/compare/v1.2.0...v1.2.1) (2025-06-29)
 
 
