@@ -8,6 +8,13 @@ metadata:
     component: courierd
 spec:
   replicas: 1
+  # courierd takes an exclusive lock on the shared spool
+  # (/var/spool/courier/tmp/courierd.lock), so a second instance exits
+  # immediately. RollingUpdate keeps the old pod until the new one is Ready, so
+  # the new one can never become Ready -- it exits 0 and crash-loops. Recreate
+  # is a correctness requirement here, not a preference.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: mailbag

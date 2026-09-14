@@ -8,6 +8,9 @@ metadata:
     component: mta
 spec:
   replicas: 1
+  # Recreate: this node has no headroom for a surge replica.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: mailbag
