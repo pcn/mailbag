@@ -95,12 +95,18 @@ spec:
           mountPath: /authdaemonrc.template
           subPath: authdaemonrc.template
         securityContext:
-          # Retained from main (52c7338), which added it while chasing the
-          # couriertcpd segfault on 465. Kept deliberately rather than reverted
-          # to runAsUser 1: removing the combined-PEM workaround may have made
-          # this unnecessary, but that is untested. PROJ-021 owns dropping it.
-          runAsUser: 0
-          privileged: true
+          # Runs as daemon like the MTA and MSA. 52c7338 made this privileged
+          # root while chasing a couriertcpd "segfault" on 465; that fault was
+          # an artifact of the combined-PEM workaround this deployment no
+          # longer uses -- cert and key are read straight from the mounted
+          # Secret via TLS_CERTFILE/TLS_PRIVATE_KEYFILE. esmtpd-ssl only
+          # accepts connections and queues through submit; unlike imaplogin it
+          # never changes credentials, so it needs no privilege to drop.
+          runAsUser: 1
+          runAsGroup: 1
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
       volumes:
       - name: courier-spool
         persistentVolumeClaim:

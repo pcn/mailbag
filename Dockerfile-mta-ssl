@@ -3,13 +3,15 @@ ARG BASE_IMAGE=ghcr.io/pcn/mailbag:main
 FROM ${BASE_IMAGE}
 # Updated 2025-06-23 for entrypoint fixes
 
-RUN cd /etc/courier; sed -i.dist 's/ESMTPDSSLSTART=NO/ESMTPDSSLSTART=YES/g' esmtpd-ssl && \
-  echo 'BOFHNOEXPN=1' >> esmtpd-ssl && \
-  echo 'BOFHNOVRFY=1' >> esmtpd-ssl && \
-  echo 'SYSLOGNAME=courieresmtpd-ssl' >> esmtpd-ssl && \
-  echo 'ESMTPAUTH_TLS="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"' >> esmtpd-ssl && \
-  echo 'BOFHCHECKDNS=0' >> esmtpd-ssl && \
-  echo 'ESMTP_LOG_DIALOG=1' >> esmptd-ssl
+# /etc/courier/esmtpd-ssl is not configured here. The entrypoint renders it
+# wholesale from esmtpd-mta-ssl.template on every start, so anything baked into
+# the image at build time is overwritten before the service reads it. Every
+# setting this used to append now lives in that template, including
+# ESMTP_LOG_DIALOG, which is parameterised as mta_ssl.log_dialog.
+#
+# The appends were dead in a second way too: one wrote to `esmptd-ssl` and the
+# other to `emstpd`, so they created stray files rather than touching any
+# config. That is why enabling dialog logging here never produced any.
 
 
 
@@ -26,10 +28,6 @@ RUN cd /etc/courier; sed -i.dist 's/ESMTPDSSLSTART=NO/ESMTPDSSLSTART=YES/g' esmt
 RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$SSLPIDFILE //;s%/usr/bin/mkdir -p `dirname $SSLPIDFILE`%%' esmtpd-ssl   # && \
  # echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd-ssl
 
-
-# Debugging
-RUN cd /usr/lib/courier/share && \
-  echo "ESMTP_LOG_DIALOG=1" >> emstpd
 
 COPY entrypoints/courier-mta-ssl /courier-mta-ssl
 RUN chmod +x /courier-mta-ssl

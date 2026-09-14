@@ -329,7 +329,7 @@ data:
     NOADDMSGID=1
     NOADDDATE=1
     NOADDRREWRITE=0
-    ESMTP_LOG_DIALOG=0
+    ESMTP_LOG_DIALOG={{ mta_ssl.log_dialog | default("0") }}
     AUTH_REQUIRED=0
     COURIERTLS=/usr/lib/courier/bin/couriertls
     # TLS_CERTFILE: cert-manager Secret, not the writable shared dir the .dist points at
@@ -514,7 +514,7 @@ data:
     NOADDMSGID=1
     NOADDDATE=1
     NOADDRREWRITE=0
-    ESMTP_LOG_DIALOG=0
+    ESMTP_LOG_DIALOG={{ mta_ssl.log_dialog | default("0") }}
     SSLPORT=465
     SSLADDRESS=0
     SSLPIDFILE=/var/spool/courier/tmp/esmtpd-ssl.pid
