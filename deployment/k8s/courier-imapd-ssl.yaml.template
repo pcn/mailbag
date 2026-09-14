@@ -22,7 +22,13 @@ spec:
         component: imapd-ssl
     spec:
       securityContext:
-        fsGroup: 300
+        # daemon, matching the other services. courier starts imapd-ssl as
+        # daemon (its couriertcpd is invoked -user=daemon) and imaplogin drops
+        # to the authenticated user per connection for maildir access. Running
+        # the whole container as vmail contradicted that and locked it out of
+        # every shared volume: /etc/authlib is drwx------ daemon, so it could
+        # not even read authdaemonrc.
+        fsGroup: 1
         fsGroupChangePolicy: OnRootMismatch
       initContainers:
       - name: init-dirs
@@ -64,11 +70,14 @@ spec:
         - name: context-json
           mountPath: /context.json
           readOnly: true
+        - name: templates
+          mountPath: /imapd-ssl.template
+          subPath: imapd-ssl.template
         - name: authdaemon-pid-dir
           mountPath: /var/spool/authdaemon
         securityContext:
-          runAsUser: 300
-          runAsGroup: 300
+          runAsUser: 1
+          runAsGroup: 1
       volumes:
       - name: mail-storage
         persistentVolumeClaim:
@@ -86,6 +95,9 @@ spec:
         hostPath:
           path: /etc/mailbag/context.json
           type: File
+      - name: templates
+        configMap:
+          name: mailbag-context
       - name: authdaemon-pid-dir
         emptyDir: {}
 ---

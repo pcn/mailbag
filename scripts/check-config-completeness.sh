@@ -40,6 +40,7 @@ MAPPING=(
     "esmtpd-mta.template:/etc/courier/esmtpd.dist"
     "esmtpd-msa.template:/etc/courier/esmtpd-msa.dist"
     "esmtpd-mta-ssl.template:/etc/courier/esmtpd-ssl.dist"
+    "imapd-ssl.template:/etc/courier/imapd-ssl.dist"
 )
 
 # Not settings files: lists and access rules, with no .dist counterpart. Listed

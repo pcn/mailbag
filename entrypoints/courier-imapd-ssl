@@ -2,6 +2,12 @@
 
 set -e -x -o pipefail
 
+# Render imapd-ssl config. Without this the service used the image's default,
+# whose TLS_CERTFILE points at /usr/lib/courier/share/imapd.pem -- a file this
+# image does not ship -- so couriertcpd listened on 993 but every TLS handshake
+# failed with nothing to present.
+/render-template --context /context.json --template /imapd-ssl.template > /etc/courier/imapd-ssl
+
 # IMAP service doesn't need SMTP access control files  
 # Skip makeuserdb if userdb directory is empty (no test users configured yet)
 if [ "$(ls -A /etc/authlib/userdb 2>/dev/null)" ]; then
