@@ -46,9 +46,17 @@ spec:
           mountPath: /var/spool/courier
         - name: mail-storage
           mountPath: /vmail
+        - name: courier-auth
+          mountPath: /etc/authlib
         - name: context-json
           mountPath: /context.json
           readOnly: true
+        - name: templates
+          mountPath: /acceptmailfor.template
+          subPath: acceptmailfor.template
+        - name: templates
+          mountPath: /hosteddomains.template
+          subPath: hosteddomains.template
         securityContext:
           privileged: true
       volumes:
@@ -58,7 +66,13 @@ spec:
       - name: mail-storage
         persistentVolumeClaim:
           claimName: mail-storage-pvc
+      - name: courier-auth
+        persistentVolumeClaim:
+          claimName: courier-auth-pvc
       - name: context-json
         hostPath:
           path: /etc/mailbag/context.json
           type: File
+      - name: templates
+        configMap:
+          name: mailbag-context
