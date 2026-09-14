@@ -19,7 +19,7 @@ RUN cd /usr/lib/courier/share && \
 # The start script already runs in the foreground -- the sed above strips
 # -pid=$PIDFILE, and without a pidfile it blocks until couriertcpd exits --
 # so its death is the service's death, which is what runsv supervises.
-RUN install -d /etc/sv/imapd-ssl && \
+RUN install -d -m 0775 -o root -g daemon /etc/sv/imapd-ssl && \
     printf '#!/bin/sh\nexec /usr/local/bin/sv-run-courier imapd-ssl\n' > /etc/sv/imapd-ssl/run && \
     chmod 0755 /etc/sv/imapd-ssl/run && \
     ln -sf /usr/local/bin/sv-finish /etc/sv/imapd-ssl/finish && \

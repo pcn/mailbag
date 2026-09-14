@@ -63,7 +63,13 @@ RUN install -m 0755 /usr/local/lib/mailbag-sv/sv-finish /usr/local/bin/sv-finish
     install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courier /usr/local/bin/sv-run-courier && \
     install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courierd /usr/local/bin/sv-run-courierd && \
     install -m 0755 /usr/local/lib/mailbag-sv/mailbag-probe /usr/local/bin/mailbag-probe && \
-    install -d /etc/sv/authdaemon /etc/service && \
+    # runsv creates supervise/ inside each service directory, and the state dir
+    # is written by the run and finish scripts -- both as whatever user the
+    # container runs as. mta, msa and mta-ssl run as daemon(1), so these must
+    # be group-writable or runsv dies with "unable to open supervise/lock".
+    # The run and finish scripts themselves stay root-owned and non-writable.
+    install -d -m 0775 -o root -g daemon /etc/sv/authdaemon /run/mailbag-sv && \
+    install -d /etc/service && \
     install -m 0755 /usr/local/lib/mailbag-sv/sv-run-authdaemon /etc/sv/authdaemon/run && \
     ln -sf /usr/local/bin/sv-finish /etc/sv/authdaemon/finish && \
     ln -sf /etc/sv/authdaemon /etc/service/authdaemon && \

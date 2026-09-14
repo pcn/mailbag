@@ -39,7 +39,7 @@ RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$SSLPIDFILE //;s%/usr/bin/mkd
 # The start script already runs in the foreground -- the sed above strips
 # -pid=$PIDFILE, and without a pidfile it blocks until couriertcpd exits --
 # so its death is the service's death, which is what runsv supervises.
-RUN install -d /etc/sv/esmtpd-ssl && \
+RUN install -d -m 0775 -o root -g daemon /etc/sv/esmtpd-ssl && \
     printf '#!/bin/sh\nexec /usr/local/bin/sv-run-courier esmtpd-ssl\n' > /etc/sv/esmtpd-ssl/run && \
     chmod 0755 /etc/sv/esmtpd-ssl/run && \
     ln -sf /usr/local/bin/sv-finish /etc/sv/esmtpd-ssl/finish && \
