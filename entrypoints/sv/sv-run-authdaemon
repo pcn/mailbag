@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Supervised courier-authlib auth daemon.
+#
+# Deliberately not `authdaemond start`. That wrapper execs
+# `courierlogger -pid=... -start ... authdaemond`, and -start means "run as a
+# daemon" (it requires -pid), which forks away from the supervisor. Running the
+# daemon binary directly keeps it in the foreground where runit can supervise
+# it, and sends its output to the container's stdout instead of a syslog socket
+# that does not exist in this image.
+set -u
+svc=$(basename "$(pwd)")
+mkdir -p /run/mailbag-sv
+date +%s > "/run/mailbag-sv/$svc.started"
+
+# authdaemond refuses to start if a socket from a previous run is left behind.
+rm -f /var/spool/authdaemon/socket.tmp
+
+exec 2>&1
+exec /usr/libexec/courier-authlib/authdaemond

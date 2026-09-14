@@ -15,6 +15,16 @@ RUN cd /etc/courier; \
 RUN cd /usr/lib/courier/share && \
   sed -i.dist 's/-pid=$SSLPIDFILE//;s/-start//g' imapd-ssl
 
+# Supervised by runit alongside the auth daemon from the base image.
+# The start script already runs in the foreground -- the sed above strips
+# -pid=$PIDFILE, and without a pidfile it blocks until couriertcpd exits --
+# so its death is the service's death, which is what runsv supervises.
+RUN install -d /etc/sv/imapd-ssl && \
+    printf '#!/bin/sh\nexec /usr/local/bin/sv-run-courier imapd-ssl\n' > /etc/sv/imapd-ssl/run && \
+    chmod 0755 /etc/sv/imapd-ssl/run && \
+    ln -sf /usr/local/bin/sv-finish /etc/sv/imapd-ssl/finish && \
+    ln -sf /etc/sv/imapd-ssl /etc/service/imapd-ssl
+
 COPY entrypoints/courier-imapd-ssl /courier-imapd-ssl
 RUN chmod +x /courier-imapd-ssl
 ENTRYPOINT ["/courier-imapd-ssl"]

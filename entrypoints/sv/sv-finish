@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+# runit finish script, shared by every supervised service.
+#
+# runit runs this each time a service dies, with the service's exit code in $1.
+# Its job is to decide whether this is a blip worth restarting or a crashloop
+# worth surfacing, because a supervisor that restarts forever is exactly as
+# invisible to Kubernetes as the `while true; pgrep` loop it replaces: the pod
+# reports Running, the restart count stays 0, and a smoke test asserting "all
+# pods Running" passes straight through an outage.
+#
+# runsv gives finish no way to refuse the restart -- runsv(8): "If ./finish
+# doesn't exist or ./finish exits, runsv restarts ./run." Taking the container
+# down is the only escalation available. So past SV_MAX_DEATHS consecutive
+# short-lived runs it signals runsvdir, which is PID 1, so the container exits,
+# Kubernetes restarts it, and the failure finally shows up as a restart count
+# and a CrashLoopBackOff.
+#
+# "Consecutive" matters: a service that ran healthily for a while and then died
+# is not crashlooping. sv-run-* records a start timestamp, and a run that lasted
+# longer than SV_HEALTHY_SECONDS clears the tally.
+
+set -u
+
+svc=$(basename "$(pwd)")
+exit_code=${1:-0}
+
+max_deaths=${SV_MAX_DEATHS:-5}
+healthy_seconds=${SV_HEALTHY_SECONDS:-60}
+
+state=/run/mailbag-sv
+mkdir -p "$state"
+tally_file="$state/$svc.deaths"
+started_file="$state/$svc.started"
+
+now=$(date +%s)
+started=$(cat "$started_file" 2>/dev/null || echo "$now")
+uptime=$(( now - started ))
+
+if [ "$uptime" -ge "$healthy_seconds" ]; then
+    # Ran long enough to count as healthy; this death starts a new tally.
+    deaths=1
+else
+    deaths=$(( $(cat "$tally_file" 2>/dev/null || echo 0) + 1 ))
+fi
+echo "$deaths" > "$tally_file"
+
+echo "sv-finish: $svc exited ${exit_code} after ${uptime}s (consecutive short runs: ${deaths}/${max_deaths})" >&2
+
+if [ "$deaths" -ge "$max_deaths" ]; then
+    echo "sv-finish: $svc has failed ${deaths} times in a row without staying up ${healthy_seconds}s." >&2
+    echo "sv-finish: bringing the container down so Kubernetes sees the failure." >&2
+    # HUP, not TERM. Both are handled (runsvdir.c:72-73, installed at :281-283),
+    # which is what makes signalling PID 1 work at all -- the kernel discards
+    # signals to PID 1 that have no handler installed, SIGKILL included. But the
+    # two paths differ (runsvdir.c:377-383):
+    #
+    #   s_term   -> exitsoon=1 -> _exit(0)
+    #   s_hangup -> exitsoon=2 -> SIGTERM to each runsv, then _exit(111)
+    #
+    # TERM would exit 0 -- reporting success for a crashloop -- and leave the
+    # sibling daemon for the runtime to kill. HUP stops the other services on
+    # the way out and exits non-zero.
+    # This only works if runsvdir is PID 1. If something else is (an entrypoint
+    # that forgot to exec, a debugging shell), the signal goes to a process that
+    # very likely ignores it, and the crashloop continues while this script
+    # cheerfully logs that it is shutting things down -- the same invisible
+    # failure the supervisor exists to prevent. Observed for real while testing
+    # under `--entrypoint bash`, so it is worth saying out loud.
+    init=$(cat /proc/1/comm 2>/dev/null || echo unknown)
+    if [ "$init" != "runsvdir" ]; then
+        echo "sv-finish: WARNING: PID 1 is '$init', not runsvdir." >&2
+        echo "sv-finish: HUP will not bring the container down; the crashloop will stay hidden." >&2
+    fi
+    kill -HUP 1
+fi

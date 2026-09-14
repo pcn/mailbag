@@ -44,6 +44,30 @@ RUN cd /etc/authlib; sed -i.dist 's/^authmodulelist="authuserdb /authmodulelist=
 RUN chmod +x /render-template
 COPY entrypoints/lib/rebuild-userdb /rebuild-userdb
 RUN chmod +x /rebuild-userdb
+
+# runit supervises the two daemons every service image runs -- the listener and
+# its auth daemon -- inside one container, so they share a namespace and can see
+# each other. --no-install-recommends matters: the sysv/systemd init integration
+# lives in the separate runit-run and runit-init packages, which are Recommends,
+# and apt would otherwise pull init machinery into a container that has no use
+# for it. The runit package itself is just the binaries (runsvdir, runsv, sv,
+# chpst, svlogd) and depends only on libc6 and sysuser-helper.
+RUN apt-get update && apt-get install -y --no-install-recommends runit
+
+# Service directories live in /etc/sv and are enabled by symlink into
+# /etc/service. Debian's own service machinery ignores these: its postinst
+# trigger skips any directory without a .meta/bin marker, which hand-written
+# ones do not have.
+COPY entrypoints/sv/ /usr/local/lib/mailbag-sv/
+RUN install -m 0755 /usr/local/lib/mailbag-sv/sv-finish /usr/local/bin/sv-finish && \
+    install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courier /usr/local/bin/sv-run-courier && \
+    install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courierd /usr/local/bin/sv-run-courierd && \
+    install -m 0755 /usr/local/lib/mailbag-sv/mailbag-probe /usr/local/bin/mailbag-probe && \
+    install -d /etc/sv/authdaemon /etc/service && \
+    install -m 0755 /usr/local/lib/mailbag-sv/sv-run-authdaemon /etc/sv/authdaemon/run && \
+    ln -sf /usr/local/bin/sv-finish /etc/sv/authdaemon/finish && \
+    ln -sf /etc/sv/authdaemon /etc/service/authdaemon && \
+    rm -rf /usr/local/lib/mailbag-sv
 COPY acceptmailfor.template /acceptmailfor.template
 COPY hosteddomains.template /hosteddomains.template
 

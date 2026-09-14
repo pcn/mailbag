@@ -75,6 +75,7 @@ jobs:
               - 'acceptmailfor.template'
               - 'hosteddomains.template'
               - 'entrypoints/lib/**'
+              - 'entrypoints/sv/**'
               - '.github/workflows/build-and-publish.yml'
             mta:
               - 'Dockerfile-mta'

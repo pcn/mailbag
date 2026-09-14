@@ -64,6 +64,23 @@ spec:
         - name: templates
           mountPath: /hosteddomains.template
           subPath: hosteddomains.template
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe']
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe']
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          # Higher than readiness on purpose: readiness should pull the pod out
+          # of the Service quickly, but restarting is the heavier hammer and
+          # runit is already retrying underneath.
+          failureThreshold: 5
         securityContext:
           privileged: true
       volumes:

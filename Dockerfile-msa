@@ -20,6 +20,16 @@ RUN cd /etc/courier; \
 RUN cd /usr/lib/courier/share && \
   sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd 
 
+# Supervised by runit alongside the auth daemon from the base image.
+# The start script already runs in the foreground -- the sed above strips
+# -pid=$PIDFILE, and without a pidfile it blocks until couriertcpd exits --
+# so its death is the service's death, which is what runsv supervises.
+RUN install -d /etc/sv/esmtpd-msa && \
+    printf '#!/bin/sh\nexec /usr/local/bin/sv-run-courier esmtpd-msa\n' > /etc/sv/esmtpd-msa/run && \
+    chmod 0755 /etc/sv/esmtpd-msa/run && \
+    ln -sf /usr/local/bin/sv-finish /etc/sv/esmtpd-msa/finish && \
+    ln -sf /etc/sv/esmtpd-msa /etc/service/esmtpd-msa
+
 COPY entrypoints/courier-msa /courier-msa
 RUN chmod +x /courier-msa
 ENTRYPOINT ["/courier-msa"]

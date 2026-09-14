@@ -82,6 +82,23 @@ spec:
           subPath: imapd-ssl.template
         - name: authdaemon-pid-dir
           mountPath: /var/spool/authdaemon
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 993 --expect "* OK" --tls']
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 993 --expect "* OK" --tls']
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          # Higher than readiness on purpose: readiness should pull the pod out
+          # of the Service quickly, but restarting is the heavier hammer and
+          # runit is already retrying underneath.
+          failureThreshold: 5
         securityContext:
           # Starts as root because imaplogin changes credentials to the
           # authenticated mail user before opening their maildir, and only a

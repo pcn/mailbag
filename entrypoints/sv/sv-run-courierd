@@ -1,0 +1,22 @@
+#!/bin/sh
+# Supervised courierd, the queue manager and delivery scheduler.
+set -u
+svc=$(basename "$(pwd)")
+mkdir -p /run/mailbag-sv
+date +%s > "/run/mailbag-sv/$svc.started"
+
+# courierlocal resolves virtual users through authlib, so courierd needs the
+# auth daemon before it can deliver. Wait rather than race, so ordering does not
+# burn entries off sv-finish's crashloop tally.
+socket=/var/spool/authdaemon/socket
+waited=0
+while [ ! -S "$socket" ] && [ "$waited" -lt "${SV_AUTH_WAIT:-30}" ]; do
+    sleep 1
+    waited=$(( waited + 1 ))
+done
+
+exec 2>&1
+cd /usr/lib/courier
+# env -i matches courierctl.start: courierd is sensitive to inherited state.
+exec /usr/bin/env -i /bin/bash -c \
+    "set -a ; . /etc/courier/courierd; exec /usr/lib/courier/libexec/courier/courierd"

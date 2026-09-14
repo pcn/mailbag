@@ -36,8 +36,9 @@ mkdir -p /etc/courier/esmtpacceptmailfor.dir
 # authdaemonvar says in authdaemonrc. That also means there is no collision to
 # worry about here.
 /rebuild-userdb
-/usr/sbin/authdaemond start
-
-# Use the same environment setup as courierctl.start but run in foreground
-cd /usr/lib/courier
-exec /usr/bin/env -i /bin/bash -c "set -a ; . /etc/courier/courierd; exec /usr/lib/courier/libexec/courier/courierd"
+# Hand off to runit, which supervises courierd and the auth daemon as separate
+# services. courierd was already exec'd here, but authdaemond was started
+# detached and supervised by nothing: had it died, courierlocal could no longer
+# resolve virtual users and delivery would fail while the pod still looked
+# healthy. courierd's environment setup moved into sv-run-courierd.
+exec runsvdir /etc/service

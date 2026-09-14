@@ -20,6 +20,14 @@ RUN cd /usr/lib/courier/share && \
   sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd 
 
 # Copy and setup the entrypoint script
+# courierd is supervised too, so a queue manager that dies takes the pod with
+# it rather than leaving listeners accepting mail nothing will deliver.
+RUN install -d /etc/sv/courierd && \
+    printf '#!/bin/sh\nexec /usr/local/bin/sv-run-courierd\n' > /etc/sv/courierd/run && \
+    chmod 0755 /etc/sv/courierd/run && \
+    ln -sf /usr/local/bin/sv-finish /etc/sv/courierd/finish && \
+    ln -sf /etc/sv/courierd /etc/service/courierd
+
 COPY entrypoints/courier-courierd /courier-courierd
 RUN chmod +x /courier-courierd
 ENTRYPOINT ["/courier-courierd"]
