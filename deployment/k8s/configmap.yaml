@@ -119,7 +119,7 @@ data:
     # every setting the .dist defined has to be carried here or it is lost.
     # Checked by scripts/check-config-completeness.sh.
     ULIMIT=65536
-    BOFHCHECKDNS=1
+    BOFHCHECKDNS={{ msa.bofh_check_dns | default("0") }}
     TARPIT=1
     NOADDMSGID=1
     NOADDDATE=1
@@ -266,7 +266,7 @@ data:
     # every setting the .dist defined has to be carried here or it is lost.
     # Checked by scripts/check-config-completeness.sh.
     ULIMIT=65536
-    BOFHCHECKDNS=1
+    BOFHCHECKDNS={{ mta.dns_checks | default("1") }}
     TARPIT=1
     NOADDMSGID=1
     NOADDDATE=1
@@ -324,7 +324,7 @@ data:
     # every setting the .dist defined has to be carried here or it is lost.
     # Checked by scripts/check-config-completeness.sh.
     ULIMIT=65536
-    BOFHCHECKDNS=1
+    BOFHCHECKDNS={{ mta_ssl.dns_checks | default("1") }}
     TARPIT=1
     NOADDMSGID=1
     NOADDDATE=1
