@@ -83,8 +83,14 @@ spec:
         - name: authdaemon-pid-dir
           mountPath: /var/spool/authdaemon
         securityContext:
-          runAsUser: 1
-          runAsGroup: 1
+          # root, like courierd. imaplogin must setuid to the authenticated
+          # user to open their maildir, and only root can setuid to another
+          # uid. Running as vmail(300) locked it out of daemon-owned config;
+          # running as daemon(1) fixed that but left it unable to become the
+          # mail user, so LOGIN authenticated and then dropped the connection.
+          # courier drops privileges itself: couriertcpd to daemon, imaplogin
+          # to the authenticated user per connection.
+          runAsUser: 0
       volumes:
       - name: courier-spool
         persistentVolumeClaim:
