@@ -67,10 +67,17 @@ fi
 : "${expect:?--port requires --expect}"
 
 if [ "$tls" = 1 ]; then
+    # -ign_eof, emphatically not -no_ign_eof. The latter makes s_client close as
+    # soon as stdin hits EOF, which with </dev/null is immediately -- the TLS
+    # handshake completes and the connection is torn down before the server's
+    # greeting is read, so the probe reports "no greeting" against a perfectly
+    # healthy service. head -1 closes the pipe once the greeting arrives, and
+    # timeout bounds the wait.
+    #
     # No -verify_return_error: this probes the service, not the chain, and must
     # not start failing when the deployment uses a locally generated test CA.
     greeting=$(timeout "$timeout_s" openssl s_client -connect "127.0.0.1:$port" \
-        -quiet -no_ign_eof </dev/null 2>/dev/null | head -1)
+        -quiet -ign_eof </dev/null 2>/dev/null | head -1)
 else
     greeting=$(timeout "$timeout_s" bash -c "
         exec 3<>/dev/tcp/127.0.0.1/$port || exit 1
