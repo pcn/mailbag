@@ -24,6 +24,7 @@ set -u
 
 svc=$(basename "$(pwd)")
 exit_code=${1:-0}
+exit_signal=${2:-0}
 
 max_deaths=${SV_MAX_DEATHS:-5}
 healthy_seconds=${SV_HEALTHY_SECONDS:-60}
@@ -33,9 +34,52 @@ mkdir -p "$state"
 tally_file="$state/$svc.deaths"
 started_file="$state/$svc.started"
 
+# Reap the rest of the service's process group before anything restarts it.
+# runsv signals only the run process; courier's start scripts leave the real
+# listener in a nested subshell, which is then orphaned onto runsvdir and keeps
+# holding the port, so the replacement exits immediately and the service
+# crashloops for a reason that has nothing to do with the service. The run
+# scripts use chpst -P, so the group leader's pid is the recorded pgid, and
+# finish runs in runsv's group rather than the service's -- this cannot signal
+# itself.
+pgid_file="$state/$svc.pgid"
+if [ -r "$pgid_file" ]; then
+    pgid=$(cat "$pgid_file")
+    if [ -n "$pgid" ] && kill -0 "-$pgid" 2>/dev/null; then
+        kill -TERM "-$pgid" 2>/dev/null || true
+        # Give it a moment to release the port, then insist.
+        sleep 1
+        kill -KILL "-$pgid" 2>/dev/null || true
+    fi
+fi
+
+# Some courier processes put themselves in their own process group, so the group
+# kill above cannot reach them -- couriertcpd does, and survives holding the
+# listening port, which makes the replacement exit immediately. A service that
+# leaves such a process behind names it in $svc.cleanup.
+cleanup_file="$state/$svc.cleanup"
+if [ -r "$cleanup_file" ]; then
+    pattern=$(cat "$cleanup_file")
+    if [ -n "$pattern" ] && pkill -f "$pattern" 2>/dev/null; then
+        echo "sv-finish: $svc left a process matching '$pattern' behind; reaped it" >&2
+        sleep 1
+    fi
+fi
+
 now=$(date +%s)
 started=$(cat "$started_file" 2>/dev/null || echo "$now")
 uptime=$(( now - started ))
+
+# A clean SIGTERM is a controlled stop, not a crash: it is what `sv restart`,
+# `sv down` and Kubernetes' own shutdown send. Counting those as crashloop
+# evidence made five deliberate restarts inside the healthy window take the
+# container down. A real crash arrives as SIGSEGV/SIGABRT/SIGKILL or a non-zero
+# exit, and still counts.
+if [ "$exit_signal" = 15 ]; then
+    rm -f "$tally_file"
+    echo "sv-finish: $svc stopped by SIGTERM after ${uptime}s (controlled stop, tally cleared)" >&2
+    exit 0
+fi
 
 if [ "$uptime" -ge "$healthy_seconds" ]; then
     # Ran long enough to count as healthy; this death starts a new tally.
@@ -45,7 +89,7 @@ else
 fi
 echo "$deaths" > "$tally_file"
 
-echo "sv-finish: $svc exited ${exit_code} after ${uptime}s (consecutive short runs: ${deaths}/${max_deaths})" >&2
+echo "sv-finish: $svc exited ${exit_code} (signal ${exit_signal}) after ${uptime}s (consecutive short runs: ${deaths}/${max_deaths})" >&2
 
 if [ "$deaths" -ge "$max_deaths" ]; then
     echo "sv-finish: $svc has failed ${deaths} times in a row without staying up ${healthy_seconds}s." >&2

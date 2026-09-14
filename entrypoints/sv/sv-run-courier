@@ -29,4 +29,20 @@ if [ ! -S "$socket" ]; then
 fi
 
 exec 2>&1
-exec "/usr/lib/courier/sbin/$name" start
+# chpst -P puts this service in its own process group, and $$ survives the exec
+# below, so it is also the group leader's pid. sv-finish kills that whole group.
+#
+# Without it, courier's start script leaves the real listener behind on restart:
+# runsv signals only the run process, but couriertcpd lives in a nested subshell,
+# so it is orphaned onto runsvdir and keeps holding the port. The replacement
+# then finds the port bound and exits 0 immediately -- every restart crashlooped
+# straight to a container exit. Reproduced on both the mta and imapd-ssl images.
+echo $$ > "/run/mailbag-sv/$svc.pgid"
+
+# couriertcpd puts itself in its own process group (observed: pid 91, pgid 91),
+# so the group kill above cannot reach it and it survives holding the port.
+# Declare it here so sv-finish reaps it by name. Scoped deliberately: each
+# container runs exactly one listener, and the auth daemon must not match.
+echo "^/usr/lib/courier/sbin/couriertcpd" > "/run/mailbag-sv/$svc.cleanup"
+
+exec chpst -P "/usr/lib/courier/sbin/$name" start

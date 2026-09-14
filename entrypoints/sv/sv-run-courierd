@@ -18,5 +18,15 @@ done
 exec 2>&1
 cd /usr/lib/courier
 # env -i matches courierctl.start: courierd is sensitive to inherited state.
-exec /usr/bin/env -i /bin/bash -c \
+# chpst -P puts this service in its own process group, and $$ survives the exec
+# below, so it is also the group leader's pid. sv-finish kills that whole group.
+#
+# Without it, courier's start script leaves the real listener behind on restart:
+# runsv signals only the run process, but couriertcpd lives in a nested subshell,
+# so it is orphaned onto runsvdir and keeps holding the port. The replacement
+# then finds the port bound and exits 0 immediately -- every restart crashlooped
+# straight to a container exit. Reproduced on both the mta and imapd-ssl images.
+echo $$ > "/run/mailbag-sv/$svc.pgid"
+
+exec chpst -P /usr/bin/env -i /bin/bash -c \
     "set -a ; . /etc/courier/courierd; exec /usr/lib/courier/libexec/courier/courierd"
