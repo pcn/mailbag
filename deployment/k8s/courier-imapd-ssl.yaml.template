@@ -60,6 +60,8 @@ spec:
         - containerPort: 993
           name: imaps
         volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
         - name: mail-storage
           mountPath: /vmail
         - name: courier-auth
@@ -79,6 +81,9 @@ spec:
           runAsUser: 1
           runAsGroup: 1
       volumes:
+      - name: courier-spool
+        persistentVolumeClaim:
+          claimName: courier-spool-pvc
       - name: mail-storage
         persistentVolumeClaim:
           claimName: mail-storage-pvc
