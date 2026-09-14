@@ -42,9 +42,14 @@ spec:
           mkdir -p /etc/authlib/userdb
           touch /etc/authlib/userdb/dummy
           chmod 700 /etc/authlib/userdb
-          chown -R 300:300 /etc/authlib
+          # daemon, not vmail. This container used to run as vmail and chowned
+          # /etc/authlib to 300 on every start, which locked out authdaemond once
+          # the service was corrected to run as daemon -- and silently undid the
+          # ownership fix applied on the host each time the pod restarted.
+          # /etc/authlib is courier's own state; only the maildir belongs to vmail.
+          chown -R 1:1 /etc/authlib
           mkdir -p /var/spool/authdaemon
-          chown 300:300 /var/spool/authdaemon
+          chown 1:1 /var/spool/authdaemon
         volumeMounts:
         - name: courier-auth
           mountPath: /etc/authlib
