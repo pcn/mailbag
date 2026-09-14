@@ -24,9 +24,15 @@ FROM ${BASE_IMAGE}
 # RUN /usr/lib/courier/share/makehosteddomains
 
 
-# Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
-RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$SSLPIDFILE //;s%/usr/bin/mkdir -p `dirname $SSLPIDFILE`%%' esmtpd-ssl   # && \
- # echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd-ssl
+# Drop the PIDFILE argument so couriertcpd runs in the foreground.
+#
+# This line used to end in `# && \` -- a comment carrying a line continuation.
+# Docker strips comment lines and joins the continuation to the next real
+# instruction, so the trailing backslash silently swallowed whatever followed.
+# It was harmless only by accident, absorbing a dead debugging RUN; once that
+# was removed it ate `COPY entrypoints/courier-mta-ssl /courier-mta-ssl`, and
+# the build failed on chmod of a file that had never been copied.
+RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$SSLPIDFILE //;s%/usr/bin/mkdir -p `dirname $SSLPIDFILE`%%' esmtpd-ssl
 
 
 COPY entrypoints/courier-mta-ssl /courier-mta-ssl

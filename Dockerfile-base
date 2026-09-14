@@ -23,9 +23,13 @@ RUN groupadd -g 300 vmail; useradd -M -r -d /opt/vmail -u 300 -g vmail vmail
 
 RUN apt-get install -y locales bzip2 curl && echo "LANG=en_US.UTF-8" > /etc/default/locale
 
-# RUN set -x; cd /tmp; mkdir p; cd p;
-# curl -L https://github.com/pcn/mailbag-build-couriermta/releases/download/v01pre5/courier-v01pre5.tar.bz2 | tar -xjf - && \
-RUN  ls /tmp/p
+# The packages now come from the packages image via the COPY above, not from a
+# release tarball. The commented-out curl that used to fetch one ended in a
+# backslash, and a comment carrying a line continuation joins to the next real
+# instruction -- so it was silently swallowing `RUN ls /tmp/p`. Harmless only
+# because that line is a debug listing; the same shape broke the mta-ssl build
+# by eating a COPY. Comment lines here must not end in a backslash.
+RUN ls /tmp/p
 # Remove packages that we don't want, and install all of the remaining packages.
 RUN cd /tmp/p; rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* *-dev* && \
   rm -f *mlm* && \
