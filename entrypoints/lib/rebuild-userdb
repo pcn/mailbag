@@ -21,7 +21,13 @@ set -e -o pipefail
 
 MAILUSER="${MAILUSER:-daemon}"
 MAILGROUP="${MAILGROUP:-$MAILUSER}"
-USERDB_DIR="${USERDB_DIR:-/etc/authlib/userdb}"
+
+# Not configurable on purpose. makeuserdb takes -f to point at another source
+# directory, but it still derives each record's "_=" location field from the
+# compiled-in @userdb@ prefix (makeuserdb.in:132), so pointing it elsewhere
+# silently writes wrong location fields. This must stay the path courier was
+# built with.
+USERDB_DIR=/etc/authlib/userdb
 
 if [ ! -d "$USERDB_DIR" ] || [ -z "$(ls -A "$USERDB_DIR" 2>/dev/null)" ]; then
     echo "rebuild-userdb: $USERDB_DIR is empty, skipping makeuserdb (no users configured)"
