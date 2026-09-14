@@ -16,7 +16,7 @@ mkdir -p /etc/courier/smtpaccess
 
 # Generate authdaemonrc configuration file
 /render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
-/usr/sbin/makeuserdb
+/rebuild-userdb
 
 /usr/sbin/authdaemond start
 

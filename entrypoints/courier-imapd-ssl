@@ -8,13 +8,8 @@ set -e -x -o pipefail
 # failed with nothing to present.
 /render-template --context /context.json --template /imapd-ssl.template > /etc/courier/imapd-ssl
 
-# IMAP service doesn't need SMTP access control files  
-# Skip makeuserdb if userdb directory is empty (no test users configured yet)
-if [ "$(ls -A /etc/authlib/userdb 2>/dev/null)" ]; then
-    /usr/sbin/makeuserdb
-else
-    echo "Empty userdb directory, skipping makeuserdb (no test users configured)"
-fi
+# IMAP service doesn't need SMTP access control files
+/rebuild-userdb
 
 /usr/sbin/authdaemond start
 

@@ -178,7 +178,10 @@ The Kubernetes deployment uses a **single courierd container** for mail processi
 - `courier-mta` - Port 25 incoming SMTP (external servers)
 - `courier-mta-ssl` - Port 465 SSL SMTP
 - `courier-imapd-ssl` - Port 993 IMAP access to mailboxes
-- These run as daemon user (UID 1) except IMAP which runs as vmail (UID 300)
+- MTA/MSA run as daemon (UID 1). IMAP-SSL starts as root with capabilities
+  dropped to SETUID/SETGID/CHOWN/FOWNER/DAC_OVERRIDE, because imaplogin
+  changes credentials to the authenticated mail user per connection; as UID 1
+  it fails with "setgid: Operation not permitted" right after the banner.
 
 ### Mail Flow
 1. **Inbound**: MTA containers accept SMTP → queue to courier spool
@@ -195,8 +198,20 @@ The Kubernetes deployment uses a **single courierd container** for mail processi
 - MTA/MSA containers do NOT run courierd themselves (fixed architecture issue)
 
 ### User Permissions
+
+The compiled userdb databases must be owned by the mail user (daemon).
+`makeuserdb` writes `userdbshadow.dat` under umask 066, so it is mode 0600 and
+readable only by whoever ran it; authdaemond is the only reader and upstream
+runs it as the mail user. Building it as root (which is what happened when
+every container rebuilt the shared `/etc/authlib` volume and courierd got there
+first) left `0600 root:root`, and every authdaemond running as daemon failed
+with "Operation not permitted" -- a correct password denied. All entrypoints go
+through `/rebuild-userdb`, which drops to the mail user and then proves the
+shadow file is readable before returning.
+
 - **daemon (UID 1)**: Courier services (MTA/MSA), courierd workers
-- **vmail (UID 300)**: Mail storage access (IMAP, local delivery target)
+- **vmail (UID 300)**: Mail storage owner -- the identity imaplogin and
+  courierlocal drop *to*, not the identity those services start as
 - **root**: courierd main process, privilege-dropping delivery agents
 
 ## Security Considerations

@@ -38,6 +38,8 @@ COPY --from=support /export/render-template /render-template
 # with every other config, and invisible to anything looking for *.dist.
 RUN cd /etc/authlib; sed -i.dist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
 RUN chmod +x /render-template
+COPY entrypoints/lib/rebuild-userdb /rebuild-userdb
+RUN chmod +x /rebuild-userdb
 COPY acceptmailfor.template /acceptmailfor.template
 COPY hosteddomains.template /hosteddomains.template
 

@@ -2,8 +2,6 @@
 
 set -e -x -o pipefail
 
-export THEUSER=daemon
-
 # Ensure the directory structure is in place for courier operation
 mkdir -p /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
 chown -R daemon:daemon /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
@@ -37,11 +35,7 @@ mkdir -p /etc/courier/esmtpacceptmailfor.dir
 # so every container's socket is container-local regardless of what
 # authdaemonvar says in authdaemonrc. That also means there is no collision to
 # worry about here.
-if [ -d /etc/authlib/userdb ] && [ -n "$(ls -A /etc/authlib/userdb 2>/dev/null)" ]; then
-    /usr/sbin/makeuserdb
-else
-    echo "Empty userdb directory, skipping makeuserdb (no users configured yet)"
-fi
+/rebuild-userdb
 /usr/sbin/authdaemond start
 
 # Use the same environment setup as courierctl.start but run in foreground
