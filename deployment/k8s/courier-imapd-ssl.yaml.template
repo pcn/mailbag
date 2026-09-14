@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: courier-imapd-ssl
+  namespace: mailbag
+  labels:
+    app: mailbag
+    component: imapd-ssl
+spec:
+  replicas: 1
+  # Recreate: this node has no headroom for a surge replica.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mailbag
+      component: imapd-ssl
+  template:
+    metadata:
+      labels:
+        app: mailbag
+        component: imapd-ssl
+    spec:
+      securityContext:
+        # daemon, matching the other services. courier starts imapd-ssl as
+        # daemon (its couriertcpd is invoked -user=daemon) and imaplogin drops
+        # to the authenticated user per connection for maildir access. Running
+        # the whole container as vmail contradicted that and locked it out of
+        # every shared volume: /etc/authlib is drwx------ daemon, so it could
+        # not even read authdaemonrc.
+        fsGroup: 1
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+      - name: init-dirs
+        # Pinned by digest: an init container that runs as root and chowns the mail
+        # store is not somewhere to accept a mutable upstream tag.
+        image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+        command: 
+        - sh
+        - -c
+        - |
+          mkdir -p /etc/authlib/userdb
+          touch /etc/authlib/userdb/dummy
+          chmod 700 /etc/authlib/userdb
+          # daemon, not vmail. This container used to run as vmail and chowned
+          # /etc/authlib to 300 on every start, which locked out authdaemond once
+          # the service was corrected to run as daemon -- and silently undid the
+          # ownership fix applied on the host each time the pod restarted.
+          # /etc/authlib is courier's own state; only the maildir belongs to vmail.
+          chown -R 1:1 /etc/authlib
+          mkdir -p /var/spool/authdaemon
+          chown 1:1 /var/spool/authdaemon
+        volumeMounts:
+        - name: courier-auth
+          mountPath: /etc/authlib
+        - name: authdaemon-pid-dir
+          mountPath: /var/spool/authdaemon
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: courier-imapd-ssl
+        image: ghcr.io/pcn/mailbag/courier-imapd-ssl:{{ image.tag | default("main") }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 993
+          name: imaps
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        - name: mail-storage
+          mountPath: /vmail
+        - name: courier-auth
+          mountPath: /etc/authlib
+        - name: courier-cert
+          mountPath: /certs
+          readOnly: true
+        - name: context-json
+          mountPath: /context.json
+          readOnly: true
+        - name: templates
+          mountPath: /imapd-ssl.template
+          subPath: imapd-ssl.template
+        - name: authdaemon-pid-dir
+          mountPath: /var/spool/authdaemon
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 993 --expect "* OK" --tls --quit "a LOGOUT"']
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 993 --expect "* OK" --tls --quit "a LOGOUT"']
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          # Higher than readiness on purpose: readiness should pull the pod out
+          # of the Service quickly, but restarting is the heavier hammer and
+          # runit is already retrying underneath.
+          failureThreshold: 5
+        securityContext:
+          # Starts as root because imaplogin changes credentials to the
+          # authenticated mail user before opening their maildir, and only a
+          # privileged process may do that. Running imaplogin by hand as
+          # daemon(1) inside the pod fails with, verbatim:
+          #
+          #     setgid: Operation not permitted
+          #
+          # after the banner, which is why LOGIN authenticated and then dropped
+          # the connection -- authtest succeeded the whole time, because the
+          # failure is after authentication, not in it.
+          #
+          # Courier drops privileges itself: couriertcpd to daemon, imaplogin
+          # to the authenticated user per connection. So this needs the two
+          # credential-changing capabilities, not general root authority.
+          # CHOWN/FOWNER/DAC_OVERRIDE are for rebuild-userdb, which normalises
+          # ownership of the shared authlib volume before dropping to the mail
+          # user to run makeuserdb.
+          runAsUser: 0
+          allowPrivilegeEscalation: true
+          capabilities:
+            drop: ["ALL"]
+            add: ["SETUID", "SETGID", "CHOWN", "FOWNER", "DAC_OVERRIDE"]
+      volumes:
+      - name: courier-spool
+        persistentVolumeClaim:
+          claimName: courier-spool-pvc
+      - name: mail-storage
+        persistentVolumeClaim:
+          claimName: mail-storage-pvc
+      - name: courier-auth
+        persistentVolumeClaim:
+          claimName: courier-auth-pvc
+      - name: courier-cert
+        secret:
+          secretName: courier-mail-cert-tls
+          # Readable by the service group, never world-readable. Ownership comes
+          # from the pod fsGroup below; Secret volumes are root-owned otherwise.
+          defaultMode: 0440
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File
+      - name: templates
+        configMap:
+          name: mailbag-context
+      - name: authdaemon-pid-dir
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: imapd-ssl
+  namespace: mailbag
+  labels:
+    app: mailbag
+    component: imapd-ssl
+spec:
+  selector:
+    app: mailbag
+    component: imapd-ssl
+  ports:
+  - port: 993
+    targetPort: imaps
+    protocol: TCP
+    name: imaps
+  type: LoadBalancer

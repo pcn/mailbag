@@ -16,21 +16,20 @@ mkdir -p /etc/courier/smtpaccess
 
 # Generate authdaemonrc configuration file
 /render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
-/usr/sbin/makeuserdb
-
-/usr/sbin/authdaemond start
+/rebuild-userdb
 
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
 
-# start the msa and keep container alive (courierd runs in separate container)
-/usr/lib/courier/sbin/esmtpd-msa start
-
-# Keep container alive by monitoring the service
-while true; do
-    if ! pgrep -f esmtpd-msa > /dev/null; then
-        echo "esmtpd-msa stopped, restarting..."
-        /usr/lib/courier/sbin/esmtpd-msa start
-    fi
-    sleep 10
-done
+# Hand off to runit. It supervises the listener and the auth daemon as separate
+# services in this one namespace, and runsvdir becomes PID 1, so a daemon's
+# death is the container's death rather than something an in-container loop
+# papers over.
+#
+# What this replaces started each daemon detached and polled for it every 10s.
+# Such a loop restarts forever and tells Kubernetes nothing: the pod reports
+# Running, the restart count stays 0, and a smoke test asserting "all pods
+# Running" passes straight through an outage. Its process match was also loose
+# enough to catch the start wrapper and courierlogger, not just the listener.
+# The auth daemon was supervised by nothing at all.
+exec runsvdir /etc/service

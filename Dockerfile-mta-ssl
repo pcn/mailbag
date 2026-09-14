@@ -1,13 +1,17 @@
-FROM ghcr.io/pcn/mailbag-base:main
+# Overridden by the build workflow with the base built in the same run.
+ARG BASE_IMAGE=ghcr.io/pcn/mailbag:main
+FROM ${BASE_IMAGE}
 # Updated 2025-06-23 for entrypoint fixes
 
-RUN cd /etc/courier; sed -i.dist 's/ESMTPDSSLSTART=NO/ESMTPDSSLSTART=YES/g' esmtpd-ssl && \
-  echo 'BOFHNOEXPN=1' >> esmtpd-ssl && \
-  echo 'BOFHNOVRFY=1' >> esmtpd-ssl && \
-  echo 'SYSLOGNAME=courieresmtpd-ssl' >> esmtpd-ssl && \
-  echo 'ESMTPAUTH_TLS="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"' >> esmtpd-ssl && \
-  echo 'BOFHCHECKDNS=0' >> esmtpd-ssl && \
-  echo 'ESMTP_LOG_DIALOG=1' >> esmptd-ssl
+# /etc/courier/esmtpd-ssl is not configured here. The entrypoint renders it
+# wholesale from esmtpd-mta-ssl.template on every start, so anything baked into
+# the image at build time is overwritten before the service reads it. Every
+# setting this used to append now lives in that template, including
+# ESMTP_LOG_DIALOG, which is parameterised as mta_ssl.log_dialog.
+#
+# The appends were dead in a second way too: one wrote to `esmptd-ssl` and the
+# other to `emstpd`, so they created stray files rather than touching any
+# config. That is why enabling dialog logging here never produced any.
 
 
 
@@ -20,14 +24,26 @@ RUN cd /etc/courier; sed -i.dist 's/ESMTPDSSLSTART=NO/ESMTPDSSLSTART=YES/g' esmt
 # RUN /usr/lib/courier/share/makehosteddomains
 
 
-# Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
-RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$SSLPIDFILE //;s%/usr/bin/mkdir -p `dirname $SSLPIDFILE`%%' esmtpd-ssl   # && \
- # echo "TLS_PROTOCOL=TLSv1.2++" >> esmtpd-ssl
+# Drop the PIDFILE argument so couriertcpd runs in the foreground.
+#
+# This line used to end in `# && \` -- a comment carrying a line continuation.
+# Docker strips comment lines and joins the continuation to the next real
+# instruction, so the trailing backslash silently swallowed whatever followed.
+# It was harmless only by accident, absorbing a dead debugging RUN; once that
+# was removed it ate `COPY entrypoints/courier-mta-ssl /courier-mta-ssl`, and
+# the build failed on chmod of a file that had never been copied.
+RUN cd /usr/lib/courier/share; sed -i.dist 's/-pid=$SSLPIDFILE //;s%/usr/bin/mkdir -p `dirname $SSLPIDFILE`%%' esmtpd-ssl
 
 
-# Debugging
-RUN cd /usr/lib/courier/share && \
-  echo "ESMTP_LOG_DIALOG=1" >> emstpd
+# Supervised by runit alongside the auth daemon from the base image.
+# The start script already runs in the foreground -- the sed above strips
+# -pid=$PIDFILE, and without a pidfile it blocks until couriertcpd exits --
+# so its death is the service's death, which is what runsv supervises.
+RUN install -d -m 0775 -o root -g daemon /etc/sv/esmtpd-ssl && \
+    printf '#!/bin/sh\nexec /usr/local/bin/sv-run-courier esmtpd-ssl\n' > /etc/sv/esmtpd-ssl/run && \
+    chmod 0755 /etc/sv/esmtpd-ssl/run && \
+    ln -sf /usr/local/bin/sv-finish /etc/sv/esmtpd-ssl/finish && \
+    ln -sf /etc/sv/esmtpd-ssl /etc/service/esmtpd-ssl
 
 COPY entrypoints/courier-mta-ssl /courier-mta-ssl
 RUN chmod +x /courier-mta-ssl

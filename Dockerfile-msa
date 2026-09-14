@@ -1,4 +1,6 @@
-FROM ghcr.io/pcn/mailbag-base:main
+# Overridden by the build workflow with the base built in the same run.
+ARG BASE_IMAGE=ghcr.io/pcn/mailbag:main
+FROM ${BASE_IMAGE}
 
 # Oh, this is so much better than configuration management
 # :rolls eyes:
@@ -17,6 +19,16 @@ RUN cd /etc/courier; \
 # Remove the PIDFILE argument, which should cause courier-tcpd to run in the foreground
 RUN cd /usr/lib/courier/share && \
   sed -i.dist 's/-pid=$PIDFILE"/"/;s%/usr/bin/mkdir -p `dirname $PIDFILE`%%' esmtpd 
+
+# Supervised by runit alongside the auth daemon from the base image.
+# The start script already runs in the foreground -- the sed above strips
+# -pid=$PIDFILE, and without a pidfile it blocks until couriertcpd exits --
+# so its death is the service's death, which is what runsv supervises.
+RUN install -d -m 0775 -o root -g daemon /etc/sv/esmtpd-msa && \
+    printf '#!/bin/sh\nexec /usr/local/bin/sv-run-courier esmtpd-msa\n' > /etc/sv/esmtpd-msa/run && \
+    chmod 0755 /etc/sv/esmtpd-msa/run && \
+    ln -sf /usr/local/bin/sv-finish /etc/sv/esmtpd-msa/finish && \
+    ln -sf /etc/sv/esmtpd-msa /etc/service/esmtpd-msa
 
 COPY entrypoints/courier-msa /courier-msa
 RUN chmod +x /courier-msa

@@ -8,6 +8,9 @@ metadata:
     component: mta-ssl
 spec:
   replicas: 1
+  # Recreate: this node has no headroom for a surge replica.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: mailbag
@@ -18,9 +21,14 @@ spec:
         app: mailbag
         component: mta-ssl
     spec:
+      securityContext:
+        fsGroup: 1
+        fsGroupChangePolicy: OnRootMismatch
       initContainers:
       - name: init-dirs
-        image: busybox:latest
+        # Pinned by digest: an init container that runs as root and chowns the mail
+        # store is not somewhere to accept a mutable upstream tag.
+        image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
         command: 
         - sh
         - -c
@@ -30,18 +38,12 @@ spec:
           chmod 700 /etc/authlib/userdb
           chown -R daemon:daemon /etc/courier
           chown -R daemon:daemon /etc/authlib
-          # Create combined certificate file for Courier SSL
-          mkdir -p /shared-certs
-          cat /certs/tls.crt /certs/tls.key > /shared-certs/esmtpd.pem
-          chmod 600 /shared-certs/esmtpd.pem
-          chown daemon:daemon /shared-certs/esmtpd.pem
-          # Also copy to legacy location for compatibility
-          mkdir -p /usr/lib/courier/share
-          cp /shared-certs/esmtpd.pem /usr/lib/courier/share/esmtpd.pem
-          # Create minimal esmtpaccess file for MTA-SSL
+          # esmtpaccess must exist and be non-empty: the entrypoint runs
+          # makesmtpaccess, and `set -e` kills the container if it fails.
+          # `allow` permits the connection only -- relaying still requires
+          # RELAYCLIENT, so this is not an open relay.
           cat > /etc/courier/esmtpaccess << 'EOF'
           # Default access policies for MTA-SSL
-          # Allow connections (no relaying restrictions for incoming mail)
           0.0.0.0/0	allow
           ::/0		allow
           EOF
@@ -53,13 +55,11 @@ spec:
         - name: courier-cert
           mountPath: /certs
           readOnly: true
-        - name: courier-share
-          mountPath: /shared-certs
         securityContext:
           runAsUser: 0
       containers:
       - name: courier-mta-ssl
-        image: ghcr.io/pcn/mailbag/courier-mta-ssl:main
+        image: ghcr.io/pcn/mailbag/courier-mta-ssl:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         ports:
         - containerPort: 465
@@ -76,8 +76,6 @@ spec:
         - name: courier-cert
           mountPath: /certs
           readOnly: true
-        - name: courier-share
-          mountPath: /shared-certs
         - name: context-json
           mountPath: /context.json
           readOnly: true
@@ -96,9 +94,36 @@ spec:
         - name: templates
           mountPath: /authdaemonrc.template
           subPath: authdaemonrc.template
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 465 --expect "220" --tls --quit "QUIT"']
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 465 --expect "220" --tls --quit "QUIT"']
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          # Higher than readiness on purpose: readiness should pull the pod out
+          # of the Service quickly, but restarting is the heavier hammer and
+          # runit is already retrying underneath.
+          failureThreshold: 5
         securityContext:
-          runAsUser: 0
-          privileged: true
+          # Runs as daemon like the MTA and MSA. 52c7338 made this privileged
+          # root while chasing a couriertcpd "segfault" on 465; that fault was
+          # an artifact of the combined-PEM workaround this deployment no
+          # longer uses -- cert and key are read straight from the mounted
+          # Secret via TLS_CERTFILE/TLS_PRIVATE_KEYFILE. esmtpd-ssl only
+          # accepts connections and queues through submit; unlike imaplogin it
+          # never changes credentials, so it needs no privilege to drop.
+          runAsUser: 1
+          runAsGroup: 1
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
       volumes:
       - name: courier-spool
         persistentVolumeClaim:
@@ -115,8 +140,9 @@ spec:
       - name: courier-cert
         secret:
           secretName: courier-mail-cert-tls
-      - name: courier-share
-        emptyDir: {}
+          # Readable by the service group, never world-readable. Ownership comes
+          # from the pod fsGroup below; Secret volumes are root-owned otherwise.
+          defaultMode: 0440
       - name: context-json
         hostPath:
           path: /etc/mailbag/context.json

@@ -1,4 +1,6 @@
-FROM ghcr.io/pcn/mailbag-base:main
+# Overridden by the build workflow with the base built in the same run.
+ARG BASE_IMAGE=ghcr.io/pcn/mailbag:main
+FROM ${BASE_IMAGE}
 # Updated 2025-06-23 for entrypoint fixes
 
 RUN cd /etc/courier; \
@@ -12,6 +14,16 @@ RUN cd /etc/courier; \
 # Also, the files are a bit different from the mta+msa, so this isn't totally copypasta
 RUN cd /usr/lib/courier/share && \
   sed -i.dist 's/-pid=$SSLPIDFILE//;s/-start//g' imapd-ssl
+
+# Supervised by runit alongside the auth daemon from the base image.
+# The start script already runs in the foreground -- the sed above strips
+# -pid=$PIDFILE, and without a pidfile it blocks until couriertcpd exits --
+# so its death is the service's death, which is what runsv supervises.
+RUN install -d -m 0775 -o root -g daemon /etc/sv/imapd-ssl && \
+    printf '#!/bin/sh\nexec /usr/local/bin/sv-run-courier imapd-ssl\n' > /etc/sv/imapd-ssl/run && \
+    chmod 0755 /etc/sv/imapd-ssl/run && \
+    ln -sf /usr/local/bin/sv-finish /etc/sv/imapd-ssl/finish && \
+    ln -sf /etc/sv/imapd-ssl /etc/service/imapd-ssl
 
 COPY entrypoints/courier-imapd-ssl /courier-imapd-ssl
 RUN chmod +x /courier-imapd-ssl

@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: courierd
+  namespace: mailbag
+  labels:
+    app: mailbag
+    component: courierd
+spec:
+  replicas: 1
+  # courierd takes an exclusive lock on the shared spool
+  # (/var/spool/courier/tmp/courierd.lock), so a second instance exits
+  # immediately. RollingUpdate keeps the old pod until the new one is Ready, so
+  # the new one can never become Ready -- it exits 0 and crash-loops. Recreate
+  # is a correctness requirement here, not a preference.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mailbag
+      component: courierd
+  template:
+    metadata:
+      labels:
+        app: mailbag
+        component: courierd
+    spec:
+      initContainers:
+      - name: init-dirs
+        # Pinned by digest: an init container that runs as root and chowns the mail
+        # store is not somewhere to accept a mutable upstream tag.
+        image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+        command: 
+        - sh
+        - -c
+        - |
+          mkdir -p /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+          chmod 750 /var/spool/courier/{msgq,msgs,filters,allfilters}
+          chmod 770 /var/spool/courier/tmp
+          chmod 755 /var/spool/courier/track
+          chown -R daemon:daemon /var/spool/courier
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: courierd
+        image: ghcr.io/pcn/mailbag/courier-courierd:{{ image.tag | default("main") }}
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: courier-spool
+          mountPath: /var/spool/courier
+        - name: mail-storage
+          mountPath: /vmail
+        - name: courier-auth
+          mountPath: /etc/authlib
+        - name: context-json
+          mountPath: /context.json
+          readOnly: true
+        - name: templates
+          mountPath: /acceptmailfor.template
+          subPath: acceptmailfor.template
+        - name: templates
+          mountPath: /hosteddomains.template
+          subPath: hosteddomains.template
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe']
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe']
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          # Higher than readiness on purpose: readiness should pull the pod out
+          # of the Service quickly, but restarting is the heavier hammer and
+          # runit is already retrying underneath.
+          failureThreshold: 5
+        securityContext:
+          privileged: true
+      volumes:
+      - name: courier-spool
+        persistentVolumeClaim:
+          claimName: courier-spool-pvc
+      - name: mail-storage
+        persistentVolumeClaim:
+          claimName: mail-storage-pvc
+      - name: courier-auth
+        persistentVolumeClaim:
+          claimName: courier-auth-pvc
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File
+      - name: templates
+        configMap:
+          name: mailbag-context

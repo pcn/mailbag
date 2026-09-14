@@ -1,7 +1,13 @@
+# Overridden by the build workflow with the exact upstream built in the same
+# run, so the base is never assembled from a half-updated dependency set.
+# The :main defaults keep a plain `docker build` working locally.
+ARG SUPPORT_IMAGE=ghcr.io/pcn/mailbag-support:main
+ARG PACKAGES_IMAGE=ghcr.io/pcn/mailbag-packages:main
+
 # support is the render-template binary
-FROM ghcr.io/pcn/mailbag-support:main AS support
+FROM ${SUPPORT_IMAGE} AS support
 # export-stage is the packaged .debs for the courier components
-FROM ghcr.io/pcn/mailbag-packages:main AS packages
+FROM ${PACKAGES_IMAGE} AS packages
 FROM ubuntu:noble
 
 
@@ -17,9 +23,13 @@ RUN groupadd -g 300 vmail; useradd -M -r -d /opt/vmail -u 300 -g vmail vmail
 
 RUN apt-get install -y locales bzip2 curl && echo "LANG=en_US.UTF-8" > /etc/default/locale
 
-# RUN set -x; cd /tmp; mkdir p; cd p;
-# curl -L https://github.com/pcn/mailbag-build-couriermta/releases/download/v01pre5/courier-v01pre5.tar.bz2 | tar -xjf - && \
-RUN  ls /tmp/p
+# The packages now come from the packages image via the COPY above, not from a
+# release tarball. The commented-out curl that used to fetch one ended in a
+# backslash, and a comment carrying a line continuation joins to the next real
+# instruction -- so it was silently swallowing `RUN ls /tmp/p`. Harmless only
+# because that line is a debug listing; the same shape broke the mta-ssl build
+# by eating a COPY. Comment lines here must not end in a backslash.
+RUN ls /tmp/p
 # Remove packages that we don't want, and install all of the remaining packages.
 RUN cd /tmp/p; rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* *-dev* && \
   rm -f *mlm* && \
@@ -27,8 +37,43 @@ RUN cd /tmp/p; rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* 
   rm -f *.deb
 
 COPY --from=support /export/render-template /render-template
-RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
+# sed -i<suffix> takes the suffix with no separator, so `-idist` wrote the
+# backup as authdaemonrcdist rather than authdaemonrc.dist -- inconsistent
+# with every other config, and invisible to anything looking for *.dist.
+RUN cd /etc/authlib; sed -i.dist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
 RUN chmod +x /render-template
+COPY entrypoints/lib/rebuild-userdb /rebuild-userdb
+RUN chmod +x /rebuild-userdb
+
+# runit supervises the two daemons every service image runs -- the listener and
+# its auth daemon -- inside one container, so they share a namespace and can see
+# each other. --no-install-recommends matters: the sysv/systemd init integration
+# lives in the separate runit-run and runit-init packages, which are Recommends,
+# and apt would otherwise pull init machinery into a container that has no use
+# for it. The runit package itself is just the binaries (runsvdir, runsv, sv,
+# chpst, svlogd) and depends only on libc6 and sysuser-helper.
+RUN apt-get update && apt-get install -y --no-install-recommends runit
+
+# Service directories live in /etc/sv and are enabled by symlink into
+# /etc/service. Debian's own service machinery ignores these: its postinst
+# trigger skips any directory without a .meta/bin marker, which hand-written
+# ones do not have.
+COPY entrypoints/sv/ /usr/local/lib/mailbag-sv/
+RUN install -m 0755 /usr/local/lib/mailbag-sv/sv-finish /usr/local/bin/sv-finish && \
+    install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courier /usr/local/bin/sv-run-courier && \
+    install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courierd /usr/local/bin/sv-run-courierd && \
+    install -m 0755 /usr/local/lib/mailbag-sv/mailbag-probe /usr/local/bin/mailbag-probe && \
+    # runsv creates supervise/ inside each service directory, and the state dir
+    # is written by the run and finish scripts -- both as whatever user the
+    # container runs as. mta, msa and mta-ssl run as daemon(1), so these must
+    # be group-writable or runsv dies with "unable to open supervise/lock".
+    # The run and finish scripts themselves stay root-owned and non-writable.
+    install -d -m 0775 -o root -g daemon /etc/sv/authdaemon /run/mailbag-sv && \
+    install -d /etc/service && \
+    install -m 0755 /usr/local/lib/mailbag-sv/sv-run-authdaemon /etc/sv/authdaemon/run && \
+    ln -sf /usr/local/bin/sv-finish /etc/sv/authdaemon/finish && \
+    ln -sf /etc/sv/authdaemon /etc/service/authdaemon && \
+    rm -rf /usr/local/lib/mailbag-sv
 COPY acceptmailfor.template /acceptmailfor.template
 COPY hosteddomains.template /hosteddomains.template
 

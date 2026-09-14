@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# Rebuild the compiled userdb databases from the userdb source directory.
+#
+# makeuserdb writes userdbshadow.dat under umask 066 (see
+# courier-authlib/userdb/makeuserdb.in), so the shadow database is mode 0600
+# and readable only by the user that ran it. authdaemond is the only thing
+# that reads it, and upstream installs authlib to run as the mail user --
+# courier-authlib/Makefile.am chowns @authdaemonvar@ and the authrc files to
+# @mailuser@. So makeuserdb has to run as that same user.
+#
+# When it ran as root instead (courierd runs as root, and every container
+# rebuilds the shared /etc/authlib volume) the result was 0600 root:root, and
+# any authdaemond running as the mail user failed every lookup with
+# "Operation not permitted" -- authentication denied for a correct password.
+#
+# Drops to the mail user when invoked as root, and runs in place otherwise,
+# so the same helper works in containers that already start unprivileged.
+
+set -e -o pipefail
+
+MAILUSER="${MAILUSER:-daemon}"
+MAILGROUP="${MAILGROUP:-$MAILUSER}"
+
+# Not configurable on purpose. makeuserdb takes -f to point at another source
+# directory, but it still derives each record's "_=" location field from the
+# compiled-in @userdb@ prefix (makeuserdb.in:132), so pointing it elsewhere
+# silently writes wrong location fields. This must stay the path courier was
+# built with.
+USERDB_DIR=/etc/authlib/userdb
+
+if [ ! -d "$USERDB_DIR" ] || [ -z "$(ls -A "$USERDB_DIR" 2>/dev/null)" ]; then
+    echo "rebuild-userdb: $USERDB_DIR is empty, skipping makeuserdb (no users configured)"
+    exit 0
+fi
+
+if [ "$(id -u)" = "0" ]; then
+    # makeuserdb refuses a source directory with any group or world permission
+    # bits ("MAY NOT HAVE GROUP OR WORLD PERMISSIONS"), and it has to be able to
+    # write the lock and output files as the mail user once we drop to it.
+    chmod -R go-rwx "$USERDB_DIR"
+    chown -R "$MAILUSER:$MAILGROUP" "$USERDB_DIR"
+    for f in "${USERDB_DIR}.lock" "${USERDB_DIR}.dat" "${USERDB_DIR}shadow.dat"; do
+        [ -e "$f" ] && chown "$MAILUSER:$MAILGROUP" "$f"
+    done
+    setpriv --reuid="$MAILUSER" --regid="$MAILGROUP" --clear-groups /usr/sbin/makeuserdb
+else
+    /usr/sbin/makeuserdb
+fi
+
+# A shadow database the auth daemon cannot read is the exact failure this
+# helper exists to prevent, so prove it is readable rather than assume it.
+# setpriv rather than su: su from the mail user back to itself would prompt for
+# a password, which has no answer in a container.
+shadow="${USERDB_DIR}shadow.dat"
+if [ -e "$shadow" ]; then
+    if [ "$(id -u)" = "0" ]; then
+        readable=$(setpriv --reuid="$MAILUSER" --regid="$MAILGROUP" --clear-groups \
+            /bin/sh -c "test -r '$shadow' && echo yes" || true)
+    else
+        readable=$(test -r "$shadow" && echo yes || true)
+    fi
+    if [ "$readable" != "yes" ]; then
+        echo "rebuild-userdb: FATAL: $shadow is not readable by $MAILUSER" >&2
+        ls -l "$shadow" >&2
+        exit 1
+    fi
+    echo "rebuild-userdb: $shadow rebuilt and readable by $MAILUSER"
+fi

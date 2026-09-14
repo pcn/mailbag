@@ -15,6 +15,9 @@ CONFIG_PATH="/home/mailbag/config"
 MAIL_USER="vmail"
 MAIL_USER_ID="300"
 AUTHLIB_USER="daemon"
+# Which published build to deploy. Override per-deploy with IMAGE_TAG=... on
+# deploy-services.sh; a sha-<sha> tag names an exact build and rolls back cleanly.
+IMAGE_TAG="${IMAGE_TAG:-main}"
 
 # Helper function to clean up hostname input
 clean_hostname() {
@@ -113,6 +116,9 @@ cat > /etc/mailbag/context.json << EOF
   "domain": {
     "name": "mail",
     "zone": "$DOMAIN"
+  },
+  "image": {
+    "tag": "$IMAGE_TAG"
   },
   "config": {
     "courier_path": "$CONFIG_PATH/courier",

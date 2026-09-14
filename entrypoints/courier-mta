@@ -2,8 +2,6 @@
 
 set -e -x -o pipefail
 
-export THEUSER=daemon
-
 # context.json is added via the docker/container as a bind mount
 /render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
 /render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
@@ -14,32 +12,26 @@ export THEUSER=daemon
 touch /etc/courier/esmtpaccess
 # Skip makesmtpaccess if esmtpaccess is empty  
 [ -s /etc/courier/esmtpaccess ] && /usr/lib/courier/sbin/makesmtpaccess || echo "Empty esmtpaccess file, skipping makesmtpaccess"
-( cd /etc/authlib && \
-      chmod -R 700 userdb && \
-      chown -R $THEUSER userdb )
-  
-/usr/sbin/makeuserdb
+/rebuild-userdb
 # Create empty aliases file and directory if they don't exist
 mkdir -p /etc/courier/aliasdir
 touch /etc/courier/aliases
 /usr/lib/courier/sbin/makealiases
 
-/usr/sbin/authdaemond start
-
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
-
 # Directory structure is created by courierd container
 # No need to create or modify spool directories here
 
-# start the esmtpd and keep container alive (courierd runs in separate container)
-/usr/lib/courier/sbin/esmtpd start
-
-# Keep container alive by monitoring the service
-while true; do
-    if ! pgrep -f esmtpd > /dev/null; then
-        echo "esmtpd stopped, restarting..."
-        /usr/lib/courier/sbin/esmtpd start
-    fi
-    sleep 10
-done
+# Hand off to runit. It supervises the listener and the auth daemon as separate
+# services in this one namespace, and runsvdir becomes PID 1, so a daemon's
+# death is the container's death rather than something an in-container loop
+# papers over.
+#
+# What this replaces started each daemon detached and polled for it every 10s.
+# Such a loop restarts forever and tells Kubernetes nothing: the pod reports
+# Running, the restart count stays 0, and a smoke test asserting "all pods
+# Running" passes straight through an outage. Its process match was also loose
+# enough to catch the start wrapper and courierlogger, not just the listener.
+# The auth daemon was supervised by nothing at all.
+exec runsvdir /etc/service

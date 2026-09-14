@@ -9,3 +9,14 @@ goss-bin
 
 # local org-mode notes
 notes.org
+
+# Platypus runtime and generated files
+.platy/
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+dist/
+build/
+.env
+.env.*

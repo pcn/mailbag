@@ -33,10 +33,16 @@ chmod 755 {{ config.courier_path }}
 chmod 700 {{ config.authlib_path }}
 
 # Set correct ownership
+# The maildir is the only tree vmail owns: courierlocal drops to the target
+# user to write it, and IMAP reads it as that user.
 chown -R vmail:vmail {{ mda.mail_path_host }}
-chown -R vmail:vmail {{ mta.courierd_path_host }}
-chown -R vmail:vmail {{ config.courier_path }}
-chown -R vmail:vmail {{ config.authlib_path }}
+# Everything else is courier's own state and must be owned by the user the
+# services run as, which is daemon. Chowning these to vmail made /etc/authlib
+# drwx------ vmail, so authdaemond could not read authdaemonrc and every
+# service running as daemon was locked out of its own configuration.
+chown -R daemon:daemon {{ mta.courierd_path_host }}
+chown -R daemon:daemon {{ config.courier_path }}
+chown -R daemon:daemon {{ config.authlib_path }}
 
 # Ensure context.json directory exists
 mkdir -p /etc/mailbag

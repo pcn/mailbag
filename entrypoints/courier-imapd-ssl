@@ -2,27 +2,27 @@
 
 set -e -x -o pipefail
 
-# IMAP service doesn't need SMTP access control files  
-# Skip makeuserdb if userdb directory is empty (no test users configured yet)
-if [ "$(ls -A /etc/authlib/userdb 2>/dev/null)" ]; then
-    /usr/sbin/makeuserdb
-else
-    echo "Empty userdb directory, skipping makeuserdb (no test users configured)"
-fi
+# Render imapd-ssl config. Without this the service used the image's default,
+# whose TLS_CERTFILE points at /usr/lib/courier/share/imapd.pem -- a file this
+# image does not ship -- so couriertcpd listened on 993 but every TLS handshake
+# failed with nothing to present.
+/render-template --context /context.json --template /imapd-ssl.template > /etc/courier/imapd-ssl
 
-/usr/sbin/authdaemond start
+# IMAP service doesn't need SMTP access control files
+/rebuild-userdb
 
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
 
-# start the imapd-ssl and keep container alive
-/usr/lib/courier/sbin/imapd-ssl start
-
-# Keep container alive by monitoring the service
-while true; do
-    if ! pgrep -f imapd-ssl > /dev/null; then
-        echo "imapd-ssl stopped, restarting..."
-        /usr/lib/courier/sbin/imapd-ssl start
-    fi
-    sleep 10
-done
+# Hand off to runit. It supervises the listener and the auth daemon as separate
+# services in this one namespace, and runsvdir becomes PID 1, so a daemon's
+# death is the container's death rather than something an in-container loop
+# papers over.
+#
+# What this replaces started each daemon detached and polled for it every 10s.
+# Such a loop restarts forever and tells Kubernetes nothing: the pod reports
+# Running, the restart count stays 0, and a smoke test asserting "all pods
+# Running" passes straight through an outage. Its process match was also loose
+# enough to catch the start wrapper and courierlogger, not just the listener.
+# The auth daemon was supervised by nothing at all.
+exec runsvdir /etc/service

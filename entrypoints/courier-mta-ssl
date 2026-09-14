@@ -15,26 +15,22 @@ set -e -x -o pipefail
 /usr/lib/courier/share/makehosteddomains
 # Process esmtpaccess file (created by init container)
 /usr/lib/courier/sbin/makesmtpaccess
-# Skip makeuserdb if userdb directory is empty (no test users configured yet)
-if [ "$(ls -A /etc/authlib/userdb 2>/dev/null)" ]; then
-    /usr/sbin/makeuserdb
-else
-    echo "Empty userdb directory, skipping makeuserdb (no test users configured)"
-fi
+/rebuild-userdb
 /usr/lib/courier/sbin/makealiases
 
-/usr/sbin/authdaemond start
+# Cert and key are read directly from the mounted cert-manager Secret via
+# TLS_CERTFILE and TLS_PRIVATE_KEYFILE. Nothing copies or combines them, so a
+# renewed certificate is picked up on the next connection.
 
-# Combined certificate file created by init container at /shared-certs/esmtpd.pem
-# Configuration points directly to this location
-# start the esmtpd-ssl and keep container alive (courierd runs in separate container)
-/usr/lib/courier/sbin/esmtpd-ssl start
-
-# Keep container alive by monitoring the service
-while true; do
-    if ! pgrep -f esmtpd-ssl > /dev/null; then
-        echo "esmtpd-ssl stopped, restarting..."
-        /usr/lib/courier/sbin/esmtpd-ssl start
-    fi
-    sleep 10
-done
+# Hand off to runit. It supervises the listener and the auth daemon as separate
+# services in this one namespace, and runsvdir becomes PID 1, so a daemon's
+# death is the container's death rather than something an in-container loop
+# papers over.
+#
+# What this replaces started each daemon detached and polled for it every 10s.
+# Such a loop restarts forever and tells Kubernetes nothing: the pod reports
+# Running, the restart count stays 0, and a smoke test asserting "all pods
+# Running" passes straight through an outage. Its process match was also loose
+# enough to catch the start wrapper and courierlogger, not just the listener.
+# The auth daemon was supervised by nothing at all.
+exec runsvdir /etc/service
