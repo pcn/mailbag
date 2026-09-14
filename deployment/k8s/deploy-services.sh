@@ -54,8 +54,6 @@ fi
 MANIFESTS=(
     namespace.yaml
     configmap.yaml
-    letsencrypt-clusterissuer.yaml
-    mail-certificates.yaml.template
     storage.yaml
     courierd.yaml.template
     courier-mta.yaml.template
@@ -63,6 +61,26 @@ MANIFESTS=(
     courier-imapd-ssl.yaml.template
     courier-msa.yaml.template
 )
+
+# Certificates come from one of two places and the deploy must not guess.
+#
+#   cert-manager present -> apply the issuer and Certificate and let it fill
+#                           the Secret in.
+#   cert-manager absent  -> the Secret must already exist, injected by hand or
+#                           by CI from a locally generated CA. This is the
+#                           documented path for test nodes, where ACME cannot
+#                           run at all: issuing a real certificate needs a DNS
+#                           write, and neither CI nor the node is permitted
+#                           credentials for the zone.
+#
+# Applying the Certificate without cert-manager would "succeed" and then never
+# reconcile, leaving every pod stuck in ContainerCreating on a Secret that is
+# never created. Refuse instead.
+CERT_MANIFESTS=(
+    letsencrypt-clusterissuer.yaml
+    mail-certificates.yaml.template
+)
+CERT_SECRET=courier-mail-cert-tls
 
 apply_one() {
     local manifest="$1"
@@ -89,6 +107,34 @@ apply_one() {
             ;;
     esac
 }
+
+if kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then
+    echo "cert-manager detected: applying issuer and Certificate."
+    for manifest in "${CERT_MANIFESTS[@]}"; do
+        apply_one "$manifest"
+    done
+else
+    echo "cert-manager not installed: skipping issuer and Certificate."
+    if kubectl -n "$NAMESPACE" get secret "$CERT_SECRET" >/dev/null 2>&1; then
+        echo "  using the pre-existing $CERT_SECRET secret."
+    else
+        cat >&2 <<EOF
+ERROR: cert-manager is not installed and secret/$CERT_SECRET does not exist in
+namespace $NAMESPACE.
+
+Every mail service mounts that Secret, so the pods would sit in
+ContainerCreating forever. Provide it before deploying, either by installing
+cert-manager or by injecting a certificate:
+
+  kubectl -n $NAMESPACE create secret tls $CERT_SECRET \\
+      --cert=/path/to/fullchain.pem --key=/path/to/privkey.pem
+
+scripts/make-test-cert.sh generates a self-signed CA and server certificate
+with the SANs taken from context.json, for test nodes.
+EOF
+        exit 1
+    fi
+fi
 
 for manifest in "${MANIFESTS[@]}"; do
     apply_one "$manifest"
