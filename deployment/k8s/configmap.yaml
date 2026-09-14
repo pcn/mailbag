@@ -113,6 +113,36 @@ data:
     # Access file and PID file for makesmtpaccess
     ACCESSFILE={{ msa.access_file | default("/etc/courier/smtpaccess") }}
     PIDFILE={{ msa.pid_file | default("/var/spool/courier/tmp/esmtpd.pid") }}
+
+    # ---- inherited from esmtpd.dist ----
+    # These templates REPLACE the shipped config rather than amending it, so
+    # every setting the .dist defined has to be carried here or it is lost.
+    # Checked by scripts/check-config-completeness.sh.
+    ULIMIT=65536
+    BOFHCHECKDNS=1
+    TARPIT=1
+    NOADDMSGID=1
+    NOADDDATE=1
+    NOADDRREWRITE=0
+    ESMTP_LOG_DIALOG=0
+    AUTH_REQUIRED=0
+    COURIERTLS=/usr/lib/courier/bin/couriertls
+    # TLS_CERTFILE: cert-manager Secret, not the writable shared dir the .dist points at
+    TLS_CERTFILE=/certs/tls.crt
+    TLS_PRIVATE_KEYFILE=/certs/tls.key
+    TLS_DHPARAMS=/usr/lib/courier/share/dhparams.pem
+    TLS_TRUSTCERTS=/etc/ssl/certs/ca-certificates.crt
+    TLS_VERIFYPEER=NONE
+    MAILUSER=daemon
+    MAILGROUP=daemon
+    PORT=smtp
+    BLACKLISTS=""
+    MAXPERC=5
+    TCPDOPTS="-stderrlogger=/usr/sbin/courierlogger"
+    ESMTPAUTH=""
+    ESMTPAUTH_WEBADMIN="LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"
+    ESMTPAUTH_TLS=""
+    ESMTPAUTH_TLS_WEBADMIN="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"
   smtpaccess-default.template: |
     # Copyright 1998 - 2011 Double Precision, Inc.  See COPYING for
     # distribution information.
@@ -230,6 +260,38 @@ data:
     # Connection limits
     MAXDAEMONS={{ mta.max_daemons | default("40") }}
     MAXPERIP={{ mta.max_per_ip | default("4") }}
+
+    # ---- inherited from esmtpd.dist ----
+    # These templates REPLACE the shipped config rather than amending it, so
+    # every setting the .dist defined has to be carried here or it is lost.
+    # Checked by scripts/check-config-completeness.sh.
+    ULIMIT=65536
+    BOFHCHECKDNS=1
+    TARPIT=1
+    NOADDMSGID=1
+    NOADDDATE=1
+    NOADDRREWRITE=0
+    ESMTP_LOG_DIALOG=0
+    AUTH_REQUIRED=0
+    COURIERTLS=/usr/lib/courier/bin/couriertls
+    # TLS_CERTFILE: cert-manager Secret, not the writable shared dir the .dist points at
+    TLS_CERTFILE=/certs/tls.crt
+    TLS_PRIVATE_KEYFILE=/certs/tls.key
+    TLS_DHPARAMS=/usr/lib/courier/share/dhparams.pem
+    TLS_TRUSTCERTS=/etc/ssl/certs/ca-certificates.crt
+    TLS_VERIFYPEER=NONE
+    MAILUSER=daemon
+    MAILGROUP=daemon
+    PORT=smtp
+    BLACKLISTS=""
+    ACCESSFILE=${sysconfdir}/smtpaccess
+    MAXPERC=5
+    PIDFILE=/var/spool/courier/tmp/esmtpd.pid
+    TCPDOPTS="-stderrlogger=/usr/sbin/courierlogger"
+    ESMTPAUTH=""
+    ESMTPAUTH_WEBADMIN="LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"
+    ESMTPAUTH_TLS=""
+    ESMTPAUTH_TLS_WEBADMIN="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"
   esmtpd-base-mta-ssl.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
@@ -256,6 +318,38 @@ data:
     # Connection limits
     MAXDAEMONS={{ mta_ssl.max_daemons | default("40") }}
     MAXPERIP={{ mta_ssl.max_per_ip | default("4") }}
+
+    # ---- inherited from esmtpd.dist ----
+    # These templates REPLACE the shipped config rather than amending it, so
+    # every setting the .dist defined has to be carried here or it is lost.
+    # Checked by scripts/check-config-completeness.sh.
+    ULIMIT=65536
+    BOFHCHECKDNS=1
+    TARPIT=1
+    NOADDMSGID=1
+    NOADDDATE=1
+    NOADDRREWRITE=0
+    ESMTP_LOG_DIALOG=0
+    AUTH_REQUIRED=0
+    COURIERTLS=/usr/lib/courier/bin/couriertls
+    # TLS_CERTFILE: cert-manager Secret, not the writable shared dir the .dist points at
+    TLS_CERTFILE=/certs/tls.crt
+    TLS_PRIVATE_KEYFILE=/certs/tls.key
+    TLS_DHPARAMS=/usr/lib/courier/share/dhparams.pem
+    TLS_TRUSTCERTS=/etc/ssl/certs/ca-certificates.crt
+    TLS_VERIFYPEER=NONE
+    MAILUSER=daemon
+    MAILGROUP=daemon
+    PORT=smtp
+    BLACKLISTS=""
+    ACCESSFILE=${sysconfdir}/smtpaccess
+    MAXPERC=5
+    PIDFILE=/var/spool/courier/tmp/esmtpd.pid
+    TCPDOPTS="-stderrlogger=/usr/sbin/courierlogger"
+    ESMTPAUTH=""
+    ESMTPAUTH_WEBADMIN="LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"
+    ESMTPAUTH_TLS=""
+    ESMTPAUTH_TLS_WEBADMIN="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"
   esmtpd-msa.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
@@ -280,6 +374,22 @@ data:
 
     # Enable detailed logging
     ESMTP_LOG_DIALOG={{ msa.log_level | default("2") }}
+
+    # ---- inherited from esmtpd-msa.dist ----
+    # These templates REPLACE the shipped config rather than amending it, so
+    # every setting the .dist defined has to be carried here or it is lost.
+    # Checked by scripts/check-config-completeness.sh.
+    NOADDMSGID=0
+    NOADDDATE=0
+    NOADDRREWRITE=0
+    BLACKLISTS=""
+    ADDRESS=0
+    PORT=587
+    PIDFILE=/var/spool/courier/tmp/esmtpd-msa.pid
+    ACCESSFILE=${sysconfdir}/smtpaccess
+    MAXDAEMONS=40
+    MAXPERC=5
+    MAXPERIP=5
   esmtpd-mta.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
@@ -325,6 +435,31 @@ data:
 
     # Courier TLS binary location
     COURIERTLS=/usr/lib/courier/bin/couriertls
+
+    # ---- inherited from esmtpd.dist ----
+    # These templates REPLACE the shipped config rather than amending it, so
+    # every setting the .dist defined has to be carried here or it is lost.
+    # Checked by scripts/check-config-completeness.sh.
+    ULIMIT=65536
+    TARPIT=1
+    NOADDMSGID=1
+    NOADDDATE=1
+    NOADDRREWRITE=0
+    ESMTP_LOG_DIALOG=0
+    TLS_DHPARAMS=/usr/lib/courier/share/dhparams.pem
+    TLS_TRUSTCERTS=/etc/ssl/certs/ca-certificates.crt
+    TLS_VERIFYPEER=NONE
+    MAILUSER=daemon
+    MAILGROUP=daemon
+    PORT=smtp
+    BLACKLISTS=""
+    ACCESSFILE=${sysconfdir}/smtpaccess
+    MAXPERC=5
+    PIDFILE=/var/spool/courier/tmp/esmtpd.pid
+    TCPDOPTS="-stderrlogger=/usr/sbin/courierlogger"
+    ESMTPAUTH=""
+    ESMTPAUTH_WEBADMIN="LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"
+    ESMTPAUTH_TLS_WEBADMIN="PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256"
   esmtpd-mta-ssl.template: |
     ##VERSION: $Id: 7543161d83cfd2206785e5bac11e78a43935e57e-20240610193431$
     #
@@ -370,3 +505,21 @@ data:
 
     # Courier TLS binary location
     COURIERTLS=/usr/lib/courier/bin/couriertls
+
+    # ---- inherited from esmtpd-ssl.dist ----
+    # These templates REPLACE the shipped config rather than amending it, so
+    # every setting the .dist defined has to be carried here or it is lost.
+    # Checked by scripts/check-config-completeness.sh.
+    TARPIT=1
+    NOADDMSGID=1
+    NOADDDATE=1
+    NOADDRREWRITE=0
+    ESMTP_LOG_DIALOG=0
+    SSLPORT=465
+    SSLADDRESS=0
+    SSLPIDFILE=/var/spool/courier/tmp/esmtpd-ssl.pid
+    ESMTPDSSLSTART=NO
+    TLS_DHPARAMS=/usr/lib/courier/share/dhparams.pem
+    TLS_TRUSTCERTS=/etc/ssl/certs/ca-certificates.crt
+    TLS_VERIFYPEER=NONE
+    MAXPERC=5

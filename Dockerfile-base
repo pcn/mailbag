@@ -33,7 +33,10 @@ RUN cd /tmp/p; rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* 
   rm -f *.deb
 
 COPY --from=support /export/render-template /render-template
-RUN cd /etc/authlib; sed -idist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
+# sed -i<suffix> takes the suffix with no separator, so `-idist` wrote the
+# backup as authdaemonrcdist rather than authdaemonrc.dist -- inconsistent
+# with every other config, and invisible to anything looking for *.dist.
+RUN cd /etc/authlib; sed -i.dist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
 RUN chmod +x /render-template
 COPY acceptmailfor.template /acceptmailfor.template
 COPY hosteddomains.template /hosteddomains.template

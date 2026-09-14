@@ -321,3 +321,31 @@ jobs:
           file: Dockerfile-tinydns
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+
+  # Runs after the images exist, because the .dist files it checks against are
+  # read from the image rather than from a checked-in copy. That is deliberate:
+  # a courier version bump introducing a new setting has to fail here, and a
+  # vendored fixture would quietly agree with itself forever.
+  config-completeness:
+    needs: [changes, services]
+    if: >-
+      !cancelled()
+      && needs.services.result != 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Every replaced courier config covers its .dist
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ github.repository }}/courier-mta:${{ needs.services.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
+        run: ./scripts/check-config-completeness.sh
+      - name: Every template renders against the example context
+        run: ./scripts/render-all-templates.sh
