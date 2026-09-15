@@ -7,6 +7,17 @@ set -e -x -o pipefail
 # Directory structure is created by courierd container
 # No need to create or modify spool directories here
 
+# mta renders its own esmtpd. It never did: it read whatever msa or mta-ssl
+# had written into the shared /etc/courier. The image's copy is not a
+# substitute -- it carries TLS_CERTFILE=/usr/lib/courier/share/esmtpd.pem,
+# a file this image does not ship, so STARTTLS would have no certificate.
+/render-template --context /context.json --template /esmtpd-mta.template > /etc/courier/esmtpd
+
+# Every pod renders its own authdaemonrc. /etc/authlib is a per-pod emptyDir,
+# so the image's copy is masked, and relying on a peer having written one into
+# a shared volume is the ordering race this deployment is removing.
+/render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
+
 # The derived databases are built out of band and mounted read-only; this pod
 # does not build them. Prove they are usable before starting anything, so a
 # missing or empty database is a startup failure rather than every lookup

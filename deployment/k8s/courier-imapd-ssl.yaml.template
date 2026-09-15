@@ -65,6 +65,9 @@ spec:
         - containerPort: 993
           name: imaps
         volumeMounts:
+        - name: templates
+          mountPath: /authdaemonrc.template
+          subPath: authdaemonrc.template
         - name: courier-userdb
           mountPath: /etc/authlib/userdb.dat
           subPath: userdb.dat

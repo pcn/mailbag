@@ -9,6 +9,11 @@ chmod 750 /var/spool/courier/{msgq,msgs,filters,allfilters}
 chmod 770 /var/spool/courier/tmp
 chmod 755 /var/spool/courier/track
 
+# Every pod renders its own authdaemonrc. /etc/authlib is a per-pod emptyDir,
+# so the image's copy is masked, and relying on a peer having written one into
+# a shared volume is the ordering race this deployment is removing.
+/render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
+
 # courierd decides local-versus-remote itself. libs/islocal.c reads
 # hosteddomains.dat and module.esmtp/esmtp.c reads esmtpacceptmailfor.dat, both
 # inside THIS container, in the delivery agents courierd spawns (courierlocal,

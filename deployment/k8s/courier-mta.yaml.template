@@ -53,6 +53,12 @@ spec:
         - containerPort: 25
           name: smtp
         volumeMounts:
+        - name: templates
+          mountPath: /esmtpd-mta.template
+          subPath: esmtpd-mta.template
+        - name: templates
+          mountPath: /authdaemonrc.template
+          subPath: authdaemonrc.template
         # Derived databases, read-only. Built and validated out of band by
         # build-courier-dat.sh; pods consume them and never build them.
         - name: courier-dat
@@ -114,6 +120,9 @@ spec:
           runAsUser: 1
           runAsGroup: 1
       volumes:
+      - name: templates
+        configMap:
+          name: mailbag-context
       - name: courier-dat
         # kustomize configMapGenerator gives this a content-hashed name and
         # rewrites the reference, so changed databases change the pod template

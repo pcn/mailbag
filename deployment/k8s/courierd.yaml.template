@@ -49,6 +49,9 @@ spec:
         image: ghcr.io/pcn/mailbag/courier-courierd:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         volumeMounts:
+        - name: templates
+          mountPath: /authdaemonrc.template
+          subPath: authdaemonrc.template
         # Derived databases, read-only. Built and validated out of band by
         # build-courier-dat.sh; pods consume them and never build them.
         - name: courier-dat
@@ -104,6 +107,9 @@ spec:
         securityContext:
           privileged: true
       volumes:
+      - name: templates
+        configMap:
+          name: mailbag-context
       - name: courier-dat
         # kustomize configMapGenerator gives this a content-hashed name and
         # rewrites the reference, so changed databases change the pod template

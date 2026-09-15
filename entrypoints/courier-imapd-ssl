@@ -9,6 +9,11 @@ set -e -x -o pipefail
 /render-template --context /context.json --template /imapd-ssl.template > /etc/courier/imapd-ssl
 
 
+# Every pod renders its own authdaemonrc. /etc/authlib is a per-pod emptyDir,
+# so the image's copy is masked, and relying on a peer having written one into
+# a shared volume is the ordering race this deployment is removing.
+/render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
+
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
 
