@@ -35,6 +35,7 @@ RENDER="${RENDER:-/render-template}"
 VALIDATE="${VALIDATE:-/usr/local/bin/validate-courier-dat.pl}"
 PUBLISH_COURIER="${PUBLISH_COURIER:-}"
 PUBLISH_AUTHLIB="${PUBLISH_AUTHLIB:-}"
+USERDB_SRC="${USERDB_SRC:-}"
 CANARY="${CANARY:-}"
 
 COURIER=/etc/courier
@@ -49,6 +50,7 @@ usage: $0 [options]
   --templates DIR          rendered-template source dir (default: $TEMPLATES)
   --publish-courier DIR    live /etc/courier volume to publish into
   --publish-authlib DIR    live /etc/authlib volume to publish into
+  --userdb-src DIR         copy the userdb source from here before building
   --canary ADDRESS         userdb address that must resolve after the build
 Without --publish-*, builds and validates only. That is the dry run.
 EOF
@@ -61,6 +63,7 @@ while [ $# -gt 0 ]; do
         --templates)       TEMPLATES=${2:?}; shift 2 ;;
         --publish-courier) PUBLISH_COURIER=${2:?}; shift 2 ;;
         --publish-authlib) PUBLISH_AUTHLIB=${2:?}; shift 2 ;;
+        --userdb-src)      USERDB_SRC=${2:?}; shift 2 ;;
         --canary)          CANARY=${2:?}; shift 2 ;;
         -h|--help)         usage ;;
         *) echo "$0: unknown argument '$1'" >&2; usage ;;
@@ -90,6 +93,32 @@ count_src() {
 }
 
 # ------------------------------------------------------------------ sources
+# The userdb source usually lives on a volume, but makeuserdb has to run with it
+# at the compiled-in path: it derives each record's "_=" location field from the
+# @userdb@ prefix (makeuserdb.in:132), not from -f, so building against a volume
+# path writes wrong location fields. Copy it to the canonical path, which in a
+# build job is ephemeral, and publish the results back afterwards. That is also
+# what keeps a failed build from touching the live databases.
+if [ -n "$USERDB_SRC" ]; then
+    [ -d "$USERDB_SRC" ] || die "userdb source not a directory: $USERDB_SRC"
+    step "copying userdb source from $USERDB_SRC"
+    mkdir -p "$AUTHLIB/userdb" || die "mkdir $AUTHLIB/userdb failed"
+    # The source directory carries lock files and courier's own scratch entries;
+    # only the per-domain files are input.
+    copied=0
+    for f in "$USERDB_SRC"/*; do
+        [ -f "$f" ] || continue
+        case "$(basename "$f")" in
+            .*|dummy) continue ;;
+        esac
+        cp -p "$f" "$AUTHLIB/userdb/" || die "copying $f failed"
+        copied=$((copied + 1))
+    done
+    [ "$copied" -gt 0 ] || die "no userdb source files found in $USERDB_SRC"
+    chmod 700 "$AUTHLIB/userdb"
+    echo "    copied $copied source file(s)"
+fi
+
 step "rendering sources from $CONTEXT"
 mkdir -p "$COURIER/esmtpacceptmailfor.dir" "$COURIER/smtpaccess" \
          "$COURIER/aliases" "$COURIER/aliasdir" "$AUTHLIB/userdb" || die "mkdir failed"

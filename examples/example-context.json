@@ -47,7 +47,8 @@
   "userdb": {
     "directory": "/etc/authlib/userdb",
     "owner": "daemon",
-    "mode": "0700"
+    "mode": "0700",
+    "canary": "CHANGE-ME@the-domain.com"
   },
   "domain": {
     "name": "mail",

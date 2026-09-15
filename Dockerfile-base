@@ -57,7 +57,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends runit
 # ones do not have.
 COPY entrypoints/sv/ /usr/local/lib/mailbag-sv/
 COPY scripts/validate-courier-dat.pl /usr/local/bin/validate-courier-dat.pl
-RUN chmod 0755 /usr/local/bin/validate-courier-dat.pl
+# The build script ships in the service images because the build job runs as
+# one of them: they are what carry makedat, makealiases and makeuserdb.
+COPY scripts/build-courier-dat.sh /usr/local/bin/build-courier-dat.sh
+RUN chmod 0755 /usr/local/bin/validate-courier-dat.pl /usr/local/bin/build-courier-dat.sh
 RUN install -m 0755 /usr/local/lib/mailbag-sv/sv-finish /usr/local/bin/sv-finish && \
     install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courier /usr/local/bin/sv-run-courier && \
     install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courierd /usr/local/bin/sv-run-courierd && \
