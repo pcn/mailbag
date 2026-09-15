@@ -42,9 +42,6 @@ COPY --from=support /export/render-template /render-template
 # with every other config, and invisible to anything looking for *.dist.
 RUN cd /etc/authlib; sed -i.dist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
 RUN chmod +x /render-template
-COPY entrypoints/lib/rebuild-userdb /rebuild-userdb
-RUN chmod +x /rebuild-userdb
-
 # runit supervises the two daemons every service image runs -- the listener and
 # its auth daemon -- inside one container, so they share a namespace and can see
 # each other. --no-install-recommends matters: the sysv/systemd init integration
@@ -59,10 +56,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends runit
 # trigger skips any directory without a .meta/bin marker, which hand-written
 # ones do not have.
 COPY entrypoints/sv/ /usr/local/lib/mailbag-sv/
+COPY scripts/validate-courier-dat.pl /usr/local/bin/validate-courier-dat.pl
+# The build script ships in the service images because the build job runs as
+# one of them: they are what carry makedat, makealiases and makeuserdb.
+COPY scripts/build-courier-dat.sh /usr/local/bin/build-courier-dat.sh
+RUN chmod 0755 /usr/local/bin/validate-courier-dat.pl /usr/local/bin/build-courier-dat.sh
 RUN install -m 0755 /usr/local/lib/mailbag-sv/sv-finish /usr/local/bin/sv-finish && \
     install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courier /usr/local/bin/sv-run-courier && \
     install -m 0755 /usr/local/lib/mailbag-sv/sv-run-courierd /usr/local/bin/sv-run-courierd && \
     install -m 0755 /usr/local/lib/mailbag-sv/mailbag-probe /usr/local/bin/mailbag-probe && \
+    install -m 0755 /usr/local/lib/mailbag-sv/assert-courier-dat /usr/local/bin/assert-courier-dat && \
     # runsv creates supervise/ inside each service directory, and the state dir
     # is written by the run and finish scripts -- both as whatever user the
     # container runs as. mta, msa and mta-ssl run as daemon(1), so these must

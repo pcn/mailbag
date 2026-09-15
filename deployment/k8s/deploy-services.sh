@@ -14,7 +14,9 @@
 
 set -e -u -o pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# Overridable so this can run from a copied tree rather than only a git
+# checkout -- a deploy target may have neither the repository nor git.
+REPO_ROOT="${REPO_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || echo "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)")}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTEXT="${CONTEXT:-/etc/mailbag/context.json}"
 RENDERER="$REPO_ROOT/render-template"
@@ -51,10 +53,10 @@ fi
 # Applied in order. A missing entry is a hard error rather than a skip: the
 # previous version silently skipped storage whenever one PVC happened to exist,
 # which hid partial state and made a half-deployed cluster look successful.
+# Applied through kustomize in phase 4, so that generator references are
+# rewritten. namespace/configmap/storage go first, in phase 1, because the
+# build job needs them.
 MANIFESTS=(
-    namespace.yaml
-    configmap.yaml
-    storage.yaml
     courierd.yaml.template
     courier-mta.yaml.template
     courier-mta-ssl.yaml.template
@@ -136,9 +138,165 @@ EOF
     fi
 fi
 
-for manifest in "${MANIFESTS[@]}"; do
+# ---------------------------------------------------------------------------
+# Phase 1: the resources the build job needs before it can run.
+for manifest in namespace.yaml configmap.yaml storage.yaml; do
     apply_one "$manifest"
 done
+
+# ---------------------------------------------------------------------------
+# Phase 2: build the derived databases out of band.
+#
+# Serving pods do not build these any more. The job renders the sources, builds
+# all six, validates them -- including a canary lookup against both userdb
+# databases, which is what catches a database that is valid and useless -- and
+# publishes only if every check passes.
+JOB_NAME="courier-build-dat-$(date +%s)"
+echo
+# Each run creates a new Job, because a Job's pod template is immutable. Clear
+# out finished ones first so they do not accumulate -- and so the ones left
+# behind after this deploy are only this deploy's.
+if kubectl get jobs -n "$NAMESPACE" -l component=build-dat >/dev/null 2>&1; then
+    old_jobs=$(kubectl get jobs -n "$NAMESPACE" -l component=build-dat \
+        -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null)
+    if [ -n "$old_jobs" ]; then
+        echo "Removing $(printf '%s\n' "$old_jobs" | grep -c .) previous build job(s) ..."
+        # --wait=false: their pods are already terminated, and blocking here
+        # delays the deploy for no benefit.
+        printf '%s\n' "$old_jobs" | xargs -r kubectl delete job -n "$NAMESPACE" --wait=false >/dev/null 2>&1 || true
+    fi
+fi
+echo "Building courier databases (job/$JOB_NAME) ..."
+BUILD_TMP=$(mktemp)
+trap 'rm -f "$BUILD_TMP"' EXIT
+"$RENDERER" --context "$RENDER_CONTEXT" --template "$HERE/build-dat-job.yaml.template" \
+    | sed "s/^  name: courier-build-dat$/  name: $JOB_NAME/" > "$BUILD_TMP"
+kubectl apply -f "$BUILD_TMP"
+
+# backoffLimit is 0, so this settles either way rather than retrying.
+if ! kubectl wait --for=condition=complete "job/$JOB_NAME" -n "$NAMESPACE" --timeout=300s 2>/dev/null; then
+    echo >&2
+    echo "ERROR: the database build did not complete. Its log:" >&2
+    kubectl logs "job/$JOB_NAME" -n "$NAMESPACE" --tail=60 >&2 || true
+    echo >&2
+    echo "Nothing was published: the live databases are untouched and the running" >&2
+    echo "pods are unaffected. Fix the input and re-run." >&2
+    exit 1
+fi
+kubectl logs "job/$JOB_NAME" -n "$NAMESPACE" --tail=40 | sed 's/^/  /'
+
+# ---------------------------------------------------------------------------
+# Phase 3: collect the databases through the cluster.
+#
+# Deliberately not read off the hostPath directories the PVs happen to use.
+# That works only when the deploy runs on the node itself, and the point of
+# this project is to deploy to a node from somewhere else -- CI, or a
+# workstation. Pulling them through the API server keeps that possible.
+#
+# The build job's pod has terminated by now, so a short-lived helper mounts the
+# same volumes read-only and streams the files out.
+DAT_DIR="$HERE/dat"
+mkdir -p "$DAT_DIR"
+HELPER="courier-dat-collect-$$"
+
+cleanup_helper() { kubectl delete pod "$HELPER" -n "$NAMESPACE" --ignore-not-found --wait=false >/dev/null 2>&1 || true; }
+trap 'rm -f "$BUILD_TMP"; cleanup_helper' EXIT
+
+echo
+echo "Collecting databases via pod/$HELPER ..."
+kubectl apply -f - <<HELPER_POD >/dev/null
+apiVersion: v1
+kind: Pod
+metadata:
+  name: $HELPER
+  namespace: $NAMESPACE
+  labels: {app: mailbag, component: dat-collect}
+spec:
+  restartPolicy: Never
+  securityContext: {runAsUser: 0}
+  containers:
+  - name: collect
+    image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+    command: ["sh", "-c", "sleep 300"]
+    volumeMounts:
+    - {name: courier-config, mountPath: /src/courier, readOnly: true}
+    - {name: courier-auth, mountPath: /src/authlib, readOnly: true}
+  volumes:
+  - name: courier-config
+    persistentVolumeClaim: {claimName: courier-config-pvc}
+  - name: courier-auth
+    persistentVolumeClaim: {claimName: courier-auth-pvc}
+HELPER_POD
+
+kubectl wait --for=condition=ready "pod/$HELPER" -n "$NAMESPACE" --timeout=120s >/dev/null \
+    || { echo "ERROR: collection pod did not become ready" >&2; exit 1; }
+
+# One tar per directory. BusyBox tar accepts multiple -C arguments but honours
+# only the last: a single invocation with two -C sections silently archives just
+# the files after the second one. Verified against this exact image -- the four
+# config databases were dropped and only the two userdb ones came through.
+kubectl exec -n "$NAMESPACE" "$HELPER" -- tar cf - -C /src/courier \
+    hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat \
+    | tar xf - -C "$DAT_DIR" || { echo "ERROR: collecting the config databases failed" >&2; exit 1; }
+kubectl exec -n "$NAMESPACE" "$HELPER" -- tar cf - -C /src/authlib \
+    userdb.dat userdbshadow.dat \
+    | tar xf - -C "$DAT_DIR" || { echo "ERROR: collecting the userdb databases failed" >&2; exit 1; }
+cleanup_helper
+
+for f in hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat \
+         userdb.dat userdbshadow.dat; do
+    [ -s "$DAT_DIR/$f" ] || { echo "ERROR: $f was not collected" >&2; exit 1; }
+done
+echo "Collected 6 databases into $DAT_DIR"
+
+# ---------------------------------------------------------------------------
+# Phase 4: apply the workloads with kustomize.
+#
+# The deployments have to go through kustomize too, not just the generators:
+# configMapGenerator hashes the content into the object name, and only
+# resources kustomize manages get their references rewritten to that name. That
+# rewrite is the whole rollout mechanism -- changed databases change the pod
+# template, so the pods roll and the new couriertcpd opens the new files.
+# Applying the deployments separately would leave them pointing at a name that
+# does not exist.
+KUSTOMIZE_DIR=$(mktemp -d)
+trap 'rm -f "$BUILD_TMP"; rm -rf "$KUSTOMIZE_DIR"; cleanup_helper' EXIT
+mkdir -p "$KUSTOMIZE_DIR/dat"
+cp "$DAT_DIR"/*.dat "$KUSTOMIZE_DIR/dat/"
+
+RESOURCES=()
+for manifest in "${MANIFESTS[@]}"; do
+    out="$KUSTOMIZE_DIR/${manifest%.template}"
+    case "$manifest" in
+        *.yaml.template)
+            "$RENDERER" --context "$RENDER_CONTEXT" --template "$HERE/$manifest" > "$out" ;;
+        *) cp "$HERE/$manifest" "$out" ;;
+    esac
+    RESOURCES+=("${manifest%.template}")
+done
+
+{
+    echo "apiVersion: kustomize.config.k8s.io/v1beta1"
+    echo "kind: Kustomization"
+    echo "namespace: $NAMESPACE"
+    echo "resources:"
+    for r in "${RESOURCES[@]}"; do echo "  - $r"; done
+    echo "configMapGenerator:"
+    echo "  - name: courier-dat"
+    echo "    files:"
+    for f in hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat; do
+        echo "      - dat/$f"
+    done
+    echo "secretGenerator:"
+    echo "  - name: courier-userdb"
+    echo "    files:"
+    for f in userdb.dat userdbshadow.dat; do echo "      - dat/$f"; done
+} > "$KUSTOMIZE_DIR/kustomization.yaml"
+
+echo
+echo "Generated object names (a change here is what rolls the pods):"
+kubectl kustomize "$KUSTOMIZE_DIR" | grep -E "^  name: courier-(dat|userdb)-" | sed 's/^  name:/   /'
+kubectl apply -k "$KUSTOMIZE_DIR"
 
 echo
 echo "All resources applied to namespace $NAMESPACE."

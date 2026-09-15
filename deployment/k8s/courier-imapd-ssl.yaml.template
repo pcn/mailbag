@@ -65,6 +65,17 @@ spec:
         - containerPort: 993
           name: imaps
         volumeMounts:
+        - name: templates
+          mountPath: /authdaemonrc.template
+          subPath: authdaemonrc.template
+        - name: courier-userdb
+          mountPath: /etc/authlib/userdb.dat
+          subPath: userdb.dat
+          readOnly: true
+        - name: courier-userdb
+          mountPath: /etc/authlib/userdbshadow.dat
+          subPath: userdbshadow.dat
+          readOnly: true
         - name: courier-spool
           mountPath: /var/spool/courier
         - name: mail-storage
@@ -114,15 +125,30 @@ spec:
           # Courier drops privileges itself: couriertcpd to daemon, imaplogin
           # to the authenticated user per connection. So this needs the two
           # credential-changing capabilities, not general root authority.
-          # CHOWN/FOWNER/DAC_OVERRIDE are for rebuild-userdb, which normalises
-          # ownership of the shared authlib volume before dropping to the mail
-          # user to run makeuserdb.
+          # CHOWN and FOWNER are gone with rebuild-userdb, which normalised
+          # ownership on the shared authlib volume; that volume and that script
+          # no longer exist and the databases arrive read-only from a Secret.
+          #
+          # DAC_OVERRIDE stays, and not for that reason: /etc/courier in the
+          # image is drwxr-xr-x daemon:daemon, and this container is uid 0, so
+          # rendering imapd-ssl there is a permission check root only passes
+          # with DAC_OVERRIDE. Dropping it fails the entrypoint outright with
+          # "/etc/courier/imapd-ssl: Permission denied" -- verified, not
+          # assumed. It also buys little here: a process that already runs as
+          # uid 0 with SETUID/SETGID can become any user it likes, which is
+          # strictly more authority than bypassing a mode bit.
           runAsUser: 0
           allowPrivilegeEscalation: true
           capabilities:
             drop: ["ALL"]
-            add: ["SETUID", "SETGID", "CHOWN", "FOWNER", "DAC_OVERRIDE"]
+            add: ["SETUID", "SETGID", "DAC_OVERRIDE"]
       volumes:
+      - name: courier-userdb
+        secret:
+          # userdbshadow.dat is password hashes: Secret, not ConfigMap, and
+          # group-readable via fsGroup rather than world-readable.
+          secretName: courier-userdb
+          defaultMode: 0440
       - name: courier-spool
         persistentVolumeClaim:
           claimName: courier-spool-pvc
@@ -130,8 +156,10 @@ spec:
         persistentVolumeClaim:
           claimName: mail-storage-pvc
       - name: courier-auth
-        persistentVolumeClaim:
-          claimName: courier-auth-pvc
+        # Per-pod. Only authdaemonrc is written here now; the userdb databases
+        # arrive from the Secret and the userdb *source* is the build job's
+        # business, not a serving pod's.
+        emptyDir: {}
       - name: courier-cert
         secret:
           secretName: courier-mail-cert-tls

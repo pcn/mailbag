@@ -28,7 +28,7 @@ set -u -o pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-IMAGE="${IMAGE:-ghcr.io/pcn/mailbag/courier-mta:pr-79}"
+IMAGE="${IMAGE:-ghcr.io/pcn/mailbag/courier-mta:main}"
 CONTEXT="${CONTEXT:-examples/example-context.json}"
 DIST_DIR="${DIST_DIR:-}"   # set to skip docker and use pre-extracted files
 
@@ -47,6 +47,7 @@ MAPPING=(
 # explicitly so that "not covered" is a decision rather than an oversight.
 EXCLUDED=(
     "acceptmailfor.template"
+    "aliases.template"
     "hosteddomains.template"
     "smtpaccess-default.template"
     "authdaemonrc.template"

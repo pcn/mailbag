@@ -38,6 +38,7 @@ TEMPLATES=(
     "deployment/k8s/courier-mta-ssl.yaml.template:$CONTEXT"
     "deployment/k8s/courier-imapd-ssl.yaml.template:$CONTEXT"
     "deployment/k8s/courier-msa.yaml.template:$CONTEXT"
+    "deployment/k8s/build-dat-job.yaml.template:$CONTEXT"
     "unit-files/Makefile.template:unit-files/files.json"
 )
 
