@@ -10,32 +10,32 @@ chmod 770 /var/spool/courier/tmp
 chmod 755 /var/spool/courier/track
 
 # courierd decides local-versus-remote itself. libs/islocal.c reads
-# hosteddomains.dat, and module.esmtp/esmtp.c reads esmtpacceptmailfor.dat --
-# both inside THIS container, in the delivery agents courierd spawns
-# (courierlocal, courieresmtp). Without them courierd treats every domain as
-# remote and hands local mail to courieresmtp for outbound SMTP, which loops
-# straight back into our own port 25.
+# hosteddomains.dat and module.esmtp/esmtp.c reads esmtpacceptmailfor.dat, both
+# inside THIS container, in the delivery agents courierd spawns (courierlocal,
+# courieresmtp). Without them courierd treats every domain as remote and hands
+# local mail to courieresmtp for outbound SMTP, which loops straight back into
+# our own port 25.
 #
-# These are rendered here rather than read from the shared /etc/courier volume
-# on purpose. Mounting that volume would make courierd depend on some listener
-# having started first and run makehosteddomains, which is an ordering race with
-# nothing to enforce it, and it would mask this image's own configuration. Both
-# files are pure functions of context.json, which is already mounted, so
-# courierd can just build its own and share nothing.
-mkdir -p /etc/courier/esmtpacceptmailfor.dir
-/render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
-/render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
-/usr/lib/courier/share/makeacceptmailfor
-/usr/lib/courier/share/makehosteddomains
-
-# courierlocal resolves virtual users through authlib
-# (module.local/local.c calls auth_getuserinfo), so courierd needs an
-# authdaemond of its own. It cannot borrow another container's: the socket path
-# is a compile-time constant (AUTHDAEMONSOCK in courier-authlib/Makefile.am),
-# so every container's socket is container-local regardless of what
-# authdaemonvar says in authdaemonrc. That also means there is no collision to
-# worry about here.
-/rebuild-userdb
+# courierd used to render and build its own copies rather than read a shared
+# volume, because mounting the shared one made it depend on some listener having
+# started first and built them -- an ordering race with nothing to enforce it.
+# That reasoning is spent: nothing races now, because nothing builds at startup.
+# The databases are built out of band and mounted read-only, and every consumer
+# opens them "R" (islocal.c:75, esmtp.c:443, comaliases4.C:48, userdb.c:63,
+# userdb2.c:27), so a read-only mount is what they want anyway.
+#
+# courierlocal resolves virtual users through authlib (module.local/local.c
+# calls auth_getuserinfo), so courierd still needs an authdaemond of its own:
+# the socket path is a compile-time constant (AUTHDAEMONSOCK in
+# courier-authlib/Makefile.am), so it cannot borrow another container's.
+#
+# Prove the mounted databases are usable before starting, so a missing or empty
+# one is a startup failure rather than every local address being treated as
+# remote and looping back into our own port 25.
+/usr/local/bin/assert-courier-dat \
+    /etc/courier/hosteddomains.dat /etc/courier/esmtpacceptmailfor.dat \
+    /etc/courier/smtpaccess.dat /etc/courier/aliases.dat=0 \
+    /etc/authlib/userdb.dat /etc/authlib/userdbshadow.dat
 # Hand off to runit, which supervises courierd and the auth daemon as separate
 # services. courierd was already exec'd here, but authdaemond was started
 # detached and supervised by nothing: had it died, courierlocal could no longer

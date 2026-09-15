@@ -122,9 +122,10 @@ spec:
           # Courier drops privileges itself: couriertcpd to daemon, imaplogin
           # to the authenticated user per connection. So this needs the two
           # credential-changing capabilities, not general root authority.
-          # CHOWN/FOWNER/DAC_OVERRIDE are for rebuild-userdb, which normalises
-          # ownership of the shared authlib volume before dropping to the mail
-          # user to run makeuserdb.
+          # CHOWN/FOWNER/DAC_OVERRIDE were for rebuild-userdb, which no longer
+          # exists -- the databases are built out of band and mounted read-only.
+          # Kept for the init container's chown of the mail store; worth
+          # revisiting whether the app container still needs them.
           runAsUser: 0
           allowPrivilegeEscalation: true
           capabilities:
