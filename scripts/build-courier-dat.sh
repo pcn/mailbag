@@ -269,46 +269,77 @@ echo "    $(printf '%s\n' "$userdb_domains" | grep -c .) domain(s) with accounts
 [ "$rc" -eq 0 ] || die "validation failed; nothing published, live databases untouched"
 
 # ----------------------------------------------------------------- publish
-publish() {
+# Publishing happens in two passes: stage every file, then rename them all.
+#
+# One pass of copy-then-rename per file means a failure part way through leaves
+# a mixed set on the volume -- which is exactly what happened when the publish
+# hit a permissions error after writing four of six databases. Validation is
+# atomic across all six, so publishing should be too.
+#
+# Renames within a directory are atomic and essentially cannot fail once the
+# staged file exists beside the target, so the risky work is all in the first
+# pass, where nothing has been swapped yet.
+STAGED=""
+
+stage() {
     local src="$1" dst_dir="$2" name
     name=$(basename "$src")
-    # Copy then rename: courier relies on the OS doing the atomic switch and
-    # does not cache, so a reader sees either the old file or the new one.
-    #
+    mkdir -p "$dst_dir" || die "mkdir $dst_dir failed"
     # Plain cp plus an explicit chmod, not cp -p. Files rendered over ones the
     # image already ships keep that file's daemon ownership, so -p chowns the
     # copy away from root and the following chmod then needs CAP_FOWNER. Copy
-    # as root, set the mode from the source, and ownership never changes:
-    # nothing reads these from the volume any more -- the serving pods get the
-    # databases from a ConfigMap and a Secret -- so only the mode matters, and
-    # it matters for userdbshadow.dat, which must stay 0600.
-    cp "$src" "$dst_dir/.$name.new" || die "copy $name failed"
+    # as root, take the mode from the source, and ownership never changes:
+    # nothing reads these from the volume any more -- serving pods get the
+    # databases from a ConfigMap and a Secret -- but the mode still matters,
+    # because userdbshadow.dat must stay 0600.
+    cp "$src" "$dst_dir/.$name.new" || die "staging $name failed"
     chmod --reference="$src" "$dst_dir/.$name.new" || die "chmod $name failed"
-    mv -f "$dst_dir/.$name.new" "$dst_dir/$name" || die "publish $name failed"
-    echo "    published $dst_dir/$name"
+    STAGED="$STAGED $dst_dir/$name"
 }
+
+commit_staged() {
+    local target
+    for target in $STAGED; do
+        mv -f "$(dirname "$target")/.$(basename "$target").new" "$target" \
+            || die "publishing $target failed after staging; the volume may now be mixed"
+    done
+    STAGED=""
+}
+
+discard_staged() {
+    local target
+    for target in $STAGED; do
+        rm -f "$(dirname "$target")/.$(basename "$target").new"
+    done
+    STAGED=""
+}
+trap 'discard_staged' EXIT
 
 if [ -n "$PUBLISH_COURIER" ]; then
     [ -d "$PUBLISH_COURIER" ] || die "publish target not a directory: $PUBLISH_COURIER"
-    step "publishing config to $PUBLISH_COURIER"
-    mkdir -p "$PUBLISH_COURIER/esmtpacceptmailfor.dir" "$PUBLISH_COURIER/smtpaccess" \
-             "$PUBLISH_COURIER/aliases"
+    step "staging config for $PUBLISH_COURIER"
     for f in hosteddomains hosteddomains.dat esmtpacceptmailfor.dat \
              smtpaccess.dat aliases.dat; do
-        publish "$COURIER/$f" "$PUBLISH_COURIER"
+        stage "$COURIER/$f" "$PUBLISH_COURIER"
     done
-    publish "$COURIER/esmtpacceptmailfor.dir/context" "$PUBLISH_COURIER/esmtpacceptmailfor.dir"
-    publish "$COURIER/smtpaccess/default"             "$PUBLISH_COURIER/smtpaccess"
-    publish "$COURIER/aliases/mailbag"                "$PUBLISH_COURIER/aliases"
-    rm -f "$PUBLISH_COURIER/aliases/system"
+    stage "$COURIER/esmtpacceptmailfor.dir/context" "$PUBLISH_COURIER/esmtpacceptmailfor.dir"
+    stage "$COURIER/smtpaccess/default"             "$PUBLISH_COURIER/smtpaccess"
+    stage "$COURIER/aliases/mailbag"                "$PUBLISH_COURIER/aliases"
 fi
 
 if [ -n "$PUBLISH_AUTHLIB" ]; then
     [ -d "$PUBLISH_AUTHLIB" ] || die "publish target not a directory: $PUBLISH_AUTHLIB"
-    step "publishing userdb to $PUBLISH_AUTHLIB"
+    step "staging userdb for $PUBLISH_AUTHLIB"
     for f in userdb.dat userdbshadow.dat; do
-        publish "$AUTHLIB/$f" "$PUBLISH_AUTHLIB"
+        stage "$AUTHLIB/$f" "$PUBLISH_AUTHLIB"
     done
+fi
+
+if [ -n "$STAGED" ]; then
+    step "publishing $(printf '%s\n' $STAGED | grep -c .) file(s)"
+    commit_staged
+    rm -f "$PUBLISH_COURIER/aliases/system" 2>/dev/null || true
+    echo "    done"
 fi
 
 if [ -z "$PUBLISH_COURIER" ] && [ -z "$PUBLISH_AUTHLIB" ]; then
