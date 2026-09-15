@@ -235,6 +235,28 @@ for d in $hosted; do
     fi
 done
 [ "$rc" -eq 0 ] || die "userdb and hosteddomains disagree; refusing to publish"
+
+# courier resolves a local address by trying the full local part, then walking
+# back to the previous separator and retrying (module.local/local.c). So if
+# both spacey@ssr.com and spacey-foo@ssr.com exist, an address like
+# spacey-typo@ssr.com is NOT refused -- it falls back to spacey@ssr.com and is
+# delivered there. That defeats "the address must be configured to be
+# accepted", and nothing about the configuration shows it.
+#
+# A warning rather than an error: having both is legitimate if you actually
+# want the bare account to absorb its own sub-addresses.
+addrs=$(cat "$AUTHLIB/userdb"/* 2>/dev/null | grep -vE '^[[:space:]]*(#|$)' | awk -F'\t' '{print $1}')
+for a in $addrs; do
+    local_part=${a%%@*}; domain=${a#*@}
+    case "$local_part" in
+        *-*) bare="${local_part%%-*}@$domain"
+             if printf '%s\n' "$addrs" | grep -qxF "$bare"; then
+                 echo "    note: $a and $bare both exist, so mistyped" >&2
+                 echo "          ${local_part%%-*}-* addresses fall back to $bare" >&2
+                 echo "          rather than being refused" >&2
+             fi ;;
+    esac
+done
 echo "    $(printf '%s\n' "$userdb_domains" | grep -c .) domain(s) with accounts, all hosted"
 
 [ "$rc" -eq 0 ] || die "validation failed; nothing published, live databases untouched"
