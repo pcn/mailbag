@@ -53,6 +53,32 @@ spec:
         - containerPort: 25
           name: smtp
         volumeMounts:
+        # Derived databases, read-only. Built and validated out of band by
+        # build-courier-dat.sh; pods consume them and never build them.
+        - name: courier-dat
+          mountPath: /etc/courier/hosteddomains.dat
+          subPath: hosteddomains.dat
+          readOnly: true
+        - name: courier-dat
+          mountPath: /etc/courier/esmtpacceptmailfor.dat
+          subPath: esmtpacceptmailfor.dat
+          readOnly: true
+        - name: courier-dat
+          mountPath: /etc/courier/smtpaccess.dat
+          subPath: smtpaccess.dat
+          readOnly: true
+        - name: courier-dat
+          mountPath: /etc/courier/aliases.dat
+          subPath: aliases.dat
+          readOnly: true
+        - name: courier-userdb
+          mountPath: /etc/authlib/userdb.dat
+          subPath: userdb.dat
+          readOnly: true
+        - name: courier-userdb
+          mountPath: /etc/authlib/userdbshadow.dat
+          subPath: userdbshadow.dat
+          readOnly: true
         - name: courier-spool
           mountPath: /var/spool/courier
         - name: mail-storage
@@ -94,6 +120,19 @@ spec:
           runAsUser: 1
           runAsGroup: 1
       volumes:
+      - name: courier-dat
+        # kustomize configMapGenerator gives this a content-hashed name and
+        # rewrites the reference, so changed databases change the pod template
+        # and the pods roll. couriertcpd holds smtpaccess.dat open for its
+        # whole life, so a rollout is the only way new rules take effect.
+        configMap:
+          name: courier-dat
+      - name: courier-userdb
+        secret:
+          # userdbshadow.dat is password hashes: Secret, not ConfigMap, and
+          # group-readable via fsGroup rather than world-readable.
+          secretName: courier-userdb
+          defaultMode: 0440
       - name: courier-spool
         persistentVolumeClaim:
           claimName: courier-spool-pvc
@@ -101,11 +140,17 @@ spec:
         persistentVolumeClaim:
           claimName: mail-storage-pvc
       - name: courier-config
-        persistentVolumeClaim:
-          claimName: courier-config-pvc
+        # Per-pod, not shared. The entrypoint renders this pod's own esmtpd
+        # configs here; the databases are mounted read-only on top. Sharing this
+        # volume is what let pods overwrite each other's databases and orphan
+        # each other's open descriptors -- three listeners were each holding a
+        # different deleted smtpaccess.dat inode.
+        emptyDir: {}
       - name: courier-auth
-        persistentVolumeClaim:
-          claimName: courier-auth-pvc
+        # Per-pod. Only authdaemonrc is written here now; the userdb databases
+        # arrive from the Secret and the userdb *source* is the build job's
+        # business, not a serving pod's.
+        emptyDir: {}
       - name: courier-cert
         secret:
           secretName: courier-mail-cert-tls

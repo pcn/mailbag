@@ -49,6 +49,32 @@ spec:
         image: ghcr.io/pcn/mailbag/courier-courierd:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         volumeMounts:
+        # Derived databases, read-only. Built and validated out of band by
+        # build-courier-dat.sh; pods consume them and never build them.
+        - name: courier-dat
+          mountPath: /etc/courier/hosteddomains.dat
+          subPath: hosteddomains.dat
+          readOnly: true
+        - name: courier-dat
+          mountPath: /etc/courier/esmtpacceptmailfor.dat
+          subPath: esmtpacceptmailfor.dat
+          readOnly: true
+        - name: courier-dat
+          mountPath: /etc/courier/smtpaccess.dat
+          subPath: smtpaccess.dat
+          readOnly: true
+        - name: courier-dat
+          mountPath: /etc/courier/aliases.dat
+          subPath: aliases.dat
+          readOnly: true
+        - name: courier-userdb
+          mountPath: /etc/authlib/userdb.dat
+          subPath: userdb.dat
+          readOnly: true
+        - name: courier-userdb
+          mountPath: /etc/authlib/userdbshadow.dat
+          subPath: userdbshadow.dat
+          readOnly: true
         - name: courier-spool
           mountPath: /var/spool/courier
         - name: mail-storage
@@ -84,6 +110,19 @@ spec:
         securityContext:
           privileged: true
       volumes:
+      - name: courier-dat
+        # kustomize configMapGenerator gives this a content-hashed name and
+        # rewrites the reference, so changed databases change the pod template
+        # and the pods roll. couriertcpd holds smtpaccess.dat open for its
+        # whole life, so a rollout is the only way new rules take effect.
+        configMap:
+          name: courier-dat
+      - name: courier-userdb
+        secret:
+          # userdbshadow.dat is password hashes: Secret, not ConfigMap, and
+          # group-readable via fsGroup rather than world-readable.
+          secretName: courier-userdb
+          defaultMode: 0440
       - name: courier-spool
         persistentVolumeClaim:
           claimName: courier-spool-pvc
@@ -91,8 +130,10 @@ spec:
         persistentVolumeClaim:
           claimName: mail-storage-pvc
       - name: courier-auth
-        persistentVolumeClaim:
-          claimName: courier-auth-pvc
+        # Per-pod. Only authdaemonrc is written here now; the userdb databases
+        # arrive from the Secret and the userdb *source* is the build job's
+        # business, not a serving pod's.
+        emptyDir: {}
       - name: context-json
         hostPath:
           path: /etc/mailbag/context.json
