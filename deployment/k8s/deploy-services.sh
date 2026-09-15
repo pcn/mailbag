@@ -153,6 +153,19 @@ done
 # publishes only if every check passes.
 JOB_NAME="courier-build-dat-$(date +%s)"
 echo
+# Each run creates a new Job, because a Job's pod template is immutable. Clear
+# out finished ones first so they do not accumulate -- and so the ones left
+# behind after this deploy are only this deploy's.
+if kubectl get jobs -n "$NAMESPACE" -l component=build-dat >/dev/null 2>&1; then
+    old_jobs=$(kubectl get jobs -n "$NAMESPACE" -l component=build-dat \
+        -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null)
+    if [ -n "$old_jobs" ]; then
+        echo "Removing $(printf '%s\n' "$old_jobs" | grep -c .) previous build job(s) ..."
+        # --wait=false: their pods are already terminated, and blocking here
+        # delays the deploy for no benefit.
+        printf '%s\n' "$old_jobs" | xargs -r kubectl delete job -n "$NAMESPACE" --wait=false >/dev/null 2>&1 || true
+    fi
+fi
 echo "Building courier databases (job/$JOB_NAME) ..."
 BUILD_TMP=$(mktemp)
 trap 'rm -f "$BUILD_TMP"' EXIT
