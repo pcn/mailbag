@@ -274,7 +274,16 @@ publish() {
     name=$(basename "$src")
     # Copy then rename: courier relies on the OS doing the atomic switch and
     # does not cache, so a reader sees either the old file or the new one.
-    cp -p "$src" "$dst_dir/.$name.new" || die "copy $name failed"
+    #
+    # Plain cp plus an explicit chmod, not cp -p. Files rendered over ones the
+    # image already ships keep that file's daemon ownership, so -p chowns the
+    # copy away from root and the following chmod then needs CAP_FOWNER. Copy
+    # as root, set the mode from the source, and ownership never changes:
+    # nothing reads these from the volume any more -- the serving pods get the
+    # databases from a ConfigMap and a Secret -- so only the mode matters, and
+    # it matters for userdbshadow.dat, which must stay 0600.
+    cp "$src" "$dst_dir/.$name.new" || die "copy $name failed"
+    chmod --reference="$src" "$dst_dir/.$name.new" || die "chmod $name failed"
     mv -f "$dst_dir/.$name.new" "$dst_dir/$name" || die "publish $name failed"
     echo "    published $dst_dir/$name"
 }
