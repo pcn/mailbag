@@ -14,7 +14,9 @@
 
 set -e -u -o pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# Overridable so this can run from a copied tree rather than only a git
+# checkout -- a deploy target may have neither the repository nor git.
+REPO_ROOT="${REPO_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || echo "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)")}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTEXT="${CONTEXT:-/etc/mailbag/context.json}"
 RENDERER="$REPO_ROOT/render-template"
@@ -171,26 +173,60 @@ fi
 kubectl logs "job/$JOB_NAME" -n "$NAMESPACE" --tail=40 | sed 's/^/  /'
 
 # ---------------------------------------------------------------------------
-# Phase 3: collect the databases for kustomize.
+# Phase 3: collect the databases through the cluster.
 #
-# The PVs are hostPath on a single node, so the published files are readable
-# here. Read the locations from context.json rather than hardcoding them.
-COURIER_PATH=$(jq -r '.config.courier_path' "$CONTEXT")
-AUTHLIB_PATH=$(jq -r '.config.authlib_path' "$CONTEXT")
+# Deliberately not read off the hostPath directories the PVs happen to use.
+# That works only when the deploy runs on the node itself, and the point of
+# this project is to deploy to a node from somewhere else -- CI, or a
+# workstation. Pulling them through the API server keeps that possible.
+#
+# The build job's pod has terminated by now, so a short-lived helper mounts the
+# same volumes read-only and streams the files out.
 DAT_DIR="$HERE/dat"
+mkdir -p "$DAT_DIR"
+HELPER="courier-dat-collect-$$"
 
-for f in hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat; do
-    [ -r "$COURIER_PATH/$f" ] || {
-        echo "ERROR: $COURIER_PATH/$f not readable." >&2
-        echo "  The build job publishes there. If this deploy is not running on the" >&2
-        echo "  node that backs the hostPath volumes, collect the databases first." >&2
-        exit 1
-    }
-    cp "$COURIER_PATH/$f" "$DAT_DIR/$f"
-done
-for f in userdb.dat userdbshadow.dat; do
-    [ -r "$AUTHLIB_PATH/$f" ] || { echo "ERROR: $AUTHLIB_PATH/$f not readable." >&2; exit 1; }
-    cp "$AUTHLIB_PATH/$f" "$DAT_DIR/$f"
+cleanup_helper() { kubectl delete pod "$HELPER" -n "$NAMESPACE" --ignore-not-found --wait=false >/dev/null 2>&1 || true; }
+trap 'rm -f "$BUILD_TMP"; cleanup_helper' EXIT
+
+echo
+echo "Collecting databases via pod/$HELPER ..."
+kubectl apply -f - <<HELPER_POD >/dev/null
+apiVersion: v1
+kind: Pod
+metadata:
+  name: $HELPER
+  namespace: $NAMESPACE
+  labels: {app: mailbag, component: dat-collect}
+spec:
+  restartPolicy: Never
+  securityContext: {runAsUser: 0}
+  containers:
+  - name: collect
+    image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+    command: ["sh", "-c", "sleep 300"]
+    volumeMounts:
+    - {name: courier-config, mountPath: /src/courier, readOnly: true}
+    - {name: courier-auth, mountPath: /src/authlib, readOnly: true}
+  volumes:
+  - name: courier-config
+    persistentVolumeClaim: {claimName: courier-config-pvc}
+  - name: courier-auth
+    persistentVolumeClaim: {claimName: courier-auth-pvc}
+HELPER_POD
+
+kubectl wait --for=condition=ready "pod/$HELPER" -n "$NAMESPACE" --timeout=120s >/dev/null \
+    || { echo "ERROR: collection pod did not become ready" >&2; exit 1; }
+
+kubectl exec -n "$NAMESPACE" "$HELPER" -- tar cf - \
+    -C /src/courier hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat \
+    -C /src/authlib userdb.dat userdbshadow.dat \
+    | tar xf - -C "$DAT_DIR" || { echo "ERROR: collecting the databases failed" >&2; exit 1; }
+cleanup_helper
+
+for f in hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat \
+         userdb.dat userdbshadow.dat; do
+    [ -s "$DAT_DIR/$f" ] || { echo "ERROR: $f was not collected" >&2; exit 1; }
 done
 echo "Collected 6 databases into $DAT_DIR"
 
@@ -205,7 +241,7 @@ echo "Collected 6 databases into $DAT_DIR"
 # Applying the deployments separately would leave them pointing at a name that
 # does not exist.
 KUSTOMIZE_DIR=$(mktemp -d)
-trap 'rm -f "$BUILD_TMP"; rm -rf "$KUSTOMIZE_DIR"' EXIT
+trap 'rm -f "$BUILD_TMP"; rm -rf "$KUSTOMIZE_DIR"; cleanup_helper' EXIT
 mkdir -p "$KUSTOMIZE_DIR/dat"
 cp "$DAT_DIR"/*.dat "$KUSTOMIZE_DIR/dat/"
 
