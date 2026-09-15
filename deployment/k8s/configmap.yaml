@@ -79,6 +79,29 @@ data:
     {% for d in mta.accept_mail_for -%}
     {{ d }}
     {% endfor %}
+  aliases.template: |
+    {#-
+      Aliases, fully qualified from context.json.
+
+      courier ships aliases/system with bare local parts (root: postmaster), and
+      makealiases qualifies those with the local hostname. In a container that is
+      the pod name, so the compiled database ends up keyed to an identity that
+      disappears on the next deploy -- observed on farout as
+      root@courier-mta-ssl-579bb94699-8jhgb, written by whichever pod happened to
+      run makealiases last. Qualifying against the hosted domains instead makes the
+      output a pure function of context.json.
+
+      aliases.postmaster has no default on purpose. courier's shipped system file
+      leaves `postmaster:` empty, which its own comment notes means postmaster mail
+      is bitbucketed -- and RFC 5321 requires postmaster to be deliverable. If it is
+      unset the render fails rather than quietly discarding that mail.
+    -#}
+    {% for d in mta.accept_mail_for -%}
+    postmaster@{{ d }}: {{ aliases.postmaster }}@{{ d }}
+    {% for role in aliases.roles | default(["abuse", "root", "mailer-daemon", "MAILER-DAEMON", "uucp"]) -%}
+    {{ role }}@{{ d }}: postmaster@{{ d }}
+    {% endfor %}
+    {%- endfor %}
   hosteddomains.template: |
     {% for d in mta.accept_mail_for -%}
     {{ d }}
