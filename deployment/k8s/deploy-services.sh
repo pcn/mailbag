@@ -231,10 +231,16 @@ HELPER_POD
 kubectl wait --for=condition=ready "pod/$HELPER" -n "$NAMESPACE" --timeout=120s >/dev/null \
     || { echo "ERROR: collection pod did not become ready" >&2; exit 1; }
 
-kubectl exec -n "$NAMESPACE" "$HELPER" -- tar cf - \
-    -C /src/courier hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat \
-    -C /src/authlib userdb.dat userdbshadow.dat \
-    | tar xf - -C "$DAT_DIR" || { echo "ERROR: collecting the databases failed" >&2; exit 1; }
+# One tar per directory. BusyBox tar accepts multiple -C arguments but honours
+# only the last: a single invocation with two -C sections silently archives just
+# the files after the second one. Verified against this exact image -- the four
+# config databases were dropped and only the two userdb ones came through.
+kubectl exec -n "$NAMESPACE" "$HELPER" -- tar cf - -C /src/courier \
+    hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat \
+    | tar xf - -C "$DAT_DIR" || { echo "ERROR: collecting the config databases failed" >&2; exit 1; }
+kubectl exec -n "$NAMESPACE" "$HELPER" -- tar cf - -C /src/authlib \
+    userdb.dat userdbshadow.dat \
+    | tar xf - -C "$DAT_DIR" || { echo "ERROR: collecting the userdb databases failed" >&2; exit 1; }
 cleanup_helper
 
 for f in hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat \
