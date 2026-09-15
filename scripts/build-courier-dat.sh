@@ -111,7 +111,14 @@ if [ -n "$USERDB_SRC" ]; then
         case "$(basename "$f")" in
             .*|dummy) continue ;;
         esac
-        cp -p "$f" "$AUTHLIB/userdb/" || die "copying $f failed"
+        # Plain cp, not cp -p. The source files are daemon-owned on the
+        # volume; -p chowns the copy to daemon and then chmods it, which needs
+        # CAP_FOWNER once root is no longer the owner, and fails with
+        # "preserving permissions ... Operation not permitted". Their ownership
+        # is irrelevant anyway -- these are build inputs, and what makeuserdb
+        # actually requires is that the directory have no group or world
+        # permission bits, which is set explicitly below.
+        cp "$f" "$AUTHLIB/userdb/" || die "copying $f failed"
         copied=$((copied + 1))
     done
     [ "$copied" -gt 0 ] || die "no userdb source files found in $USERDB_SRC"
