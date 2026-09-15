@@ -91,17 +91,34 @@ data:
       run makealiases last. Qualifying against the hosted domains instead makes the
       output a pure function of context.json.
 
-      aliases.postmaster has no default on purpose. courier's shipped system file
-      leaves `postmaster:` empty, which its own comment notes means postmaster mail
-      is bitbucketed -- and RFC 5321 requires postmaster to be deliverable. If it is
-      unset the render fails rather than quietly discarding that mail.
+      aliases.postmaster selects between two deliberate behaviours:
+
+        "reject"      emit no role aliases at all. Mail to postmaster, abuse and
+                      the rest is refused at RCPT with 550 User unknown. Nothing is
+                      accepted, so nothing is stored, and because the refusal
+                      happens inside the SMTP conversation we send no bounce and
+                      generate no backscatter. For a small deployment these
+                      addresses are a spam sink with no operational value.
+
+        <local part>  route the role addresses to that mailbox in each hosted
+                      domain.
+
+      There is no default. courier's shipped system file leaves `postmaster:`
+      empty, which silently produces no record and therefore the reject behaviour
+      by accident -- the point here is that it should be a decision on the record.
     -#}
+    {% if aliases.postmaster == "reject" -%}
+    # Role aliases are deliberately not defined: aliases.postmaster is "reject".
+    # postmaster@, abuse@ and friends are refused at RCPT with 550 User unknown.
+    # Nothing is accepted, stored, or bounced.
+    {% else -%}
     {% for d in mta.accept_mail_for -%}
     postmaster@{{ d }}: {{ aliases.postmaster }}@{{ d }}
     {% for role in aliases.roles | default(["abuse", "root", "mailer-daemon", "MAILER-DAEMON", "uucp"]) -%}
     {{ role }}@{{ d }}: postmaster@{{ d }}
     {% endfor %}
     {%- endfor %}
+    {%- endif %}
   hosteddomains.template: |
     {% for d in mta.accept_mail_for -%}
     {{ d }}

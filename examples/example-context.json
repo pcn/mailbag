@@ -92,13 +92,6 @@
     ]
   },
   "aliases": {
-    "postmaster": "CHANGE-ME-to-a-real-local-mailbox",
-    "roles": [
-      "abuse",
-      "root",
-      "mailer-daemon",
-      "MAILER-DAEMON",
-      "uucp"
-    ]
+    "postmaster": "reject"
   }
 }
