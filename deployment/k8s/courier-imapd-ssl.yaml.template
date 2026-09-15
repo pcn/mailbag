@@ -122,15 +122,23 @@ spec:
           # Courier drops privileges itself: couriertcpd to daemon, imaplogin
           # to the authenticated user per connection. So this needs the two
           # credential-changing capabilities, not general root authority.
-          # CHOWN/FOWNER/DAC_OVERRIDE were for rebuild-userdb, which no longer
-          # exists -- the databases are built out of band and mounted read-only.
-          # Kept for the init container's chown of the mail store; worth
-          # revisiting whether the app container still needs them.
+          # CHOWN and FOWNER are gone with rebuild-userdb, which normalised
+          # ownership on the shared authlib volume; that volume and that script
+          # no longer exist and the databases arrive read-only from a Secret.
+          #
+          # DAC_OVERRIDE stays, and not for that reason: /etc/courier in the
+          # image is drwxr-xr-x daemon:daemon, and this container is uid 0, so
+          # rendering imapd-ssl there is a permission check root only passes
+          # with DAC_OVERRIDE. Dropping it fails the entrypoint outright with
+          # "/etc/courier/imapd-ssl: Permission denied" -- verified, not
+          # assumed. It also buys little here: a process that already runs as
+          # uid 0 with SETUID/SETGID can become any user it likes, which is
+          # strictly more authority than bypassing a mode bit.
           runAsUser: 0
           allowPrivilegeEscalation: true
           capabilities:
             drop: ["ALL"]
-            add: ["SETUID", "SETGID", "CHOWN", "FOWNER", "DAC_OVERRIDE"]
+            add: ["SETUID", "SETGID", "DAC_OVERRIDE"]
       volumes:
       - name: courier-userdb
         secret:
