@@ -66,12 +66,38 @@ for f in "${SECRET_DAT[@]}"; do
 done
 
 # One checksum over every packaged file, in a fixed order so it is stable.
-CHECKSUM=$(
+#
+# `sha256sum < file` rather than `sha256sum file`: reading stdin keeps the
+# filename out of the output, so the value depends on content alone and a build
+# in a different directory still produces the same checksum. The file lists are
+# fixed arrays rather than globs so the concatenation order cannot vary with
+# locale or directory read order. Truncated to 16 hex characters because this
+# is a "did it change" marker, not a security boundary.
+#
+# Logged per-file to stderr. This value is generated outside the deployment and
+# then decides whether pods roll, so the moment it is produced should be
+# visible in the job output rather than inferred later from a rollout.
+echo "==> checksumming packaged databases" >&2
+per_file=$(
     {
-        for f in "${CONFIG_DAT[@]}"; do sha256sum < "$DAT_COURIER/$f"; done
-        for f in "${SECRET_DAT[@]}"; do sha256sum < "$DAT_AUTHLIB/$f"; done
-    } | sha256sum | cut -c1-16
+        for f in "${CONFIG_DAT[@]}"; do
+            h=$(sha256sum < "$DAT_COURIER/$f") || exit 1
+            printf '%s  configmap/%s\n' "$h" "$f"
+        done
+        for f in "${SECRET_DAT[@]}"; do
+            h=$(sha256sum < "$DAT_AUTHLIB/$f") || exit 1
+            printf '%s  secret/%s\n' "$h" "$f"
+        done
+    }
 ) || die "checksum failed"
+
+while IFS= read -r line; do
+    printf '    %s  %s\n' "${line%% *}" "${line##*  }" >&2
+done <<< "$per_file"
+
+CHECKSUM=$(printf '%s\n' "$per_file" | awk '{print $1}' | sha256sum | cut -c1-16) \
+    || die "checksum failed"
+echo "    => dat-checksum $CHECKSUM (pods roll when this changes)" >&2
 
 emit() {
     echo "apiVersion: v1"
