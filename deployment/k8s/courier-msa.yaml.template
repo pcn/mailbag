@@ -94,20 +94,11 @@ spec:
           mountPath: /context.json
           readOnly: true
         - name: templates
-          mountPath: /acceptmailfor.template
-          subPath: acceptmailfor.template
-        - name: templates
-          mountPath: /hosteddomains.template
-          subPath: hosteddomains.template
-        - name: templates
           mountPath: /esmtpd-base-msa.template
           subPath: esmtpd-base-msa.template
         - name: templates
           mountPath: /esmtpd-msa.template
           subPath: esmtpd-msa.template
-        - name: templates
-          mountPath: /smtpaccess-default.template
-          subPath: smtpaccess-default.template
         - name: templates
           mountPath: /authdaemonrc.template
           subPath: authdaemonrc.template

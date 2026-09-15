@@ -106,12 +106,6 @@ spec:
           mountPath: /context.json
           readOnly: true
         - name: templates
-          mountPath: /acceptmailfor.template
-          subPath: acceptmailfor.template
-        - name: templates
-          mountPath: /hosteddomains.template
-          subPath: hosteddomains.template
-        - name: templates
           mountPath: /esmtpd-base-mta-ssl.template
           subPath: esmtpd-base-mta-ssl.template
         - name: templates

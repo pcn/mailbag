@@ -93,12 +93,6 @@ spec:
         - name: context-json
           mountPath: /context.json
           readOnly: true
-        - name: templates
-          mountPath: /acceptmailfor.template
-          subPath: acceptmailfor.template
-        - name: templates
-          mountPath: /hosteddomains.template
-          subPath: hosteddomains.template
         readinessProbe:
           exec:
             command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 25 --expect "220"']
@@ -161,9 +155,6 @@ spec:
         hostPath:
           path: /etc/mailbag/context.json
           type: File
-      - name: templates
-        configMap:
-          name: mailbag-context
 ---
 apiVersion: v1
 kind: Service
