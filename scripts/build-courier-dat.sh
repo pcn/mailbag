@@ -292,6 +292,13 @@ stage() {
     # nothing reads these from the volume any more -- serving pods get the
     # databases from a ConfigMap and a Secret -- but the mode still matters,
     # because userdbshadow.dat must stay 0600.
+    # Remove any leftover first. A staging file from an earlier failed run may
+    # be owned by someone else -- an interrupted cp -p leaves one owned by the
+    # source's owner -- and plain cp would rewrite its contents without taking
+    # ownership, so the chmod below would then fail with EPERM. That is not
+    # hypothetical: it is exactly how a stale .default.new from one failed
+    # deploy broke the next one.
+    rm -f "$dst_dir/.$name.new"
     cp "$src" "$dst_dir/.$name.new" || die "staging $name failed"
     chmod --reference="$src" "$dst_dir/.$name.new" || die "chmod $name failed"
     STAGED="$STAGED $dst_dir/$name"
