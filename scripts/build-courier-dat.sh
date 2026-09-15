@@ -208,6 +208,35 @@ else
     v --dat "$AUTHLIB/userdbshadow.dat" --label userdbshadow.dat --expect-records "$userdb_expected"
 fi
 
+# The two halves have to agree. Accepting mail is gated twice and
+# independently: couriertcpd refuses a domain that is not in acceptmailfor
+# (513 Relaying denied), and courierlocal refuses an address with no userdb
+# entry (550 User unknown). So an account whose domain was never added to
+# accept_mail_for is silently unreachable, and an accepted domain with no
+# accounts refuses everything -- in both cases the configuration looks fine and
+# the mail does not arrive.
+step "cross-checking userdb domains against hosted domains"
+hosted=$(grep -vE '^[[:space:]]*(#|$)' "$COURIER/hosteddomains" | awk '{print $1}' | sort -u)
+userdb_domains=$(cat "$AUTHLIB/userdb"/* 2>/dev/null \
+    | grep -vE '^[[:space:]]*(#|$)' \
+    | awk -F'\t' '{print $1}' | awk -F@ 'NF>1 {print $NF}' | sort -u)
+
+for d in $userdb_domains; do
+    if ! printf '%s\n' "$hosted" | grep -qxF "$d"; then
+        echo "    accounts exist for '$d' but it is not a hosted domain" >&2
+        rc=1
+    fi
+done
+for d in $hosted; do
+    if ! printf '%s\n' "$userdb_domains" | grep -qxF "$d"; then
+        # Not fatal: a domain may be accepted and relayed onward rather than
+        # delivered locally, and aliases can resolve to another domain.
+        echo "    note: hosted domain '$d' has no local accounts" >&2
+    fi
+done
+[ "$rc" -eq 0 ] || die "userdb and hosteddomains disagree; refusing to publish"
+echo "    $(printf '%s\n' "$userdb_domains" | grep -c .) domain(s) with accounts, all hosted"
+
 [ "$rc" -eq 0 ] || die "validation failed; nothing published, live databases untouched"
 
 # ----------------------------------------------------------------- publish
