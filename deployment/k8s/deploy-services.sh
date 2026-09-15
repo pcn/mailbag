@@ -51,10 +51,10 @@ fi
 # Applied in order. A missing entry is a hard error rather than a skip: the
 # previous version silently skipped storage whenever one PVC happened to exist,
 # which hid partial state and made a half-deployed cluster look successful.
+# Applied through kustomize in phase 4, so that generator references are
+# rewritten. namespace/configmap/storage go first, in phase 1, because the
+# build job needs them.
 MANIFESTS=(
-    namespace.yaml
-    configmap.yaml
-    storage.yaml
     courierd.yaml.template
     courier-mta.yaml.template
     courier-mta-ssl.yaml.template
@@ -136,9 +136,112 @@ EOF
     fi
 fi
 
-for manifest in "${MANIFESTS[@]}"; do
+# ---------------------------------------------------------------------------
+# Phase 1: the resources the build job needs before it can run.
+for manifest in namespace.yaml configmap.yaml storage.yaml; do
     apply_one "$manifest"
 done
+
+# ---------------------------------------------------------------------------
+# Phase 2: build the derived databases out of band.
+#
+# Serving pods do not build these any more. The job renders the sources, builds
+# all six, validates them -- including a canary lookup against both userdb
+# databases, which is what catches a database that is valid and useless -- and
+# publishes only if every check passes.
+JOB_NAME="courier-build-dat-$(date +%s)"
+echo
+echo "Building courier databases (job/$JOB_NAME) ..."
+BUILD_TMP=$(mktemp)
+trap 'rm -f "$BUILD_TMP"' EXIT
+"$RENDERER" --context "$RENDER_CONTEXT" --template "$HERE/build-dat-job.yaml.template" \
+    | sed "s/^  name: courier-build-dat$/  name: $JOB_NAME/" > "$BUILD_TMP"
+kubectl apply -f "$BUILD_TMP"
+
+# backoffLimit is 0, so this settles either way rather than retrying.
+if ! kubectl wait --for=condition=complete "job/$JOB_NAME" -n "$NAMESPACE" --timeout=300s 2>/dev/null; then
+    echo >&2
+    echo "ERROR: the database build did not complete. Its log:" >&2
+    kubectl logs "job/$JOB_NAME" -n "$NAMESPACE" --tail=60 >&2 || true
+    echo >&2
+    echo "Nothing was published: the live databases are untouched and the running" >&2
+    echo "pods are unaffected. Fix the input and re-run." >&2
+    exit 1
+fi
+kubectl logs "job/$JOB_NAME" -n "$NAMESPACE" --tail=40 | sed 's/^/  /'
+
+# ---------------------------------------------------------------------------
+# Phase 3: collect the databases for kustomize.
+#
+# The PVs are hostPath on a single node, so the published files are readable
+# here. Read the locations from context.json rather than hardcoding them.
+COURIER_PATH=$(jq -r '.config.courier_path' "$CONTEXT")
+AUTHLIB_PATH=$(jq -r '.config.authlib_path' "$CONTEXT")
+DAT_DIR="$HERE/dat"
+
+for f in hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat; do
+    [ -r "$COURIER_PATH/$f" ] || {
+        echo "ERROR: $COURIER_PATH/$f not readable." >&2
+        echo "  The build job publishes there. If this deploy is not running on the" >&2
+        echo "  node that backs the hostPath volumes, collect the databases first." >&2
+        exit 1
+    }
+    cp "$COURIER_PATH/$f" "$DAT_DIR/$f"
+done
+for f in userdb.dat userdbshadow.dat; do
+    [ -r "$AUTHLIB_PATH/$f" ] || { echo "ERROR: $AUTHLIB_PATH/$f not readable." >&2; exit 1; }
+    cp "$AUTHLIB_PATH/$f" "$DAT_DIR/$f"
+done
+echo "Collected 6 databases into $DAT_DIR"
+
+# ---------------------------------------------------------------------------
+# Phase 4: apply the workloads with kustomize.
+#
+# The deployments have to go through kustomize too, not just the generators:
+# configMapGenerator hashes the content into the object name, and only
+# resources kustomize manages get their references rewritten to that name. That
+# rewrite is the whole rollout mechanism -- changed databases change the pod
+# template, so the pods roll and the new couriertcpd opens the new files.
+# Applying the deployments separately would leave them pointing at a name that
+# does not exist.
+KUSTOMIZE_DIR=$(mktemp -d)
+trap 'rm -f "$BUILD_TMP"; rm -rf "$KUSTOMIZE_DIR"' EXIT
+mkdir -p "$KUSTOMIZE_DIR/dat"
+cp "$DAT_DIR"/*.dat "$KUSTOMIZE_DIR/dat/"
+
+RESOURCES=()
+for manifest in "${MANIFESTS[@]}"; do
+    out="$KUSTOMIZE_DIR/${manifest%.template}"
+    case "$manifest" in
+        *.yaml.template)
+            "$RENDERER" --context "$RENDER_CONTEXT" --template "$HERE/$manifest" > "$out" ;;
+        *) cp "$HERE/$manifest" "$out" ;;
+    esac
+    RESOURCES+=("${manifest%.template}")
+done
+
+{
+    echo "apiVersion: kustomize.config.k8s.io/v1beta1"
+    echo "kind: Kustomization"
+    echo "namespace: $NAMESPACE"
+    echo "resources:"
+    for r in "${RESOURCES[@]}"; do echo "  - $r"; done
+    echo "configMapGenerator:"
+    echo "  - name: courier-dat"
+    echo "    files:"
+    for f in hosteddomains.dat esmtpacceptmailfor.dat smtpaccess.dat aliases.dat; do
+        echo "      - dat/$f"
+    done
+    echo "secretGenerator:"
+    echo "  - name: courier-userdb"
+    echo "    files:"
+    for f in userdb.dat userdbshadow.dat; do echo "      - dat/$f"; done
+} > "$KUSTOMIZE_DIR/kustomization.yaml"
+
+echo
+echo "Generated object names (a change here is what rolls the pods):"
+kubectl kustomize "$KUSTOMIZE_DIR" | grep -E "^  name: courier-(dat|userdb)-" | sed 's/^  name:/   /'
+kubectl apply -k "$KUSTOMIZE_DIR"
 
 echo
 echo "All resources applied to namespace $NAMESPACE."
