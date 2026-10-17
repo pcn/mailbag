@@ -3,23 +3,21 @@
 set -e -x -o pipefail
 
 # context.json is added via the docker/container as a bind mount
-/render-template --context /context.json --template /acceptmailfor.template > /etc/courier/esmtpacceptmailfor.dir/context
-/render-template --context /context.json --template /hosteddomains.template > /etc/courier/hosteddomains
 /render-template --context /context.json --template /esmtpd-base-msa.template > /etc/courier/esmtpd
 /render-template --context /context.json --template /esmtpd-msa.template > /etc/courier/esmtpd-msa
 
-/usr/lib/courier/share/makehosteddomains
-# Create smtpaccess directory and generate default access file from template
-mkdir -p /etc/courier/smtpaccess
-/render-template --context /context.json --template /smtpaccess-default.template > /etc/courier/smtpaccess/default
-/usr/lib/courier/sbin/makesmtpaccess
 
 # Generate authdaemonrc configuration file
 /render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
-/rebuild-userdb
 
 # Certificates are now mounted directly from cert-manager secrets at /certs/
 # No need to copy or create certificate files - Courier uses them directly
+
+# The derived databases are built out of band and mounted read-only; this pod
+# does not build them. Prove they are usable before starting anything, so a
+# missing or empty database is a startup failure rather than every lookup
+# quietly returning "no such user".
+/usr/local/bin/assert-courier-dat /etc/courier/hosteddomains.dat /etc/courier/esmtpacceptmailfor.dat /etc/courier/smtpaccess.dat /etc/courier/aliases.dat=0 /etc/authlib/userdb.dat /etc/authlib/userdbshadow.dat
 
 # Hand off to runit. It supervises the listener and the auth daemon as separate
 # services in this one namespace, and runsvdir becomes PID 1, so a daemon's

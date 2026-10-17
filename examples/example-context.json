@@ -1,94 +1,98 @@
 {
-    "mda": {
-        "mail_path_host": "/vmail/the-domain.com",
-        "mail_path_container": "/vmail/the-domain.com",
-        "owner": "300",
-        "mode": "0755"
-    },
-    "mta": {
-        "dns_name": "the-domain.com",
-        "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
-        "service": "courier-mta.service",
-        "accept_mail_for": [
-            "the-domain.com"
-        ],
-        "courierd_path_host": "/mailbag/spool/courier-mta",
-        "courierd_path_container": "/var/spool/courier"
-    },
-    "imapd_ssl": {
-        "dns_name": "testmail-imapd-ssl.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
-        "service": "courier-imapd-ssl.service"
-    },
-    "mta_ssl": {
-        "dns_name": "the-domain.com",
-        "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
-        "service": "courier-mta-ssl.service",
-        "accept_mail_for": [
-            "the-domain.com"
-        ],
-        "courierd_path_host": "/mailbag/spool/courier-mta-ssl",
-        "courierd_path_container": "/var/spool/courier"
-    },
-    "msa": {
-        "dns_name": "testmail-msa.rton.me",
-        "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
-        "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
-        "service": "courier-msa.service",
-        "courierd_path_host": "/var/spool/courier-msa",
-        "courierd_path_container": "/var/spool/courier"
-    },
-    "docker": {
-        "network_name": "vmail"
-    },
-    "userdb": {
-        "directory": "/etc/authlib/userdb",
-        "owner": "daemon",
-        "mode": "0700"
-    },
-    "domain": {
-        "name": "mail",
-        "zone": "the-domain.com"
-    },
-    "image": {
-        "tag": "main"
-    },
-    "config": {
-        "courier_path": "/home/mailbag/config/courier",
-        "courier_mode": "0755",
-        "authlib_path": "/home/mailbag/config/authlib",
-        "authlib_mode": "0700"
-    },
-    "filesystem": {
-        "base_storage_mode": "0755",
-        "msgq_mode": "0750",
-        "msgs_mode": "0750",
-        "filters_mode": "0750",
-        "allfilters_mode": "0750",
-        "tmp_mode": "0770",
-        "track_mode": "0755"
-    },
-    "services": {
-        "smtp_port": 25,
-        "submission_port": 587,
-        "imaps_port": 993,
-        "ssh_port": 22,
-        "k8s_namespace": "mailbag",
-        "k8s_services": [
-            "mta",
-            "mta-ssl",
-            "imapd-ssl",
-            "msa"
-        ],
-        "k8s_pods": [
-            "courier-mta",
-            "courier-mta-ssl",
-            "courier-imapd-ssl",
-            "courier-msa",
-            "courierd"
-        ]
-    }
+  "mda": {
+    "mail_path_host": "/vmail/the-domain.com",
+    "mail_path_container": "/vmail/the-domain.com",
+    "owner": "300",
+    "mode": "0755"
+  },
+  "mta": {
+    "dns_name": "the-domain.com",
+    "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
+    "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
+    "service": "courier-mta.service",
+    "accept_mail_for": [
+      "the-domain.com"
+    ],
+    "courierd_path_host": "/mailbag/spool/courier-mta",
+    "courierd_path_container": "/var/spool/courier"
+  },
+  "imapd_ssl": {
+    "dns_name": "testmail-imapd-ssl.rton.me",
+    "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
+    "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
+    "service": "courier-imapd-ssl.service"
+  },
+  "mta_ssl": {
+    "dns_name": "the-domain.com",
+    "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
+    "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
+    "service": "courier-mta-ssl.service",
+    "accept_mail_for": [
+      "the-domain.com"
+    ],
+    "courierd_path_host": "/mailbag/spool/courier-mta-ssl",
+    "courierd_path_container": "/var/spool/courier"
+  },
+  "msa": {
+    "dns_name": "testmail-msa.rton.me",
+    "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
+    "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
+    "service": "courier-msa.service",
+    "courierd_path_host": "/var/spool/courier-msa",
+    "courierd_path_container": "/var/spool/courier"
+  },
+  "docker": {
+    "network_name": "vmail"
+  },
+  "userdb": {
+    "directory": "/etc/authlib/userdb",
+    "owner": "daemon",
+    "mode": "0700",
+    "canary": "CHANGE-ME@the-domain.com"
+  },
+  "domain": {
+    "name": "mail",
+    "zone": "the-domain.com"
+  },
+  "image": {
+    "tag": "main"
+  },
+  "config": {
+    "courier_path": "/home/mailbag/config/courier",
+    "courier_mode": "0755",
+    "authlib_path": "/home/mailbag/config/authlib",
+    "authlib_mode": "0700"
+  },
+  "filesystem": {
+    "base_storage_mode": "0755",
+    "msgq_mode": "0750",
+    "msgs_mode": "0750",
+    "filters_mode": "0750",
+    "allfilters_mode": "0750",
+    "tmp_mode": "0770",
+    "track_mode": "0755"
+  },
+  "services": {
+    "smtp_port": 25,
+    "submission_port": 587,
+    "imaps_port": 993,
+    "ssh_port": 22,
+    "k8s_namespace": "mailbag",
+    "k8s_services": [
+      "mta",
+      "mta-ssl",
+      "imapd-ssl",
+      "msa"
+    ],
+    "k8s_pods": [
+      "courier-mta",
+      "courier-mta-ssl",
+      "courier-imapd-ssl",
+      "courier-msa",
+      "courierd"
+    ]
+  },
+  "aliases": {
+    "postmaster": "reject"
+  }
 }

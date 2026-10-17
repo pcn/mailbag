@@ -74,8 +74,11 @@ jobs:
               - 'Dockerfile-base'
               - 'acceptmailfor.template'
               - 'hosteddomains.template'
-              - 'entrypoints/lib/**'
               - 'entrypoints/sv/**'
+              # The base ships the build and validation scripts, because the
+              # build job runs as a service image.
+              - 'scripts/build-courier-dat.sh'
+              - 'scripts/validate-courier-dat.pl'
               - '.github/workflows/build-and-publish.yml'
             mta:
               - 'Dockerfile-mta'

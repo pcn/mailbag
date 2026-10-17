@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# Assert that the derived databases this pod needs are present and usable.
+#
+# Pods no longer build these -- build-courier-dat.sh does, out of band, and
+# Kubernetes mounts the results read-only. That is the point: a bad build fails
+# a job instead of four mail servers. But it also means a pod is now entirely
+# dependent on those objects being there, so it should say so plainly at
+# startup rather than come up and quietly answer every lookup with "no such
+# user".
+#
+# A missing subPath mount usually stops the container before this runs, which
+# is the loudest possible failure and exactly what we want. This catches the
+# rest: a database that is present but empty or truncated.
+#
+# Usage: assert-courier-dat FILE[=MINRECORDS]...
+#
+# The minimum defaults to 1, because an empty database almost always means a
+# build that silently produced nothing. aliases.dat is the exception: with
+# aliases.postmaster set to "reject" it compiles to zero records deliberately,
+# and that is a valid configuration, so callers pass aliases.dat=0. Getting
+# this wrong is not theoretical -- defaulting every file to 1 stopped every
+# SMTP pod from starting in exactly that configuration.
+set -u
+
+VALIDATE=/usr/local/bin/validate-courier-dat.pl
+[ -x "$VALIDATE" ] || { echo "assert-courier-dat: $VALIDATE missing" >&2; exit 1; }
+
+rc=0
+for spec in "$@"; do
+    case "$spec" in
+        *=*) dat=${spec%%=*}; min=${spec##*=} ;;
+        *)   dat=$spec;       min=1 ;;
+    esac
+    # Not --expect-records: the pod has no source to count against, and that was
+    # checked at build time. Here we prove the database opens and holds what it
+    # should, which is what distinguishes "mounted correctly" from "mounted".
+    "$VALIDATE" --dat "$dat" --label "$(basename "$dat")" --min-records "$min" || rc=1
+done
+
+[ "$rc" -eq 0 ] || {
+    echo "assert-courier-dat: FATAL: required databases are unusable." >&2
+    echo "  These are built by build-courier-dat.sh and mounted from the" >&2
+    echo "  courier-dat ConfigMap and courier-userdb Secret. Check that the" >&2
+    echo "  build job ran and published before this pod started." >&2
+    exit 1
+}

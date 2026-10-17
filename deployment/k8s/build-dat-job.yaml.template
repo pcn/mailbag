@@ -1,0 +1,100 @@
+# Builds and validates the derived courier databases, out of band.
+#
+# Serving pods no longer build these. That was the point of PROJ-004: five
+# containers each running makeuserdb, makehosteddomains, makeacceptmailfor,
+# makesmtpaccess and makealiases at startup is five chances to fail, in the
+# place where failure costs inbound mail, with the result depending on which pod
+# ran last.
+#
+# The job runs to completion and publishes into courier-config-pvc and
+# courier-auth-pvc -- volumes no serving pod mounts any more. The deploy step
+# then extracts the six databases and hands them to kustomize, which hashes them
+# into ConfigMap and Secret names and rolls the pods that reference them.
+#
+# It runs in-cluster rather than on the deploy machine so the userdb source, and
+# the password hashes derived from it, never leave the node.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # The deploy step appends a suffix: a Job's pod template is immutable, so
+  # re-running one means creating a new object rather than patching this.
+  name: courier-build-dat
+  namespace: {{ services.k8s_namespace | default("mailbag") }}
+  labels:
+    app: mailbag
+    component: build-dat
+spec:
+  # A failed build must be visible, not retried into confusion. The databases it
+  # would have replaced are still in place and still valid, so there is no
+  # urgency to retry -- someone should read the log.
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: mailbag
+        component: build-dat
+    spec:
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 1
+      containers:
+      - name: build-dat
+        # Any service image will do; they all carry the courier tools and the
+        # build and validation scripts from the base.
+        image: ghcr.io/pcn/mailbag/courier-mta:{{ image.tag | default("main") }}
+        imagePullPolicy: Always
+        command: ["/bin/bash", "/usr/local/bin/build-courier-dat.sh"]
+        args:
+          - --context
+          - /context.json
+          - --templates
+          - /templates
+          - --canary
+          - "{{ userdb.canary }}"
+          - --publish-courier
+          - /publish/courier
+          - --publish-authlib
+          - /publish/authlib
+          - --userdb-src
+          - /publish/authlib/userdb
+        securityContext:
+          # root: it reads the 0600 userdb source and writes both publish
+          # volumes, which are daemon-owned.
+          runAsUser: 0
+          allowPrivilegeEscalation: true
+          capabilities:
+            drop: ["ALL"]
+            add: ["DAC_OVERRIDE", "SETUID", "SETGID", "CHOWN"]
+        volumeMounts:
+        - name: context-json
+          mountPath: /context.json
+          readOnly: true
+        - name: templates
+          mountPath: /templates
+          readOnly: true
+        # Build on ephemeral storage, publish to the volumes. /etc/authlib is
+        # the compiled-in path makeuserdb needs, and keeping it out of the
+        # volume is what stops a failed build from replacing databases that
+        # currently work.
+        - name: build-authlib
+          mountPath: /etc/authlib
+        - name: courier-auth
+          mountPath: /publish/authlib
+        - name: courier-config
+          mountPath: /publish/courier
+      volumes:
+      - name: build-authlib
+        emptyDir: {}
+      - name: context-json
+        hostPath:
+          path: /etc/mailbag/context.json
+          type: File
+      - name: templates
+        configMap:
+          name: mailbag-context
+      - name: courier-auth
+        persistentVolumeClaim:
+          claimName: courier-auth-pvc
+      - name: courier-config
+        persistentVolumeClaim:
+          claimName: courier-config-pvc

@@ -1,0 +1,4 @@
+# The databases themselves are build output: produced by build-courier-dat.sh
+# from context.json and the userdb source, never committed. userdbshadow.dat is
+# password hashes and must not be in git under any circumstances.
+*.dat
