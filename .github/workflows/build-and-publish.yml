@@ -50,7 +50,6 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      packages: ${{ steps.filter.outputs.packages }}
       base: ${{ steps.filter.outputs.base }}
       mta: ${{ steps.filter.outputs.mta }}
       msa: ${{ steps.filter.outputs.msa }}
@@ -64,13 +63,17 @@ jobs:
         id: filter
         with:
           # This workflow file appears in every filter on purpose: it defines
-          # how each image is built, so changing it should rebuild them.
+          # how each image is built, so changing it should rebuild them. The
+          # packages image has no filter: it is content-addressed (see the
+          # packages job), so it compiles only when its inputs are new.
           filters: |
-            packages:
+            base:
+              # The packages inputs: a branch whose courier build differs from
+              # main must get a base FROM its own packages key, even on pushes
+              # where that key already exists and nothing compiles.
               - 'Dockerfile'
               - 'install-scripts/**'
-              - '.github/workflows/build-and-publish.yml'
-            base:
+              - 'scripts/packages-key.sh'
               - 'Dockerfile-base'
               - 'acceptmailfor.template'
               - 'hosteddomains.template'
@@ -108,20 +111,30 @@ jobs:
               - 'tinydns/**'
               - '.github/workflows/build-and-publish.yml'
 
+  # Content-addressed: the courier compile (10-13 min) runs once per set of
+  # inputs, not whenever a path filter happens to fire. scripts/packages-key.sh
+  # hashes Dockerfile and install-scripts/ -- the only repo files the image is
+  # built from -- into pkgs-<hash>. If an image with that tag already exists,
+  # this run only adds its own tags to it; otherwise it compiles and pushes.
+  # The base then builds FROM exactly that key, so it can never pair with
+  # packages compiled from different scripts.
   packages:
-    needs: changes
-    if: >-
-      needs.changes.outputs.packages == 'true'
-      || github.event_name == 'workflow_dispatch'
-      || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     outputs:
-      built: 'true'
+      key: ${{ steps.key.outputs.key }}
+      built: ${{ steps.check.outputs.exists == 'true' && 'false' || 'true' }}
+    env:
+      # Job-level env cannot read the workflow's env context, so the registry
+      # is written out; it matches env.REGISTRY.
+      IMAGE: ghcr.io/${{ github.repository }}-packages
     steps:
       - uses: actions/checkout@v4
+      - name: Compute the content key
+        id: key
+        run: echo "key=$(scripts/packages-key.sh)" >> "$GITHUB_OUTPUT"
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -130,31 +143,52 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-packages
+          images: ${{ env.IMAGE }}
           tags: |
+            type=raw,value=${{ steps.key.outputs.key }}
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=sha,format=long,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+      - name: Is this key already built?
+        id: check
+        run: |
+          if docker buildx imagetools inspect "$IMAGE:${{ steps.key.outputs.key }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "packages $IMAGE:${{ steps.key.outputs.key }} already built; not compiling"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: docker/build-push-action@v6
+        if: steps.check.outputs.exists != 'true'
         with:
           context: .
           file: Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+      # Manifest-only copy: gives this commit its sha-/branch tags on the
+      # existing image in seconds, so every commit still has a packages tag.
+      - name: Tag the existing image for this commit
+        if: steps.check.outputs.exists == 'true'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          args=()
+          while read -r t; do [ -n "$t" ] && args+=(-t "$t"); done <<< "$TAGS"
+          docker buildx imagetools create "${args[@]}" "$IMAGE:${{ steps.key.outputs.key }}"
 
   base:
     needs: [changes, packages]
-    # Rebuild when the base's own inputs changed OR when packages actually
-    # rebuilt -- the transitive case that previously left the base stale.
-    # `!cancelled()` plus the failure guard let this run when packages was
-    # skipped (nothing to do) but not when it failed.
+    # Rebuild when the base's own inputs changed -- which include the packages
+    # inputs, so a branch whose install-scripts differ from main always gets a
+    # base built FROM its own packages key rather than falling back to main's
+    # base -- or when packages compiled a new key in this run. packages always
+    # runs, so it must have succeeded: the base needs its key.
     if: >-
       !cancelled()
-      && needs.packages.result != 'failure'
+      && needs.packages.result == 'success'
       && (needs.changes.outputs.base == 'true'
-          || needs.packages.result == 'success'
+          || needs.packages.outputs.built == 'true'
           || github.event_name == 'workflow_dispatch'
           || startsWith(github.ref, 'refs/tags/'))
     runs-on: ubuntu-latest
@@ -196,14 +230,14 @@ jobs:
           file: Dockerfile-base
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          # Consume the exact packages image built in this run when there was
-          # one, otherwise the current published :main. Without this the base
-          # could be assembled from a half-updated set of dependencies.
+          # The packages image is named by the content key of this commit's
+          # Dockerfile and install-scripts, never :main, so the base always
+          # installs debs compiled from the scripts it was built with.
           build-args: |
             MINIJINJA_CLI_VERSION=${{ steps.renderer.outputs.version }}
             MINIJINJA_CLI_SHA256_X86_64=${{ steps.renderer.outputs.sha256_x86_64 }}
             MINIJINJA_CLI_SHA256_AARCH64=${{ steps.renderer.outputs.sha256_aarch64 }}
-            PACKAGES_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-packages:${{ needs.packages.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
+            PACKAGES_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-packages:${{ needs.packages.outputs.key }}
 
   services:
     needs: [changes, base]
