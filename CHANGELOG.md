@@ -1,5 +1,70 @@
 # Changelog
 
+## [1.3.0](https://github.com/pcn/mailbag/compare/v1.2.1...v1.3.0) (2026-10-17)
+
+
+### Features
+
+* **aliases:** generate aliases from context.json, not the pod hostname ([03a0394](https://github.com/pcn/mailbag/commit/03a0394016277773f50e282da64d2e1a0326ef92))
+* **aliases:** make rejecting role mail an explicit choice ([eadea2b](https://github.com/pcn/mailbag/commit/eadea2be0340c3a23dd5f4156384a6b5acb3c701))
+* **config:** assert replaced courier configs cover their .dist ([15414ff](https://github.com/pcn/mailbag/commit/15414ff054be6613aced5e136f65c35aa316d9ad))
+* **dat:** add the out-of-band build job ([b9742b5](https://github.com/pcn/mailbag/commit/b9742b55790e91df9cc879b9da0678628e7d90fc))
+* **dat:** assert derived .dat files are usable, not merely present ([8c6ff09](https://github.com/pcn/mailbag/commit/8c6ff09d44068982d2113f03fb3dcd2d1abf32bb))
+* **dat:** build and validate courier databases out of band (PROJ-004) ([47c5fac](https://github.com/pcn/mailbag/commit/47c5fac4531f8a2630d8b0a1698ffba3ae29cf6f))
+* **dat:** build and validate the derived databases out of band ([dae6a2c](https://github.com/pcn/mailbag/commit/dae6a2c55a2c0fa32dba2bb064d378fbafad7707))
+* **dat:** cross-check userdb accounts against hosted domains ([19fea23](https://github.com/pcn/mailbag/commit/19fea23bd765158c36bbe9442a1cdb3a68f542f9))
+* **dat:** package the databases as a ConfigMap and Secret with a rollout checksum ([a46b026](https://github.com/pcn/mailbag/commit/a46b0260fcbb6e63cd990a1daa4b67f998d831e2))
+* **dat:** sequence the deploy around the out-of-band build ([c281dd4](https://github.com/pcn/mailbag/commit/c281dd4085ea6e868bd2de803dc583491935d912))
+* **dat:** serve the derived databases from generated objects, not shared PVCs ([2ee3fa9](https://github.com/pcn/mailbag/commit/2ee3fa90475eaa7d1f488cd8e34172b2b502e2da))
+* **dat:** stop building databases in serving pods ([bce9bb0](https://github.com/pcn/mailbag/commit/bce9bb04f8d9ce0762c611f70d3a34c44cc88c64))
+* **dat:** use kustomize name hashing instead of a hand-rolled checksum ([17df88b](https://github.com/pcn/mailbag/commit/17df88b1fef2113fe9597f6c1efedbf4d8ea1a1f))
+* **dat:** warn when a bare account shadows its sub-addresses ([97b19df](https://github.com/pcn/mailbag/commit/97b19df8c2bc4971db5ada33e1ee0b312ae8d3df))
+* **deploy:** deploy a named image tag, and pin every image reference ([cbd4d90](https://github.com/pcn/mailbag/commit/cbd4d9084f5fb824f57ac3c321f7df99a1e5360d))
+* **deploy:** make cert-manager optional and add a test-cert generator ([91cffb7](https://github.com/pcn/mailbag/commit/91cffb7a5a98930baa8442b5a54b199f0a8c7324))
+* **supervision:** supervise courier daemons with runit and probe them properly ([e49cfaf](https://github.com/pcn/mailbag/commit/e49cfafa31eac6980e9fbf1140da2f2d15597bf4))
+
+
+### Bug Fixes
+
+* **authlib:** build the userdb shadow database as the mail user ([dc401ca](https://github.com/pcn/mailbag/commit/dc401cad4b2e89f7c9d61cac7ba15f7a9da8c2be))
+* **authlib:** stop pretending the userdb source path is configurable ([ecceb1e](https://github.com/pcn/mailbag/commit/ecceb1e8592cd3f41c6fcf5a755f0a618f7ed1e8))
+* **build:** point service images at the base image name that is published ([e16f782](https://github.com/pcn/mailbag/commit/e16f78250523bcd1938500383ba842d303e3346c))
+* **ci:** build on PRs and branches, and fix path-filter gating ([72aa027](https://github.com/pcn/mailbag/commit/72aa027b3905892750c1b0e4dfe425c7f246560b))
+* **ci:** order the image builds and make the build graph pinnable ([d321f88](https://github.com/pcn/mailbag/commit/d321f882cf354c9d88070adb503b5e1af5bcd259))
+* **ci:** register the build job template with the render check ([12c18e2](https://github.com/pcn/mailbag/commit/12c18e28581b76bd62781e76eb7b52c25c403e91))
+* **config:** make BOFHCHECKDNS a per-environment setting, not a hardcoded default ([c0eb645](https://github.com/pcn/mailbag/commit/c0eb645812ea30e080668b4132f608c623af4929))
+* **courierd:** give courierd what it needs to deliver mail locally ([9119c2c](https://github.com/pcn/mailbag/commit/9119c2c5a419f21a3c84a99e500aa28a2991812c))
+* **dat:** clear leftover staging files before writing them ([db4f213](https://github.com/pcn/mailbag/commit/db4f213cb5d1318a971243a429bfb0caa0031bbb))
+* **dat:** do not preserve ownership when publishing either ([6a41aa5](https://github.com/pcn/mailbag/commit/6a41aa5dbb9df7a9a7daf1a547bf5dcda869d645))
+* **dat:** do not preserve permissions when copying the userdb source ([03ffb90](https://github.com/pcn/mailbag/commit/03ffb90ce0f2e86e74c4c1bb74f8402039467298))
+* **dat:** publish the whole set atomically, or none of it ([1d8695d](https://github.com/pcn/mailbag/commit/1d8695d45a75314f36dff0006b4521222dc162ed))
+* **deploy:** BusyBox tar honours only the last -C ([993e360](https://github.com/pcn/mailbag/commit/993e360e3205b7909617a6df25ac6a328f0fa836))
+* **deploy:** collect the databases through the cluster, not the hostPath ([72410fc](https://github.com/pcn/mailbag/commit/72410fc143e17ab424bcc4d828a43bf8f15fb4c5))
+* **deploy:** courier state is daemon-owned, and imapd-ssl needs the spool ([78a08d8](https://github.com/pcn/mailbag/commit/78a08d85f3e72e5d0498e7bf67359252c901229f))
+* **deploy:** issue one cert, read cert+key directly, and apply every resource ([0499a08](https://github.com/pcn/mailbag/commit/0499a08354baa43aab34f0f941dfa7431d40ec76))
+* **deploy:** use Recreate, not RollingUpdate, for every mail deployment ([6e93773](https://github.com/pcn/mailbag/commit/6e937730f4e5cf4d08802d9d3a8ef33c2665c3ed))
+* **docker:** stop comment line continuations swallowing instructions ([59efba5](https://github.com/pcn/mailbag/commit/59efba5fc9fb075752b0b47f9f1aa0e322cc4139))
+* every pod renders its own authdaemonrc, and mta renders its own esmtpd ([43428ff](https://github.com/pcn/mailbag/commit/43428ff13a21bc17568253d8fc514a4023ad6942))
+* generate proper esmtpaccess file for couriertcpd ([1ebe760](https://github.com/pcn/mailbag/commit/1ebe760b0ca3748f8f7acad0f81d423f6c8cb246))
+* **imapd-ssl:** drop the capabilities rebuild-userdb needed ([a340fa5](https://github.com/pcn/mailbag/commit/a340fa563f89ba94fcc5a4f0444cabaeb7784c5f))
+* **imapd-ssl:** init container must chown /etc/authlib to daemon, not vmail ([9a80254](https://github.com/pcn/mailbag/commit/9a80254796efe5595a1881603b65f5262272dcd0))
+* **imapd-ssl:** run as daemon and serve the real certificate ([578178e](https://github.com/pcn/mailbag/commit/578178ebdf193b054de4aec267f51f7dd5e6f499))
+* **imapd-ssl:** run as root so imaplogin can setuid to the mail user ([704d341](https://github.com/pcn/mailbag/commit/704d341131a75043f7e93489ebddb2e1168df925))
+* **mta-ssl:** run unprivileged and drop dead build-time config ([2fd8c41](https://github.com/pcn/mailbag/commit/2fd8c41dc4d821722c7fea966a2beee88c8e94c3))
+* **probe:** read the TLS greeting instead of hanging up before it arrives ([42149d8](https://github.com/pcn/mailbag/commit/42149d8964881e60fc4bb53c334baf99a9efc5f9))
+* Stop trying to fix things in the mta that the daemon controlls ([1ec0a30](https://github.com/pcn/mailbag/commit/1ec0a302b6d5f2e498c5bfde8db4181bcd4ce450))
+* Stop trying to fix things in the mta that the daemon controlls ([80d97c4](https://github.com/pcn/mailbag/commit/80d97c4c6674c9248f3cd072a9e8a1b408aacd4c))
+* **supervision:** let runsv create supervise/ when the container is not root ([886737f](https://github.com/pcn/mailbag/commit/886737fb620f753d8f3a7a5975f084cab8f84a9d))
+* **supervision:** survive service restarts, and don't treat them as crashes ([fbf10ed](https://github.com/pcn/mailbag/commit/fbf10ed42d71fbd4f5dd0b400e88c46e15b79195))
+* **templater:** reject undefined values instead of rendering them empty ([1cc208d](https://github.com/pcn/mailbag/commit/1cc208d1cc5cd0271161ba689659c31df4b69420))
+* use one cert with SANs, and generat the cert deployment ([9bdcb9a](https://github.com/pcn/mailbag/commit/9bdcb9a4a5c49dcca071153fed5ef63d6bbf21bd))
+* use one cert with SANs, and generat the cert deployment ([d3688c2](https://github.com/pcn/mailbag/commit/d3688c2b0bff6b0fec15e3212f3dac53920c63c6))
+
+
+### Performance Improvements
+
+* **probe:** close the TLS connection instead of waiting to be killed ([c59d3af](https://github.com/pcn/mailbag/commit/c59d3af356f82f70f3decb7e23413be6990f9623))
+
 ## [1.2.1](https://github.com/pcn/mailbag/compare/v1.2.0...v1.2.1) (2025-06-29)
 
 
