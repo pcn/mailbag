@@ -24,7 +24,7 @@ Each service runs in its own Docker container with shared volumes for:
 
 ### Configuration System
 - **Context File**: `/etc/mailbag/context.json` (based on `examples/example-context.json`)
-- **Template Rendering**: Uses custom Rust `render-template` tool with minijinja
+- **Template Rendering**: upstream minijinja-cli, installed as `renderer` (`/renderer` in the images), pinned by version and sha256 in `context.json` under `tools.minijinja_cli`; always invoked as `renderer --strict -n TEMPLATE CONTEXT`
 - **Runtime Configuration**: Templates rendered at container startup
 
 ## Common Development Commands
@@ -34,8 +34,8 @@ Each service runs in its own Docker container with shared volumes for:
 # Build all containers and prerequisites
 make
 
-# Build just the template renderer
-cd templater && cargo build
+# Fetch the pinned template renderer (cached; verified against the context's sha256)
+scripts/fetch-renderer.sh examples/example-context.json
 
 # Build service containers (done via GitHub Actions)
 make service-images
@@ -89,7 +89,10 @@ make host
 ### Template System
 ```bash
 # Render a template manually
-./render-template --context context.json --template template-file.template > output-file
+"$(scripts/fetch-renderer.sh context.json)" --strict -n template-file.template context.json > output-file
+
+# Render every template against the example context (also run in CI)
+make check-templates
 
 # Generate unit files from templates
 cd unit-files && make
@@ -109,7 +112,7 @@ cd unit-files && make
 - `Makefile` - Main build orchestration
 
 ### Templating
-- `templater/` - Rust-based template renderer using minijinja
+- `scripts/fetch-renderer.sh` - fetches and verifies the renderer pinned by a context.json
 - `*.template` files - Template files for configuration
 
 ## Context Configuration

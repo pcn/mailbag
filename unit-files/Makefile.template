@@ -2,15 +2,15 @@ all: {% for tmpl in templates -%} {{ tmpl.target }} {% endfor %}
 
 install: all {% for tmpl in templates -%} install-{{ tmpl.target }} {% endfor %}
 
-stop-services: all {% for tmpl in templates if tmpl.enable -%} stop-{{ tmpl.target }} {% endfor %}
-start-services: all {% for tmpl in templates if tmpl.enable -%} start-{{ tmpl.target }} {% endfor %}
+stop-services: all {% for tmpl in templates if tmpl.enable | default(false) -%} stop-{{ tmpl.target }} {% endfor %}
+start-services: all {% for tmpl in templates if tmpl.enable | default(false) -%} start-{{ tmpl.target }} {% endfor %}
 
 {% for tmpl in templates %}
 {{ tmpl.target }}: {{ tmpl.template }} ../context.json
-	../render-template --context ../context.json --template {{ tmpl.template }} > {{ tmpl.target }}
+	$(RENDERER) --strict -n {{ tmpl.template }} ../context.json > {{ tmpl.target }}
 
 install-{{ tmpl.target }}: {{ tmpl.target }}
-	sudo install {{ tmpl.install }} {{ tmpl.target }} {% if tmpl.enable == true -%} && \
+	sudo install {{ tmpl.install }} {{ tmpl.target }} {% if tmpl.enable | default(false) == true -%} && \
 	sudo systemctl daemon-reload && \
 	sudo systemctl enable {{ tmpl.target }}
 

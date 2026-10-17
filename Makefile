@@ -8,7 +8,7 @@ install: build-artifacts  install-units
 
 
 install-units: unit-files
-	cd unit-files && $(MAKE) install && \
+	cd unit-files && $(MAKE) RENDERER=$(RENDERER) install && \
 	sudo systemctl daemon-reload
 
 courier-packages.tar: build-base.sh
@@ -18,27 +18,21 @@ run-goss: goss-bin
 	(cd goss && ../goss-bin --vars ../context.json validate)
 
 start: unit-files
-	cd unit-files && $(MAKE) start-services
+	cd unit-files && $(MAKE) RENDERER=$(RENDERER) start-services
 
 stop: unit-files
-	cd unit-files && $(MAKE) stop-services
+	cd unit-files && $(MAKE) RENDERER=$(RENDERER) stop-services
 
 ## Pre-requisites
-# Declare the sources as prerequisites. Without them make reports "up to date"
-# whenever the binary merely exists, so a source change never reaches the copy
-# at the repo root that the deploy scripts invoke.
-render-template: templater/src/main.rs templater/Cargo.toml
-	cd templater && cargo build
-	cp templater/target/debug/render-template .
+# The template renderer is upstream minijinja-cli, pinned by version and sha256
+# in the context's .tools.minijinja_cli and fetched into a cache on first use.
+# Deferred (=) so targets that do not render never fetch it.
+RENDERER = $(shell scripts/fetch-renderer.sh examples/example-context.json)
 
 # Render every template against its context; fails on any reference to a
 # context key that is not provided.
 check-templates:
 	./scripts/render-all-templates.sh
-
-# Unit tests for the renderer itself, including the undefined-value behaviour.
-test-templater:
-	cd templater && cargo test
 
 # Assert every config we replace still covers its shipped .dist. Reads the
 # .dist files from the image, so a courier version bump that adds a setting
@@ -46,7 +40,7 @@ test-templater:
 check-config:
 	./scripts/check-config-completeness.sh
 
-checks: check-templates check-config test-templater
+checks: check-templates check-config
 
 goss-bin:
 	curl -L https://github.com/aelsabbahy/goss/releases/download/v$(GOSS_VER)/goss-linux-amd64 > goss-bin && \
@@ -57,25 +51,17 @@ build-artifacts: containers
 # build-artifacts: containers unit-files
 containers: service-images
 
-# XXX I should be able to create the acceptmailfor and and hosteddomanins in the entryptpoints
-#  why is this here?
-# Yeah, this rendering should be done in the container
-# service-images: build-services.sh render-template
-# 	# mkdir -p target && \
-# 	#  ./render-template --context context.json --template acceptmailfor.template > target/acceptmailfor && \
-# 	#  ./render-template --context context.json --template hosteddomains.template > target/hosteddomains
-# 	sudo ./build-services.sh
-
 ## Runtime targets
 
 host: host/Makefile
 	cd host; $(MAKE)
 
-host/Makefile: host/Makefile.template context.json render-template
-	./render-template --context context.json --template host/Makefile.template > host/Makefile
+host/Makefile: host/Makefile.template context.json
+	$(RENDERER) --strict -n host/Makefile.template context.json > host/Makefile
 
-unit-files/Makefile: unit-files/Makefile.template unit-files/files.json render-template
-	./render-template --context unit-files/files.json --template unit-files/Makefile.template > unit-files/Makefile
+unit-files/Makefile: unit-files/Makefile.template unit-files/files.json
+	$(RENDERER) --strict -n unit-files/Makefile.template unit-files/files.json > unit-files/Makefile
 
-unit-files: render-template unit-files/Makefile
-	cd unit-files && $(MAKE)
+# The generated unit-files/Makefile renders each unit with $(RENDERER) too.
+unit-files: unit-files/Makefile
+	cd unit-files && $(MAKE) RENDERER=$(RENDERER)

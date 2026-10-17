@@ -29,24 +29,20 @@ log_error() {
 check_prerequisites() {
     log_info "Checking prerequisites..."
     
-    if [ ! -f "$SCRIPT_DIR/render-template" ]; then
-        log_error "render-template not found. Building it now..."
-        cd "$SCRIPT_DIR/templater" && cargo build && cd ..
-        cp templater/target/debug/render-template .
-        log_info "render-template built successfully"
-    fi
-    
     if [ ! -f "/etc/mailbag/context.json" ]; then
         log_error "/etc/mailbag/context.json not found!"
         log_error "Please run ./generate-context.sh first to create the configuration"
         exit 1
     fi
-    
+
     # Validate context.json
     if ! jq . /etc/mailbag/context.json > /dev/null 2>&1; then
         log_error "Invalid JSON in /etc/mailbag/context.json"
         exit 1
     fi
+
+    # The renderer version comes from the host's context.
+    RENDERER=$("$SCRIPT_DIR/scripts/fetch-renderer.sh" /etc/mailbag/context.json)
     
     # Check if kubectl is available
     if ! command -v kubectl &> /dev/null; then
@@ -64,7 +60,7 @@ prepare_host() {
     cd "$SCRIPT_DIR/deployment/k8s"
     
     # Generate the host preparation script
-    "$SCRIPT_DIR/render-template" --context /etc/mailbag/context.json --template prepare-host.sh.template > prepare-host.sh
+    "$RENDERER" --strict -n prepare-host.sh.template /etc/mailbag/context.json > prepare-host.sh
     chmod +x prepare-host.sh
     
     # Run the host preparation script

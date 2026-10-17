@@ -28,26 +28,19 @@ sudo apt update
 sudo apt install -y git build-essential pkg-config libssl-dev jq curl
 ```
 
-### Build the Template Renderer
+### The Template Renderer
 
-Next, build the `render-template` utility that's used throughout the deployment process:
+The renderer is upstream minijinja-cli, pinned by version and sha256 under
+`tools.minijinja_cli` in `context.json`. Nothing needs building: the deploy
+scripts fetch and verify it on first use. To use it by hand:
 
 ```bash
-# Install Rust if not already installed
-# See https://www.rust-lang.org/tools/install for detailed installation instructions
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source "$HOME/.cargo/env"
-
-# Build the template renderer
-cd templater/
-cargo build --release
-cd ..
-
-# Create a symbolic link to make it easier to use
-ln -sf $(pwd)/templater/target/release/render-template .
+RENDERER=$(scripts/fetch-renderer.sh /etc/mailbag/context.json)
+"$RENDERER" --strict -n some-file.template /etc/mailbag/context.json > some-file
 ```
 
-This tool will be used to render Kubernetes manifests and configuration files using values from your context.json file.
+`--strict` makes a template that references a missing context key fail rather
+than render an empty string.
 
 ## 1. Certificate Setup with Let's Encrypt
 

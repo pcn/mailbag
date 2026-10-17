@@ -4,11 +4,11 @@
 # Resources are applied in dependency order. Two kinds of input:
 #
 #   *.yaml           applied verbatim with kubectl.
-#   *.yaml.template  rendered with render-template against context.json first.
+#   *.yaml.template  rendered with the renderer against context.json first.
 #
 # The distinction matters: configmap.yaml carries the courier config templates
 # as data, full of Jinja that the container entrypoints render at runtime
-# against their own context. Passing it through render-template would evaluate
+# against their own context. Passing it through the renderer here would evaluate
 # that Jinja here and ship pre-rendered files, breaking per-service rendering.
 # So only files explicitly named *.yaml.template are rendered.
 
@@ -19,16 +19,13 @@ set -e -u -o pipefail
 REPO_ROOT="${REPO_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || echo "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)")}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTEXT="${CONTEXT:-/etc/mailbag/context.json}"
-RENDERER="$REPO_ROOT/render-template"
 
 if [ ! -f "$CONTEXT" ]; then
     echo "ERROR: $CONTEXT not found. Run generate-context.sh first." >&2
     exit 1
 fi
-if [ ! -x "$RENDERER" ]; then
-    echo "ERROR: $RENDERER not found or not executable. Run 'make render-template'." >&2
-    exit 1
-fi
+# The renderer version this host deploys with is the one its context pins.
+RENDERER=$("$REPO_ROOT/scripts/fetch-renderer.sh" "$CONTEXT")
 
 # Deploy a specific build: IMAGE_TAG=sha-<sha> ./deploy-services.sh
 # Rolling back is the same command with an earlier tag. Without it, the tag
@@ -100,7 +97,7 @@ apply_one() {
             tmp=$(mktemp)
             # shellcheck disable=SC2064
             trap "rm -f '$tmp'" RETURN
-            "$RENDERER" --context "$RENDER_CONTEXT" --template "$path" > "$tmp"
+            "$RENDERER" --strict -n "$path" "$RENDER_CONTEXT" > "$tmp"
             kubectl apply -f "$tmp"
             ;;
         *)
@@ -169,7 +166,7 @@ fi
 echo "Building courier databases (job/$JOB_NAME) ..."
 BUILD_TMP=$(mktemp)
 trap 'rm -f "$BUILD_TMP"' EXIT
-"$RENDERER" --context "$RENDER_CONTEXT" --template "$HERE/build-dat-job.yaml.template" \
+"$RENDERER" --strict -n "$HERE/build-dat-job.yaml.template" "$RENDER_CONTEXT" \
     | sed "s/^  name: courier-build-dat$/  name: $JOB_NAME/" > "$BUILD_TMP"
 kubectl apply -f "$BUILD_TMP"
 
@@ -269,7 +266,7 @@ for manifest in "${MANIFESTS[@]}"; do
     out="$KUSTOMIZE_DIR/${manifest%.template}"
     case "$manifest" in
         *.yaml.template)
-            "$RENDERER" --context "$RENDER_CONTEXT" --template "$HERE/$manifest" > "$out" ;;
+            "$RENDERER" --strict -n "$HERE/$manifest" "$RENDER_CONTEXT" > "$out" ;;
         *) cp "$HERE/$manifest" "$out" ;;
     esac
     RESOURCES+=("${manifest%.template}")

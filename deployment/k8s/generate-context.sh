@@ -119,5 +119,12 @@ cat > /etc/mailbag/context.json << EOF
 }
 EOF
 
+# Tool pins (the template renderer's version and checksums) are copied from the
+# example context rather than written here, so the repo pins them in one place.
+EXAMPLE_CONTEXT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/examples/example-context.json"
+tmp=$(mktemp)
+jq --slurpfile ex "$EXAMPLE_CONTEXT" '.tools = $ex[0].tools' /etc/mailbag/context.json > "$tmp"
+mv "$tmp" /etc/mailbag/context.json
+
 echo "Generated context.json at /etc/mailbag/context.json"
 echo "Now run ./generate-host-scripts.sh to create the host preparation script"

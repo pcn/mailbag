@@ -31,7 +31,7 @@ set -u -o pipefail
 
 CONTEXT="${CONTEXT:-/context.json}"
 TEMPLATES="${TEMPLATES:-/templates}"
-RENDER="${RENDER:-/render-template}"
+RENDER="${RENDER:-/renderer}"
 VALIDATE="${VALIDATE:-/usr/local/bin/validate-courier-dat.pl}"
 PUBLISH_COURIER="${PUBLISH_COURIER:-}"
 PUBLISH_AUTHLIB="${PUBLISH_AUTHLIB:-}"
@@ -81,7 +81,7 @@ step() { echo "==> $*"; }
 render() {
     local tmpl="$TEMPLATES/$1" out="$2"
     [ -r "$tmpl" ] || die "template not found: $tmpl"
-    "$RENDER" --context "$CONTEXT" --template "$tmpl" > "$out" \
+    "$RENDER" --strict -n "$tmpl" "$CONTEXT" > "$out" \
         || die "rendering $1 failed"
 }
 

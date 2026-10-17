@@ -201,7 +201,7 @@ data:
     {% endfor -%}
 
     # Additional access rules
-    {% if msa.access_rules -%}
+    {% if msa.access_rules | default(false) -%}
     {% for rule in msa.access_rules -%}
     {{ rule.network }}       {{ rule.action }}
     {% endfor -%}

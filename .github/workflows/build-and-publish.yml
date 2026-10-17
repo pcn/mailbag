@@ -9,11 +9,12 @@
 #
 # Dependency graph:
 #
-#   support ─┐
-#            ├─> base ─> {mta, msa, mta-ssl, imapd-ssl, courierd}
-#   packages ┘
+#   packages ─> base ─> {mta, msa, mta-ssl, imapd-ssl, courierd}
 #
 #   tinydns has no dependency on base.
+#
+# The base also installs the template renderer (upstream minijinja-cli) at the
+# version and checksums pinned in examples/example-context.json.
 #
 # A single `changes` job runs paths-filter once and exposes every filter as an
 # output. Downstream jobs both `needs:` their upstream (for ordering) and gate
@@ -44,7 +45,6 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      support: ${{ steps.filter.outputs.support }}
       packages: ${{ steps.filter.outputs.packages }}
       base: ${{ steps.filter.outputs.base }}
       mta: ${{ steps.filter.outputs.mta }}
@@ -61,11 +61,6 @@ jobs:
           # This workflow file appears in every filter on purpose: it defines
           # how each image is built, so changing it should rebuild them.
           filters: |
-            support:
-              - 'templater/**'
-              - 'Dockerfile-support'
-              - 'install-scripts/packages.sh'
-              - '.github/workflows/build-and-publish.yml'
             packages:
               - 'Dockerfile'
               - 'install-scripts/**'
@@ -79,6 +74,8 @@ jobs:
               # build job runs as a service image.
               - 'scripts/build-courier-dat.sh'
               - 'scripts/validate-courier-dat.pl'
+              # The renderer pin the base installs lives here.
+              - 'examples/example-context.json'
               - '.github/workflows/build-and-publish.yml'
             mta:
               - 'Dockerfile-mta'
@@ -105,44 +102,6 @@ jobs:
               - 'entrypoints/tinydns'
               - 'tinydns/**'
               - '.github/workflows/build-and-publish.yml'
-
-  support:
-    needs: changes
-    if: >-
-      needs.changes.outputs.support == 'true'
-      || github.event_name == 'workflow_dispatch'
-      || startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      built: 'true'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: make render-template
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-support
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=sha,format=long,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile-support
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
 
   packages:
     needs: changes
@@ -181,17 +140,15 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
 
   base:
-    needs: [changes, support, packages]
-    # Rebuild when the base's own inputs changed OR when support or packages
-    # actually rebuilt -- the transitive case that previously left the base
-    # stale. `!cancelled()` plus the failure guards let this run when an
-    # upstream was skipped (nothing to do) but not when one failed.
+    needs: [changes, packages]
+    # Rebuild when the base's own inputs changed OR when packages actually
+    # rebuilt -- the transitive case that previously left the base stale.
+    # `!cancelled()` plus the failure guard let this run when packages was
+    # skipped (nothing to do) but not when it failed.
     if: >-
       !cancelled()
-      && needs.support.result != 'failure'
       && needs.packages.result != 'failure'
       && (needs.changes.outputs.base == 'true'
-          || needs.support.result == 'success'
           || needs.packages.result == 'success'
           || github.event_name == 'workflow_dispatch'
           || startsWith(github.ref, 'refs/tags/'))
@@ -218,17 +175,29 @@ jobs:
             type=semver,pattern={{version}}
             type=sha,format=long,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+      # The renderer pin lives in the example context, nowhere else.
+      - name: Read the renderer pin from the example context
+        id: renderer
+        run: |
+          c=examples/example-context.json
+          {
+            echo "version=$(jq -er '.tools.minijinja_cli.version' "$c")"
+            echo "sha256_x86_64=$(jq -er '.tools.minijinja_cli.sha256["x86_64-unknown-linux-gnu"]' "$c")"
+            echo "sha256_aarch64=$(jq -er '.tools.minijinja_cli.sha256["aarch64-unknown-linux-gnu"]' "$c")"
+          } >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile-base
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          # Consume the exact upstream built in this run when there was one,
-          # otherwise the current published :main. Without this the base could
-          # be assembled from a half-updated set of dependencies.
+          # Consume the exact packages image built in this run when there was
+          # one, otherwise the current published :main. Without this the base
+          # could be assembled from a half-updated set of dependencies.
           build-args: |
-            SUPPORT_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-support:${{ needs.support.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
+            MINIJINJA_CLI_VERSION=${{ steps.renderer.outputs.version }}
+            MINIJINJA_CLI_SHA256_X86_64=${{ steps.renderer.outputs.sha256_x86_64 }}
+            MINIJINJA_CLI_SHA256_AARCH64=${{ steps.renderer.outputs.sha256_aarch64 }}
             PACKAGES_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-packages:${{ needs.packages.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
 
   services:
@@ -342,7 +311,6 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}

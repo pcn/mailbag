@@ -1,14 +1,20 @@
 # Overridden by the build workflow with the exact upstream built in the same
 # run, so the base is never assembled from a half-updated dependency set.
-# The :main defaults keep a plain `docker build` working locally.
-ARG SUPPORT_IMAGE=ghcr.io/pcn/mailbag-support:main
+# The :main default keeps a plain `docker build` working locally.
 ARG PACKAGES_IMAGE=ghcr.io/pcn/mailbag-packages:main
 
-# support is the render-template binary
-FROM ${SUPPORT_IMAGE} AS support
 # export-stage is the packaged .debs for the courier components
 FROM ${PACKAGES_IMAGE} AS packages
 FROM ubuntu:noble
+
+# The template renderer is upstream minijinja-cli, installed as /renderer. Its
+# version and checksums are pinned in examples/example-context.json
+# (.tools.minijinja_cli) and passed in by the build workflow. There are no
+# defaults on purpose: a default here would be a second pin that could drift
+# from the context, so a build without them fails instead.
+ARG MINIJINJA_CLI_VERSION
+ARG MINIJINJA_CLI_SHA256_X86_64
+ARG MINIJINJA_CLI_SHA256_AARCH64
 
 
 COPY --from=packages /export /tmp/p
@@ -21,7 +27,25 @@ RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 RUN apt-get update  ; apt install -y less
 RUN groupadd -g 300 vmail; useradd -M -r -d /opt/vmail -u 300 -g vmail vmail
 
-RUN apt-get install -y locales bzip2 curl && echo "LANG=en_US.UTF-8" > /etc/default/locale
+RUN apt-get install -y locales bzip2 curl xz-utils && echo "LANG=en_US.UTF-8" > /etc/default/locale
+
+# --strict -n at every call site: printing an undefined value is an error, and
+# the output carries no added trailing newline.
+RUN set -eu; \
+    test -n "${MINIJINJA_CLI_VERSION:-}" || { echo "MINIJINJA_CLI_VERSION not set" >&2; exit 1; }; \
+    case "$(uname -m)" in \
+      x86_64)  target=x86_64-unknown-linux-gnu;  sha256="${MINIJINJA_CLI_SHA256_X86_64:-}" ;; \
+      aarch64) target=aarch64-unknown-linux-gnu; sha256="${MINIJINJA_CLI_SHA256_AARCH64:-}" ;; \
+      *) echo "no minijinja-cli target for $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    test -n "$sha256" || { echo "no minijinja-cli sha256 for $target" >&2; exit 1; }; \
+    cd /tmp; \
+    curl -fsSL -o mj.tar.xz "https://github.com/mitsuhiko/minijinja/releases/download/${MINIJINJA_CLI_VERSION}/minijinja-cli-${target}.tar.xz"; \
+    echo "${sha256}  mj.tar.xz" | sha256sum -c -; \
+    tar -xJf mj.tar.xz; \
+    install -m 0755 "minijinja-cli-${target}/minijinja-cli" /renderer; \
+    rm -rf mj.tar.xz "minijinja-cli-${target}"; \
+    /renderer --version | grep -qx "minijinja-cli ${MINIJINJA_CLI_VERSION}"
 
 # The packages now come from the packages image via the COPY above, not from a
 # release tarball. The commented-out curl that used to fetch one ended in a
@@ -36,12 +60,10 @@ RUN cd /tmp/p; rm -f *web* *pop3* *mysql* *auth*pgsql* *auth*pipe* *ldap* *fax* 
   apt install -y ./*.deb && \
   rm -f *.deb
 
-COPY --from=support /export/render-template /render-template
 # sed -i<suffix> takes the suffix with no separator, so `-idist` wrote the
 # backup as authdaemonrcdist rather than authdaemonrc.dist -- inconsistent
 # with every other config, and invisible to anything looking for *.dist.
 RUN cd /etc/authlib; sed -i.dist 's/^authmodulelist="authuserdb /authmodulelist="authuserdb"  #/g' authdaemonrc
-RUN chmod +x /render-template
 # runit supervises the two daemons every service image runs -- the listener and
 # its auth daemon -- inside one container, so they share a namespace and can see
 # each other. --no-install-recommends matters: the sysv/systemd init integration

@@ -94,5 +94,14 @@
   },
   "aliases": {
     "postmaster": "reject"
+  },
+  "tools": {
+    "minijinja_cli": {
+      "version": "3.0.1",
+      "sha256": {
+        "x86_64-unknown-linux-gnu": "5b2eb07b18d5804e50b4e83ebdaae9b70dda37f4a2d058987881396e6c91c8b6",
+        "aarch64-unknown-linux-gnu": "445bf828667b1ab083cc61383c71897c6c62435bdff797c30d0ca1d4c63f1e25"
+      }
+    }
   }
 }

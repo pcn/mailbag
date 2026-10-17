@@ -53,8 +53,8 @@ EXCLUDED=(
     "authdaemonrc.template"
 )
 
-RENDERER="templater/target/debug/render-template"
-[ -x "$RENDERER" ] || { echo "building $RENDERER ..."; (cd templater && cargo build --quiet) || exit 1; }
+# The same renderer, at the same pinned version, that the images are built with.
+RENDERER=$(scripts/fetch-renderer.sh examples/example-context.json) || exit 1
 
 WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
 
@@ -128,7 +128,7 @@ for entry in "${MAPPING[@]}"; do
     fi
 
     rendered="$WORK/$name.rendered"
-    if ! "$RENDERER" --context "$CONTEXT" --template "$tmpl" > "$rendered" 2>"$WORK/err"; then
+    if ! "$RENDERER" --strict -n "$tmpl" "$CONTEXT" > "$rendered" 2>"$WORK/err"; then
         echo "  FAIL  $name -- does not render:"; sed 's/^/          /' "$WORK/err"; status=1; continue
     fi
 

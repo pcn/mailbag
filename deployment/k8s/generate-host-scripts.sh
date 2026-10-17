@@ -6,13 +6,6 @@ set -e
 # Get the git repository root directory
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-# Check if render-template exists
-if [ ! -f "$REPO_ROOT/render-template" ]; then
-  echo "Error: render-template not found."
-  echo "Please run 'cd $REPO_ROOT && make render-template' first."
-  exit 1
-fi
-
 # Check if context.json exists
 if [ ! -f /etc/mailbag/context.json ]; then
   echo "Error: /etc/mailbag/context.json not found."
@@ -20,11 +13,14 @@ if [ ! -f /etc/mailbag/context.json ]; then
   exit 1
 fi
 
+# The renderer version comes from the host's context.
+RENDERER=$("$REPO_ROOT/scripts/fetch-renderer.sh" /etc/mailbag/context.json)
+
 # Generate prepare-host.sh from template
-"$REPO_ROOT/render-template" --context /etc/mailbag/context.json --template "$REPO_ROOT/deployment/k8s/prepare-host.sh.template" > "$REPO_ROOT/deployment/k8s/prepare-host.sh"
+"$RENDERER" --strict -n "$REPO_ROOT/deployment/k8s/prepare-host.sh.template" /etc/mailbag/context.json > "$REPO_ROOT/deployment/k8s/prepare-host.sh"
 
 # Generate mail-certificates.yaml from template
-"$REPO_ROOT/render-template" --context /etc/mailbag/context.json --template "$REPO_ROOT/deployment/k8s/mail-certificates.yaml.template" > "$REPO_ROOT/deployment/k8s/mail-certificates.yaml"
+"$RENDERER" --strict -n "$REPO_ROOT/deployment/k8s/mail-certificates.yaml.template" /etc/mailbag/context.json > "$REPO_ROOT/deployment/k8s/mail-certificates.yaml"
 
 # Make it executable
 chmod +x "$REPO_ROOT/deployment/k8s/prepare-host.sh"

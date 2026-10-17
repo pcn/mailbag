@@ -8,7 +8,7 @@ Before proceeding, ensure you have:
 1. Configured DNS records for your mail domains
 2. Generated your `context.json` file using `/generate-context.sh`
 3. Created the Kubernetes namespace specified in your context.json
-4. Built the `render-template` utility (run `make render-template` from project root)
+4. `curl`, `jq`, `tar` and `xz` installed; the template renderer pinned in `context.json` is fetched by `scripts/fetch-renderer.sh` on first use
 
 ## Certificate Setup Options
 

@@ -6,7 +6,7 @@ This directory contains Kubernetes manifests for deploying the Mailbag mail syst
 
 1. A running Kubernetes cluster (k0s or k3s)
 2. `kubectl` configured to communicate with your cluster
-3. Mailbag's render-template utility built (`make render-template` from the project root)
+3. `curl`, `jq`, `tar` and `xz` on the deploy host. The template renderer (upstream minijinja-cli, pinned in `context.json` under `tools.minijinja_cli`) is fetched and checksum-verified by `scripts/fetch-renderer.sh` on first use
 4. TLS certificates (will be set up in step 3)
 
 ## Setup Process
