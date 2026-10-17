@@ -24,10 +24,15 @@
 name: Build and publish images
 
 on:
-  pull_request:
+  # Every branch push builds, so any commit yields deployable sha-<sha> images
+  # without needing a PR open. pull_request is deliberately absent: with both,
+  # a branch with an open PR built twice, and the push trigger already covers
+  # every same-repo PR -- fork PRs could never publish anyway, since their token
+  # is read-only. For a non-default branch, paths-filter compares against the
+  # default branch, so a new branch rebuilds everything that differs from main.
   push:
     branches:
-      - main
+      - '**'
     tags:
       - 'v*'
   # Needed to rebuild something whose own inputs did not change -- a stale
