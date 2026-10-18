@@ -5,10 +5,14 @@ ENV TZ=UTC
 # suite during debuild, and under the image's default C locale its
 # internationalised-address tests fail: courier-unicode takes its default
 # charset from the locale, and "Hóla" came out as raw UCS-4 (H\xF3\0\0\0la)
-# instead of UTF-8. C.UTF-8 is built into Ubuntu; no locales package needed.
+# instead of UTF-8.
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
-RUN apt-get update && apt-get install -y tzdata
+# The authlib testsuite then sets LC_ALL=en_US.UTF-8 itself, overriding the
+# above, so that specific locale has to exist; noble does not ship it
+# generated ("setlocale: LC_ALL: cannot change locale (en_US.UTF-8)").
+RUN apt-get update && apt-get install -y tzdata locales && \
+    locale-gen en_US.UTF-8
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
 RUN apt-get update 
