@@ -56,7 +56,9 @@ if [ ! -x "$bin" ]; then
 fi
 
 # A cached binary is trusted only if it still reports the pinned version.
-"$bin" --version | grep -qx "minijinja-cli $version" \
+# Captured, not piped, so an early-exiting reader can never SIGPIPE the binary.
+reported=$("$bin" --version) || die "$bin --version failed"
+[ "${reported%%$'\n'*}" = "minijinja-cli $version" ] \
     || die "$bin does not report minijinja-cli $version"
 
 echo "$bin"

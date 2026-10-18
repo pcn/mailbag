@@ -51,7 +51,9 @@ if [ ! -x "$bin" ]; then
 fi
 
 # A cached binary is trusted only if it still reports the pinned version.
-"$bin" --version | grep -qx "goss version $version" \
+# Captured, not piped, so an early-exiting reader can never SIGPIPE the binary.
+reported=$("$bin" --version) || die "$bin --version failed"
+[ "${reported%%$'\n'*}" = "goss version $version" ] \
     || die "$bin does not report goss version $version"
 
 echo "$bin"

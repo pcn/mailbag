@@ -50,7 +50,10 @@ if [ ! -x "$bin" ]; then
 fi
 
 # A cached binary is trusted only if it still reports the pinned version.
-"$bin" version | head -1 | grep -qx "cue version $version" \
+# Captured, not piped: `cue version | head -1` under pipefail fails whenever
+# head closes the pipe before cue has written its remaining lines (SIGPIPE).
+reported=$("$bin" version) || die "$bin version failed"
+[ "${reported%%$'\n'*}" = "cue version $version" ] \
     || die "$bin does not report cue version $version"
 
 echo "$bin"
