@@ -1,0 +1,44 @@
+# Repo-level checks: run from a checkout, with no cluster and no credentials.
+#
+#   GOSS=$(scripts/fetch-goss.sh examples/example-context.json)
+#   "$GOSS" -g goss/repo.yaml validate
+#
+# Each block names the backlog item whose acceptance it encodes.
+
+file:
+  # PROJ-030: every mail port comes from services.*_port in context.json. A
+  # literal port, or an /etc/services name such as "smtp", is a second source
+  # that can silently disagree with the context.
+  deployment/k8s/configmap.yaml:
+    exists: true
+    contents:
+      - '!/^\s*(SSL)?PORT=[^{]/'
+  deployment/k8s/courier-mta.yaml.template:
+    exists: true
+    contents: &no-literal-ports
+      - '!/containerPort: *[0-9]/'
+      - '!/^  - port: *[0-9]/'
+      - '!/--port [0-9]/'
+  deployment/k8s/courier-msa.yaml.template:
+    exists: true
+    contents: *no-literal-ports
+  deployment/k8s/courier-mta-ssl.yaml.template:
+    exists: true
+    contents: *no-literal-ports
+  deployment/k8s/courier-imapd-ssl.yaml.template:
+    exists: true
+    contents: *no-literal-ports
+
+command:
+  # PROJ-030
+  example context declares every mail port and no msa.port:
+    exec: >-
+      jq -e '(.services | has("smtp_port") and has("smtps_port")
+                          and has("submission_port") and has("imaps_port"))
+             and (.msa | has("port") | not)' examples/example-context.json
+    exit-status: 0
+  # PROJ-030
+  non-standard ports render into every place each service uses them:
+    exec: goss/lib/check-rendered-ports.sh
+    exit-status: 0
+    timeout: 60000

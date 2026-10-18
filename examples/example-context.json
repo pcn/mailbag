@@ -74,6 +74,7 @@
   },
   "services": {
     "smtp_port": 25,
+    "smtps_port": 465,
     "submission_port": 587,
     "imaps_port": 993,
     "ssh_port": 22,
@@ -100,6 +101,13 @@
     "issuer": "letsencrypt-staging"
   },
   "tools": {
+    "goss": {
+      "version": "0.4.10",
+      "sha256": {
+        "x86_64-unknown-linux-gnu": "26e365428946294bcec0c61d867bb3c8349f39feb3d0e6f59084e98632785cc7",
+        "aarch64-unknown-linux-gnu": "90a59612b4d67d9f1a9038634c000790136bb82526a69de1e81ac075c2f6d2c6"
+      }
+    },
     "minijinja_cli": {
       "version": "3.0.1",
       "sha256": {

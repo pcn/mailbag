@@ -175,7 +175,8 @@ data:
     TLS_VERIFYPEER=NONE
     MAILUSER=daemon
     MAILGROUP=daemon
-    PORT=smtp
+    # esmtpd-msa overrides this; set to the submission port so the two agree.
+    PORT={{ services.submission_port }}
     BLACKLISTS=""
     MAXPERC=5
     TCPDOPTS="-stderrlogger=/usr/sbin/courierlogger"
@@ -322,7 +323,7 @@ data:
     TLS_VERIFYPEER=NONE
     MAILUSER=daemon
     MAILGROUP=daemon
-    PORT=smtp
+    PORT={{ services.smtp_port }}
     BLACKLISTS=""
     ACCESSFILE=${sysconfdir}/smtpaccess
     MAXPERC=5
@@ -380,7 +381,9 @@ data:
     TLS_VERIFYPEER=NONE
     MAILUSER=daemon
     MAILGROUP=daemon
-    PORT=smtp
+    # Plain ESMTP's port. This pod runs only esmtpd-ssl, which listens on
+    # SSLPORT; the setting is kept because the .dist defines it.
+    PORT={{ services.smtp_port }}
     BLACKLISTS=""
     ACCESSFILE=${sysconfdir}/smtpaccess
     MAXPERC=5
@@ -424,7 +427,7 @@ data:
     NOADDRREWRITE=0
     BLACKLISTS=""
     ADDRESS=0
-    PORT=587
+    PORT={{ services.submission_port }}
     PIDFILE=/var/spool/courier/tmp/esmtpd-msa.pid
     ACCESSFILE=${sysconfdir}/smtpaccess
     MAXDAEMONS=40
@@ -491,7 +494,7 @@ data:
     TLS_VERIFYPEER=NONE
     MAILUSER=daemon
     MAILGROUP=daemon
-    PORT=smtp
+    PORT={{ services.smtp_port }}
     BLACKLISTS=""
     ACCESSFILE=${sysconfdir}/smtpaccess
     MAXPERC=5
@@ -555,7 +558,7 @@ data:
     NOADDDATE=1
     NOADDRREWRITE=0
     ESMTP_LOG_DIALOG={{ mta_ssl.log_dialog | default("0") }}
-    SSLPORT=465
+    SSLPORT={{ services.smtps_port }}
     SSLADDRESS=0
     SSLPIDFILE=/var/spool/courier/tmp/esmtpd-ssl.pid
     ESMTPDSSLSTART=NO
@@ -570,7 +573,7 @@ data:
     # setting from imapd-ssl.dist is carried here -- enforced by
     # scripts/check-config-completeness.sh.
     #
-    SSLPORT=993
+    SSLPORT={{ services.imaps_port }}
     SSLADDRESS=0
     SSLPIDFILE=/var/spool/courier/tmp/imapd-ssl.pid
     SSLLOGGEROPTS="-name=imapd-ssl"

@@ -50,7 +50,7 @@ spec:
         image: ghcr.io/pcn/mailbag/courier-msa:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         ports:
-        - containerPort: 587
+        - containerPort: {{ services.submission_port }}
           name: submission
         volumeMounts:
         # Derived databases, read-only. Built and validated out of band by
@@ -104,14 +104,14 @@ spec:
           subPath: authdaemonrc.template
         readinessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 587 --expect "220"']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port {{ services.submission_port }} --expect "220"']
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
         livenessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 587 --expect "220"']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port {{ services.submission_port }} --expect "220"']
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
@@ -181,7 +181,7 @@ spec:
     app: mailbag
     component: msa
   ports:
-  - port: 587
+  - port: {{ services.submission_port }}
     targetPort: submission
     protocol: TCP
     name: submission

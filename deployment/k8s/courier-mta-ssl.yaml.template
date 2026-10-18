@@ -62,7 +62,7 @@ spec:
         image: ghcr.io/pcn/mailbag/courier-mta-ssl:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         ports:
-        - containerPort: 465
+        - containerPort: {{ services.smtps_port }}
           name: smtps
         volumeMounts:
         # Derived databases, read-only. Built and validated out of band by
@@ -116,14 +116,14 @@ spec:
           subPath: authdaemonrc.template
         readinessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 465 --expect "220" --tls --quit "QUIT"']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port {{ services.smtps_port }} --expect "220" --tls --quit "QUIT"']
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
         livenessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 465 --expect "220" --tls --quit "QUIT"']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port {{ services.smtps_port }} --expect "220" --tls --quit "QUIT"']
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
@@ -203,7 +203,7 @@ spec:
     app: mailbag
     component: mta-ssl
   ports:
-  - port: 465
+  - port: {{ services.smtps_port }}
     targetPort: smtps
     protocol: TCP
     name: smtps

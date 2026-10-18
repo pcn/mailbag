@@ -50,7 +50,7 @@ spec:
         image: ghcr.io/pcn/mailbag/courier-mta:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         ports:
-        - containerPort: 25
+        - containerPort: {{ services.smtp_port }}
           name: smtp
         volumeMounts:
         - name: templates
@@ -101,14 +101,14 @@ spec:
           readOnly: true
         readinessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 25 --expect "220"']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port {{ services.smtp_port }} --expect "220"']
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
         livenessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 25 --expect "220"']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port {{ services.smtp_port }} --expect "220"']
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
@@ -178,7 +178,7 @@ spec:
     app: mailbag
     component: mta
   ports:
-  - port: 25
+  - port: {{ services.smtp_port }}
     targetPort: smtp
     protocol: TCP
     name: smtp

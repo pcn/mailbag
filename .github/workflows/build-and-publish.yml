@@ -361,3 +361,5 @@ jobs:
         run: ./scripts/check-config-completeness.sh
       - name: Every template renders against the example context
         run: ./scripts/render-all-templates.sh
+      - name: Repo goss suite (goss pinned in the example context)
+        run: '"$(scripts/fetch-goss.sh examples/example-context.json)" -g goss/repo.yaml validate'

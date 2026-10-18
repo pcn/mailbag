@@ -114,6 +114,7 @@ cat > /etc/mailbag/context.json << EOF
   },
   "services": {
     "smtp_port": 25,
+    "smtps_port": 465,
     "submission_port": 587,
     "imaps_port": 993,
     "ssh_port": 22,

@@ -1,0 +1,24 @@
+# Smoke checks against a deployed mailbag host. Every value comes from the
+# host's context.json, passed in as goss vars, so nothing here is hardcoded:
+#
+#   GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
+#   "$GOSS" -g goss/smoke.yaml --vars /etc/mailbag/context.json validate
+#
+# Each block names the backlog item whose acceptance it encodes.
+
+addr:
+  # PROJ-030: each service answers on the hostname and port its context
+  # declares -- the same services.*_port values rendered into the courier
+  # config, the containerPort, the Service and the probes.
+  tcp://{{ .Vars.mta.dns_name }}:{{ .Vars.services.smtp_port }}:
+    reachable: true
+    timeout: 3000
+  tcp://{{ .Vars.mta_ssl.dns_name }}:{{ .Vars.services.smtps_port }}:
+    reachable: true
+    timeout: 3000
+  tcp://{{ .Vars.msa.dns_name }}:{{ .Vars.services.submission_port }}:
+    reachable: true
+    timeout: 3000
+  tcp://{{ .Vars.imapd_ssl.dns_name }}:{{ .Vars.services.imaps_port }}:
+    reachable: true
+    timeout: 3000

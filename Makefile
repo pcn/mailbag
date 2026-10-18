@@ -1,5 +1,3 @@
-GOSS_VER = "0.4.8"
-
 
 dummy:
 	@echo "targets: service-images, install or host"
@@ -14,8 +12,8 @@ install-units: unit-files
 courier-packages.tar: build-base.sh
 	sudo ./build-base.sh
 
-run-goss: goss-bin
-	(cd goss && ../goss-bin --vars ../context.json validate)
+run-goss:
+	(cd goss && $(GOSS) --vars ../context.json validate)
 
 start: unit-files
 	cd unit-files && $(MAKE) RENDERER=$(RENDERER) start-services
@@ -28,6 +26,12 @@ stop: unit-files
 # in the context's .tools.minijinja_cli and fetched into a cache on first use.
 # Deferred (=) so targets that do not render never fetch it.
 RENDERER = $(shell scripts/fetch-renderer.sh examples/example-context.json)
+# goss is pinned the same way, under .tools.goss.
+GOSS = $(shell scripts/fetch-goss.sh examples/example-context.json)
+
+# Repo-level goss suite: no cluster, no credentials. Also run in CI.
+check-goss-repo:
+	$(GOSS) -g goss/repo.yaml validate
 
 # Render every template against its context; fails on any reference to a
 # context key that is not provided.
@@ -40,11 +44,7 @@ check-templates:
 check-config:
 	./scripts/check-config-completeness.sh
 
-checks: check-templates check-config
-
-goss-bin:
-	curl -L https://github.com/aelsabbahy/goss/releases/download/v$(GOSS_VER)/goss-linux-amd64 > goss-bin && \
-	  chmod +x goss-bin
+checks: check-templates check-config check-goss-repo
 
 ## Build targets are now built by github actions, and downloaded in Dockerfile-base
 build-artifacts: containers
