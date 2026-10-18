@@ -99,7 +99,5 @@ RUN install -m 0755 /usr/local/lib/mailbag-sv/sv-finish /usr/local/bin/sv-finish
     ln -sf /usr/local/bin/sv-finish /etc/sv/authdaemon/finish && \
     ln -sf /etc/sv/authdaemon /etc/service/authdaemon && \
     rm -rf /usr/local/lib/mailbag-sv
-COPY acceptmailfor.template /acceptmailfor.template
-COPY hosteddomains.template /hosteddomains.template
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

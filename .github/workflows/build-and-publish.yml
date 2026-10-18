@@ -11,8 +11,6 @@
 #
 #   packages ─> base ─> {mta, msa, mta-ssl, imapd-ssl, courierd}
 #
-#   tinydns has no dependency on base.
-#
 # The base also installs the template renderer (upstream minijinja-cli) at the
 # version and checksums pinned in examples/example-context.json.
 #
@@ -56,7 +54,6 @@ jobs:
       mta_ssl: ${{ steps.filter.outputs.mta_ssl }}
       imapd_ssl: ${{ steps.filter.outputs.imapd_ssl }}
       courierd: ${{ steps.filter.outputs.courierd }}
-      tinydns: ${{ steps.filter.outputs.tinydns }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -75,8 +72,6 @@ jobs:
               - 'install-scripts/**'
               - 'scripts/packages-key.sh'
               - 'Dockerfile-base'
-              - 'acceptmailfor.template'
-              - 'hosteddomains.template'
               - 'entrypoints/sv/**'
               # The base ships the build and validation scripts, because the
               # build job runs as a service image.
@@ -104,11 +99,6 @@ jobs:
             courierd:
               - 'Dockerfile-courierd'
               - 'entrypoints/courier-courierd'
-              - '.github/workflows/build-and-publish.yml'
-            tinydns:
-              - 'Dockerfile-tinydns'
-              - 'entrypoints/tinydns'
-              - 'tinydns/**'
               - '.github/workflows/build-and-publish.yml'
 
   # Content-addressed: the courier compile (10-13 min) runs once per set of
@@ -300,40 +290,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}:${{ needs.base.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
-
-  tinydns:
-    needs: changes
-    if: >-
-      needs.changes.outputs.tinydns == 'true'
-      || github.event_name == 'workflow_dispatch'
-      || startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/djbdns-tinydns
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=sha,format=long,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile-tinydns
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
 
   # Runs after the images exist, because the .dist files it checks against are
   # read from the image rather than from a checked-in copy. That is deliberate:

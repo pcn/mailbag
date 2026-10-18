@@ -1,8 +1,11 @@
 # The context.json file
 
-The `context.json` file contains the authoritative data that will be substituted in various places when templating
-(using `jq` in the unit files startup, and the template renderer -- upstream minijinja-cli, whose version and checksums
-are themselves pinned in the context under `tools.minijinja_cli` -- when expanding templates for a host or a container).
+`/etc/mailbag/context.json` is the one description of a host: hostnames,
+ports, paths, the certificate source, the k3s settings, and the pinned tool
+versions. The deploy scripts and the renderer read it, each container renders
+its courier config from it, and the goss suites take their values from it.
 
-The example file contains the data, and the shape of the data, and any of the keys or values may be references in any
-of the files in this repo, but that data is host-specific.
+`cue/schema.cue` defines what it may contain (`#Context`). It is closed, so a
+key nothing reads is rejected rather than silently ignored.
+`examples/example-context.json` is a complete example; `generate-context.sh`
+writes a first one for a new host.

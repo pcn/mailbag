@@ -50,7 +50,7 @@ mkdir -p /etc/mailbag
 
 echo "Host preparation complete!"
 echo "Next steps:"
-echo "1. Create Let's Encrypt certificates with the certbot container job:"
-echo "   - Run the script to create and deploy the certbot job as shown in the test-workflow.md"
-echo "   - Wait for the job to complete successfully"
-echo "2. Deploy the Kubernetes manifests using the template renderer and context.json"
+echo "1. Certificates follow tls.source in context.json:"
+echo "   - cert-manager: the issuer and Certificate are applied by the deploy"
+echo "   - secret: create the courier-mail-cert-tls Secret first (scripts/make-test-cert.sh for a test host)"
+echo "2. Deploy: deployment/k8s/deploy-services.sh"

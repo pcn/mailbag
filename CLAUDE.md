@@ -4,306 +4,101 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a self-hosted email server project built on Courier components (MTA, MSA, IMAP) running in Docker containers with systemd integration. The system supports virtual hosting, TLS/SSL encryption, and automated certificate management via Let's Encrypt.
+A self-hosted mail server built from Courier components -- MTA, MSA, MTA-SSL,
+IMAP-SSL and courierd -- each in its own container on a single-node k3s
+cluster. The raw manifests in `deployment/k8s/` are the only deployment path;
+anything not serving that target has been removed.
 
-## Key Architecture
+## Configuration
 
-### Core Components
-- **MTA (Mail Transfer Agent)**: Handles incoming mail via courier-esmtpd
-- **MSA (Mail Submission Agent)**: Handles outgoing mail submission
-- **IMAP-SSL**: Provides secure IMAP access via courier-imapd-ssl
-- **Courierd**: Local mail delivery daemon (runs in each container)
-- **Template Renderer**: Rust-based tool for rendering configuration files
+- **Context.** One file per host, `/etc/mailbag/context.json`. Its schema is
+  `cue/schema.cue` (`#Context`, closed: a key nothing reads is an error).
+  Check a context with
+  `"$(scripts/fetch-cue.sh <ctx>)" vet -c -d '#Context' ./cue <ctx>`.
+  `generate-context.sh` writes a first one; `examples/example-context.json` is
+  the reference. A key is required when a consumer prints it with no default
+  and optional when every consumer supplies `| default(...)`.
+- **Rendering.** Upstream minijinja-cli, installed as `renderer` (`/renderer`
+  in the images), always invoked as `renderer --strict -n TEMPLATE CONTEXT`.
+  `--strict` makes printing an undefined value an error. Manifests ending
+  `.yaml.template` render at deploy time; the courier config templates in
+  `deployment/k8s/configmap.yaml` render inside each container at start.
+- **Tool pins.** cue, goss and minijinja-cli are pinned by version and a
+  sha256 per target under `tools` in the context, and fetched by
+  `scripts/fetch-{cue,goss,renderer}.sh`. The images take the renderer pin
+  from `examples/example-context.json`.
+- **Ports** come from `services.*_port` everywhere -- courier config,
+  containerPort, Service, probes, goss. Never write a port number elsewhere.
+- **Certificates** come from `tls.source`: `cert-manager` (with `tls.issuer`)
+  or `secret` (a pre-provisioned `courier-mail-cert-tls`). Services read
+  `/certs/tls.crt` and `/certs/tls.key` directly.
 
-### Container Strategy
-Each service runs in its own Docker container with shared volumes for:
-- `/var/spool/courier` - Mail spool directories
-- `/vmail/<domain>` - Virtual mail storage
-- SSL certificates from Let's Encrypt
-- Configuration rendered from context.json
+## Commands
 
-### Configuration System
-- **Context File**: `/etc/mailbag/context.json` (based on `examples/example-context.json`)
-- **Template Rendering**: upstream minijinja-cli, installed as `renderer` (`/renderer` in the images), pinned by version and sha256 in `context.json` under `tools.minijinja_cli`; always invoked as `renderer --strict -n TEMPLATE CONTEXT`
-- **Runtime Configuration**: Templates rendered at container startup
-
-## Common Development Commands
-
-### Building
 ```bash
-# Build all containers and prerequisites
-make
-
-# Fetch the pinned template renderer (cached; verified against the context's sha256)
-scripts/fetch-renderer.sh examples/example-context.json
-
-# Build service containers (done via GitHub Actions)
-make service-images
+make checks                      # template render check, config completeness, goss/repo.yaml
+./generate-context.sh            # write /etc/mailbag/context.json
+./deploy-mailbag.sh              # prepare the host, then deploy
+IMAGE_TAG=sha-<commit> deployment/k8s/deploy-services.sh   # deploy a specific build
+GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
+$GOSS -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate   # on a host
+$GOSS -g goss/smoke.yaml    --vars /etc/mailbag/context.json validate
 ```
 
-### Testing
-```bash
-# Run goss validation tests
-make run-goss
+Images are built by CI on every branch push and tagged `sha-<commit>`. The
+courier packages image is content-addressed (`scripts/packages-key.sh`), so
+the courier compile runs once per set of `Dockerfile` + `install-scripts/`.
 
-# Test STARTTLS functionality
-./test-starttls.sh
-```
+## Testing
 
-### Deployment
+Checks are goss suites: `goss/repo.yaml` from a checkout and in CI,
+`goss/host-k3s.yaml` and `goss/smoke.yaml` on a host. State acceptance as goss
+checks that pass, and as deliberately broken cases they must reject.
+Protocols goss cannot speak (SMTP, IMAP, STARTTLS) are command checks.
 
-#### Kubernetes Deployment (Recommended)
-```bash
-# Complete deployment workflow
-./deploy-mailbag.sh
+## CUE
 
-# Just check deployment status
-./deploy-mailbag.sh status
+Keep every definition and decision in plain `.cue` files, where `cue vet` /
+`cue export` test it without side effects. `*_tool.cue` files only
+orchestrate: read the current state, feed it to a plan definition, and carry
+out its writes, execs and restarts. Rules found the hard way with `cue cmd`
+v0.17.1: pass the context as a tag holding its contents, not as a data input;
+put guards on a task's output inside a struct field, never at the command's
+top level; never guard on `len(glob.files)`; never pass a value into a
+definition under the field's own name (`{x: x}` is a self-reference).
 
-# Individual steps:
-# 1. Generate context configuration
-./generate-context.sh
+## Courier service architecture
 
-# 2. Generate and run host preparation
-cd deployment/k8s && ./generate-host-scripts.sh && sudo ./prepare-host.sh
+**courierd** runs as root and privileged: it spawns delivery agents that
+change credentials -- `courierlocal` (local delivery, setuid to the mail
+user), `courieresmtp` (outbound SMTP), `courierdsn` (delivery status). These
+deliver; they do not listen.
 
-# 3. Deploy services to Kubernetes
-cd deployment/k8s && sudo ./deploy-services.sh
-```
+**Listeners**, one container each: `courier-mta` (25, inbound SMTP),
+`courier-msa` (587, authenticated submission), `courier-mta-ssl` (465,
+implicit TLS), `courier-imapd-ssl` (993). MTA, MSA and MTA-SSL run as daemon
+(UID 1). IMAP-SSL starts as root with only the credential-changing
+capabilities, because imaplogin switches to the authenticated mail user per
+connection; as UID 1 it fails with "setgid: Operation not permitted" after the
+banner.
 
-#### Systemd Deployment (Alternative)
-```bash
-# Install systemd unit files
-make install
+**Mail flow:** listeners accept and queue into the shared spool
+(`/var/spool/courier`); courierd delivers locally to `/vmail/<user>/Maildir`
+or remotely; IMAP reads the maildirs. Containers communicate only through the
+shared spool volume, never over the network.
 
-# Start all services
-make start
+**Databases** (hosteddomains, esmtpacceptmailfor, smtpaccess, aliases, userdb,
+userdbshadow) are built and validated out of band by the
+`courier-build-dat` job, including a canary lookup against both userdb files,
+then mounted read-only from a content-hashed ConfigMap and Secret. Changing
+one changes the object name and rolls the pods that mount it. Serving pods
+never build databases.
 
-# Stop all services  
-make stop
+**Identities:** daemon (UID 1) for the listeners and courierd's workers;
+vmail (UID 300) owns mail storage and is what imaplogin and courierlocal drop
+*to*; root for courierd and the privilege-dropping agents.
 
-# Generate host-specific configuration
-make host
-```
+## Work tracking
 
-### Template System
-```bash
-# Render a template manually
-"$(scripts/fetch-renderer.sh context.json)" --strict -n template-file.template context.json > output-file
-
-# Render every template against the example context (also run in CI)
-make check-templates
-
-# Generate unit files from templates
-cd unit-files && make
-```
-
-## Important Files & Directories
-
-### Configuration
-- `context.json` - Main configuration (must be created from example)
-- `examples/example-context.json` - Template for context configuration
-- `unit-files/` - Systemd service definitions (templated)
-- `entrypoints/` - Container startup scripts
-
-### Build System
-- `Dockerfile-*` - Container definitions for each service
-- `build-*.sh` - Container build scripts  
-- `Makefile` - Main build orchestration
-
-### Templating
-- `scripts/fetch-renderer.sh` - fetches and verifies the renderer pinned by a context.json
-- `*.template` files - Template files for configuration
-
-## Context Configuration
-
-The system requires a `context.json` file (based on `examples/example-context.json`) containing:
-- Domain names and DNS configuration
-- SSL certificate paths (Let's Encrypt)
-- Mail spool and storage paths
-- Service-specific settings
-- Docker network configuration
-
-## Storage Architecture
-
-### Path Standardization
-All mailbag data is stored under `/home/` for consistency:
-- Mail storage: `/home/vmail/<domain>/`
-- Courier spool: `/home/mailbag/spool/courier-<service>/`
-- Configuration: `/home/mailbag/config/{courier,authlib}/`
-- Certificates: `/home/mailbag/letsencrypt/`
-
-### Kubernetes Storage
-- Uses hostPath PersistentVolumes with ReadWriteMany access
-- Static volume binding with `storageClassName: ""` to avoid dynamic provisioning conflicts
-- Supports IPC between courier components through shared filesystem
-
-## Virtual Mail Setup
-
-Users are managed via Courier's userdb system:
-```bash
-userdbpw -hmac-sha256 | userdb -f /etc/authlib/userdb/domain.com user@domain.com set hmac-sha256pw
-userdb -f /etc/authlib/userdb/domain.com user@domain.com set uid=300 gid=300 home=/opt/vmail/domain.com/user
-makeuserdb
-```
-
-## SSL/TLS Certificate Management
-
-- Uses Let's Encrypt with certbot for certificate generation
-- Certificates stored in `/etc/letsencrypt/live/<domain>-<generation>/`
-- Renewal handled via systemd timers
-- Containers mount certificate directories as volumes
-
-## Kubernetes Support
-
-Alternative deployment via Kubernetes is supported:
-- Raw K8s manifests in `deployment/k8s/` -- the single deployment path
-- Certificate management via cert-manager
-
-## Courier Service Architecture (Kubernetes)
-
-### Container Separation
-The Kubernetes deployment uses a **single courierd container** for mail processing/delivery and **separate containers** for each listening service:
-
-**courierd container**:
-- Runs main courierd process as PID 1 with privileged mode
-- Spawns worker processes with privilege separation:
-  - `courierlocal` (root) - local mail delivery with setuid/setgid to target users
-  - `courieresmtp` (daemon) - **outbound** SMTP delivery to remote servers
-  - `courierdsn` (daemon) - delivery status notifications
-  - `courieruucp` (uucp) - UUCP delivery
-  - `courierfax` (root) - fax delivery
-- These are **delivery agents**, not listening services
-- Requires privileged mode for setuid/setgid operations during mail delivery
-
-**Listening service containers**:
-- `courier-msa` - Port 587 mail submission (authenticated clients)
-- `courier-mta` - Port 25 incoming SMTP (external servers)
-- `courier-mta-ssl` - Port 465 SSL SMTP
-- `courier-imapd-ssl` - Port 993 IMAP access to mailboxes
-- MTA/MSA run as daemon (UID 1). IMAP-SSL starts as root with capabilities
-  dropped to SETUID/SETGID/CHOWN/FOWNER/DAC_OVERRIDE, because imaplogin
-  changes credentials to the authenticated mail user per connection; as UID 1
-  it fails with "setgid: Operation not permitted" right after the banner.
-
-### Mail Flow
-1. **Inbound**: MTA containers accept SMTP → queue to courier spool
-2. **Submission**: MSA container accepts from clients → queue to courier spool  
-3. **Processing**: courierd processes queue → local or remote delivery
-4. **Local delivery**: courierlocal drops to target user → writes to `/vmail/user/Maildir/`
-5. **Remote delivery**: courieresmtp sends to external servers
-6. **Access**: IMAP reads maildirs as vmail user
-
-### Communication
-- Services communicate via **shared courier spool volume** (`/var/spool/courier`)
-- No direct network communication between containers
-- courierd must run privileged for mail delivery privilege separation
-- MTA/MSA containers do NOT run courierd themselves (fixed architecture issue)
-
-### User Permissions
-
-The compiled userdb databases must be owned by the mail user (daemon).
-`makeuserdb` writes `userdbshadow.dat` under umask 066, so it is mode 0600 and
-readable only by whoever ran it; authdaemond is the only reader and upstream
-runs it as the mail user. Building it as root (which is what happened when
-every container rebuilt the shared `/etc/authlib` volume and courierd got there
-first) left `0600 root:root`, and every authdaemond running as daemon failed
-with "Operation not permitted" -- a correct password denied. All entrypoints go
-through `/rebuild-userdb`, which drops to the mail user and then proves the
-shadow file is readable before returning.
-
-- **daemon (UID 1)**: Courier services (MTA/MSA), courierd workers
-- **vmail (UID 300)**: Mail storage owner -- the identity imaplogin and
-  courierlocal drop *to*, not the identity those services start as
-- **root**: courierd main process, privilege-dropping delivery agents
-
-## Security Considerations
-
-### Certificate Handling (CRITICAL ISSUE)
-**⚠️ SECURITY WARNING**: The current MSA entrypoint attempts to create `esmtpd.pem` in `/usr/lib/courier/share/` which is a shared directory. This is a security anti-pattern:
-
-- Certificates and private keys should NOT be writable by daemon processes
-- Shared directories should NOT have write permissions for service users
-- Certificate material should be properly mounted with read-only permissions
-
-**Action Required**: 
-1. Stop using `/usr/lib/courier/share/esmtpd.pem` for certificate storage
-2. Use proper certificate mounting with read-only permissions
-3. Configure Courier to use the mounted certificate files directly
-4. Implement proper certificate validation before deployment
-
-**Current Status**: MSA service certificate handling is BLOCKED due to security concerns.
-
-## Certificate Management with cert-manager (2025-06-24)
-
-### Progress Made
-- ✅ **cert-manager installed**: Deployed cert-manager v1.15.3 to Kubernetes cluster
-- ✅ **Security decision**: Chose cert-manager over external certbot for proper K8s integration
-- ✅ **CRDs deployed**: All cert-manager Custom Resource Definitions are available
-
-### Next Steps (CONTINUE HERE NEXT SESSION)
-1. **Wait for cert-manager pods**: Verify all cert-manager pods are Running
-   ```bash
-   kubectl get pods -n cert-manager
-   ```
-
-2. **Create Let's Encrypt ClusterIssuer**: Configure ACME issuer for farout.rton.me
-   - Use HTTP-01 challenge for domain validation
-   - Configure email for Let's Encrypt notifications
-
-3. **Create Certificate resources**: Generate certificates for mail services
-   - `mail.farout.rton.me` (MSA/MTA)
-   - `smtp.farout.rton.me` (MTA-SSL)
-   - `imap.farout.rton.me` (IMAP-SSL)
-
-4. **Update deployments**: Modify courier services to use cert-manager secrets
-   - Mount certificates as read-only volumes
-   - Remove insecure certificate copying from entrypoints
-   - Configure Courier to use mounted certificates directly
-
-5. **Test certificate validation**: Verify certificates are valid and auto-renewing
-
-### Why cert-manager over certbot
-- ✅ Kubernetes-native certificate management
-- ✅ Automatic renewal and secret updates
-- ✅ Read-only certificate mounting (security best practice)
-- ✅ No host-level dependencies
-- ✅ Proper RBAC integration
-
-## Current Deployment Status (2025-06-25)
-
-### Working Components
-- ✅ **cert-manager**: Let's Encrypt certificates automatically provisioned and managed
-- ✅ **MSA (Port 587)**: Running with cert-manager certificates, handles mail submission
-- ✅ **MTA (Port 25)**: Running with cert-manager certificates, handles mail reception  
-- ✅ **IMAP-SSL (Port 993)**: Running with cert-manager certificates, uses couriertcpd successfully
-- ✅ **courierd**: Running stably with privilege separation, processes mail queue
-- ✅ **Storage**: All PVCs bound, shared courier spool functional
-- ✅ **Configuration**: Complete template system with cert-manager secrets
-- ✅ **Package Updates**: Updated to Courier 1.4.1, authlib 0.72.4, unicode 2.3.2
-
-### Current Issue
-- ❌ **MTA-SSL (Port 465)**: Segmentation fault in couriertcpd during SSL startup
-  - IMAP-SSL works fine with same couriertcpd binary and certificates
-  - Indicates MTA-SSL specific configuration issue, not binary/cert problem
-  - MTA/MSA use STARTTLS (don't read certs until STARTTLS command)
-  - Only IMAP-SSL and MTA-SSL directly use certificates via couriertcpd
-
-### Achievements
-- **Secure Certificate Management**: All services use cert-manager secrets instead of insecure copying
-- **Automated Renewal**: Certificates automatically renewed by cert-manager
-- **4/5 Core Services Running**: Mail submission, reception, IMAP access, and processing functional
-- **Template System**: Complete configuration rendering from context.json
-- **Monitoring Loops**: Proper container lifecycle management
-
-### Certificate Architecture
-- Certificates mounted from cert-manager secrets as `/certs/tls.crt` and `/certs/tls.key`
-- Services access certificates directly, no copying or transformation needed
-- Let's Encrypt staging certificates working, can switch to production when ready
-
-### Next Steps for Next Session
-1. Debug MTA-SSL configuration causing couriertcpd segfault
-2. Compare working IMAP-SSL vs failing MTA-SSL configurations
-3. Create test user accounts in courier userdb for mail delivery testing
-4. Test end-to-end mail flow: submission → delivery → IMAP access
-5. Switch to production Let's Encrypt certificates
+`backlog/` (Platypus) holds the work items; follow-up work goes there, with
+acceptance stated as goss checks.

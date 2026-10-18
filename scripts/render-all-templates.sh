@@ -7,12 +7,10 @@
 # that was never added -- which would otherwise render as an empty string with
 # a zero exit code and produce silently broken courier config.
 #
-# Templates do not all share one context: unit-files/Makefile.template is
-# rendered against unit-files/files.json, everything else against the example
-# context. Keep the table below in sync when templates are added. The courier
-# config templates carried as data in configmap.yaml are rendered too, against
-# the example context, because the entrypoints render them with the same
-# renderer at container start.
+# Every template renders against the example context. Keep the table below in
+# sync when templates are added. The courier config templates carried as data
+# in configmap.yaml are rendered too, because the entrypoints render them with
+# the same renderer at container start.
 
 set -u -o pipefail
 
@@ -27,9 +25,6 @@ RENDERER=$(scripts/fetch-renderer.sh examples/example-context.json) || exit 1
 
 # template path : context path
 TEMPLATES=(
-    "acceptmailfor.template:$CONTEXT"
-    "hosteddomains.template:$CONTEXT"
-    "host/Makefile.template:$CONTEXT"
     "deployment/k8s/prepare-host.sh.template:$CONTEXT"
     "deployment/k8s/mail-certificates.yaml.template:$CONTEXT"
     "deployment/k8s/courierd.yaml.template:$CONTEXT"
@@ -38,7 +33,6 @@ TEMPLATES=(
     "deployment/k8s/courier-imapd-ssl.yaml.template:$CONTEXT"
     "deployment/k8s/courier-msa.yaml.template:$CONTEXT"
     "deployment/k8s/build-dat-job.yaml.template:$CONTEXT"
-    "unit-files/Makefile.template:unit-files/files.json"
 )
 
 # Fail if a template exists that the table does not cover, so new templates

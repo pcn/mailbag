@@ -46,6 +46,11 @@ host.k3s.data_dir exactly /var|.host.k3s.data_dir = "/var"
 an unknown top-level key|.extra = 1
 a sha256 that is not 64 hex characters|.tools.goss.sha256["x86_64-unknown-linux-gnu"] = "abc123"
 tools.cue missing|del(.tools.cue)
+a removed systemd-era key: docker|.docker = {}
+a removed systemd-era key: mta.service|.mta.service = "courier-mta.service"
+a removed systemd-era key: mta.tls_certfile|.mta.tls_certfile = "/etc/letsencrypt/live/x/fullchain.pem"
+a removed unread block: filesystem|.filesystem = {tmp_mode: "0770"}
+a removed unread key: services.k8s_pods|.services.k8s_pods = ["courier-mta"]
 EOF
 
 exit "$fail"

@@ -1,7 +1,13 @@
 #!/bin/bash
-# This script generates a context.json file based on user input
+# Generate /etc/mailbag/context.json for a k3s mailbag host from a few answers.
+# The result must satisfy cue/schema.cue's #Context; goss/repo.yaml checks that
+# this script's defaults do (goss/lib/check-generated-contexts.sh).
 
 set -e
+
+# Where to write. Overridable so goss/repo.yaml can run this script for real,
+# with every prompt answered by its default, without touching /etc/mailbag.
+CONTEXT_OUT="${CONTEXT_OUT:-/etc/mailbag/context.json}"
 
 # Default values
 DOMAIN="example.com"
@@ -10,23 +16,19 @@ IMAP_HOSTNAME="imap"
 SMTP_HOSTNAME="smtp"
 MAILBAG_SPOOL="/home/mailbag/spool/courier"
 MAIL_STORAGE="/home/vmail"
-CERT_PATH="/etc/letsencrypt/live"
 CONFIG_PATH="/home/mailbag/config"
-MAIL_USER="vmail"
-MAIL_USER_ID="300"
-AUTHLIB_USER="daemon"
 # Which published build to deploy. Override per-deploy with IMAGE_TAG=... on
 # deploy-services.sh; a sha-<sha> tag names an exact build and rolls back cleanly.
 IMAGE_TAG="${IMAGE_TAG:-main}"
-# Where the mail certificate comes from: cert-manager issues it, or "secret"
-# for a host that cannot answer an ACME challenge yet and has the Secret
-# injected by hand (scripts/make-test-cert.sh). See deploy-services.sh.
+# Where the mail certificate comes from: cert-manager issues it (TLS_ISSUER
+# names the ClusterIssuer), or "secret" for a host that cannot answer an ACME
+# challenge yet and has the Secret injected by hand (scripts/make-test-cert.sh).
 TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
+TLS_ISSUER="${TLS_ISSUER:-letsencrypt-staging}"
 # userdb.canary must be an account that exists in the userdb: the database
 # build checks it resolves. It cannot be guessed, so the default is a
 # placeholder that fails that check loudly until CANARY names a real account.
 # POSTMASTER is "reject" or the address postmaster and role mail go to.
-TLS_ISSUER="${TLS_ISSUER:-letsencrypt-staging}"
 # Host layer below Kubernetes, checked by goss/host-k3s.yaml. data_dir belongs
 # on the large filesystem, not a small /var (PROJ-024).
 K3S_VERSION="${K3S_VERSION:-v1.32.5+k3s1}"
@@ -39,7 +41,7 @@ MIN_FREE_MB_VAR="${MIN_FREE_MB_VAR:-1024}"
 clean_hostname() {
     local hostname="$1"
     local domain="$2"
-    
+
     # If hostname already contains the domain, use it as-is
     if [[ "$hostname" == *"$domain"* ]]; then
         echo "$hostname"
@@ -68,73 +70,48 @@ MAIL_STORAGE=${input:-$MAIL_STORAGE}
 read -p "Enter path for courier spool (default: $MAILBAG_SPOOL): " input
 MAILBAG_SPOOL=${input:-$MAILBAG_SPOOL}
 
-read -p "Enter path for certificates (default: $CERT_PATH): " input
-CERT_PATH=${input:-$CERT_PATH}
-
 # Clean up hostnames
 MAIL_HOSTNAME=$(clean_hostname "$MAIL_HOSTNAME_INPUT" "$DOMAIN")
-IMAP_HOSTNAME=$(clean_hostname "$IMAP_HOSTNAME_INPUT" "$DOMAIN")  
+IMAP_HOSTNAME=$(clean_hostname "$IMAP_HOSTNAME_INPUT" "$DOMAIN")
 SMTP_HOSTNAME=$(clean_hostname "$SMTP_HOSTNAME_INPUT" "$DOMAIN")
 
+# An issuer exists only for cert-manager; the schema refuses one for "secret".
+if [ "$TLS_SOURCE" = cert-manager ]; then
+    TLS_BLOCK="{\"source\": \"cert-manager\", \"issuer\": \"$TLS_ISSUER\"}"
+else
+    TLS_BLOCK="{\"source\": \"$TLS_SOURCE\"}"
+fi
+
 # Create output directory
-mkdir -p /etc/mailbag
+mkdir -p "$(dirname "$CONTEXT_OUT")"
 
 # Generate context.json
-cat > /etc/mailbag/context.json << EOF
+cat > "$CONTEXT_OUT" << EOF
 {
   "mda": {
-    "mail_path_host": "$MAIL_STORAGE/$DOMAIN",
-    "mail_path_container": "/vmail/$DOMAIN",
-    "owner": "$MAIL_USER_ID",
-    "owner_name": "$MAIL_USER",
-    "mode": "0755"
+    "mail_path_host": "$MAIL_STORAGE/$DOMAIN"
   },
   "mta": {
     "dns_name": "$DOMAIN",
-    "tls_certfile": "$CERT_PATH/$DOMAIN/fullchain.pem",
-    "tls_keyfile": "$CERT_PATH/$DOMAIN/privkey.pem",
-    "service": "courier-mta",
     "accept_mail_for": ["$DOMAIN"],
-    "courierd_path_host": "$MAILBAG_SPOOL-mta",
-    "courierd_path_container": "/var/spool/courier"
+    "courierd_path_host": "$MAILBAG_SPOOL-mta"
   },
   "imapd_ssl": {
-    "dns_name": "$IMAP_HOSTNAME",
-    "tls_certfile": "$CERT_PATH/$DOMAIN/fullchain.pem",
-    "tls_keyfile": "$CERT_PATH/$DOMAIN/privkey.pem",
-    "service": "courier-imapd-ssl"
+    "dns_name": "$IMAP_HOSTNAME"
   },
   "mta_ssl": {
-    "dns_name": "$SMTP_HOSTNAME",
-    "tls_certfile": "$CERT_PATH/$DOMAIN/fullchain.pem",
-    "tls_keyfile": "$CERT_PATH/$DOMAIN/privkey.pem",
-    "service": "courier-mta-ssl",
-    "accept_mail_for": ["$DOMAIN"],
-    "courierd_path_host": "$MAILBAG_SPOOL-mta-ssl",
-    "courierd_path_container": "/var/spool/courier"
+    "dns_name": "$SMTP_HOSTNAME"
   },
   "msa": {
-    "dns_name": "$MAIL_HOSTNAME",
-    "tls_certfile": "$CERT_PATH/$DOMAIN/fullchain.pem",
-    "tls_keyfile": "$CERT_PATH/$DOMAIN/privkey.pem",
-    "service": "courier-msa",
-    "courierd_path_host": "$MAILBAG_SPOOL-msa",
-    "courierd_path_container": "/var/spool/courier"
-  },
-  "docker": {
-    "network_name": "vmail"
+    "dns_name": "$MAIL_HOSTNAME"
   },
   "userdb": {
-    "directory": "/etc/authlib/userdb",
-    "owner": "$AUTHLIB_USER",
-    "mode": "0700",
     "canary": "${CANARY:-CHANGE-ME@$DOMAIN}"
   },
   "aliases": {
     "postmaster": "${POSTMASTER:-reject}"
   },
   "domain": {
-    "name": "mail",
     "zone": "$DOMAIN"
   },
   "image": {
@@ -142,33 +119,16 @@ cat > /etc/mailbag/context.json << EOF
   },
   "config": {
     "courier_path": "$CONFIG_PATH/courier",
-    "courier_mode": "0755",
-    "authlib_path": "$CONFIG_PATH/authlib",
-    "authlib_mode": "0700"
-  },
-  "filesystem": {
-    "base_storage_mode": "0755",
-    "msgq_mode": "0750",
-    "msgs_mode": "0750",
-    "filters_mode": "0750",
-    "allfilters_mode": "0750",
-    "tmp_mode": "0770",
-    "track_mode": "0755"
+    "authlib_path": "$CONFIG_PATH/authlib"
   },
   "services": {
     "smtp_port": 25,
     "smtps_port": 465,
     "submission_port": 587,
     "imaps_port": 993,
-    "ssh_port": 22,
-    "k8s_namespace": "mailbag",
-    "k8s_services": ["mta", "mta-ssl", "imapd-ssl", "msa"],
-    "k8s_pods": ["courier-mta", "courier-mta-ssl", "courier-imapd-ssl", "courier-msa", "courierd"]
+    "k8s_namespace": "mailbag"
   },
-  "tls": {
-    "source": "$TLS_SOURCE",
-    "issuer": "$TLS_ISSUER"
-  },
+  "tls": $TLS_BLOCK,
   "host": {
     "k3s": {
       "version": "$K3S_VERSION",
@@ -184,12 +144,12 @@ cat > /etc/mailbag/context.json << EOF
 }
 EOF
 
-# Tool pins (the template renderer's version and checksums) are copied from the
+# Tool pins (renderer, goss, cue: versions and checksums) are copied from the
 # example context rather than written here, so the repo pins them in one place.
 EXAMPLE_CONTEXT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/examples/example-context.json"
 tmp=$(mktemp)
-jq --slurpfile ex "$EXAMPLE_CONTEXT" '.tools = $ex[0].tools' /etc/mailbag/context.json > "$tmp"
-mv "$tmp" /etc/mailbag/context.json
+jq --slurpfile ex "$EXAMPLE_CONTEXT" '.tools = $ex[0].tools' "$CONTEXT_OUT" > "$tmp"
+mv "$tmp" "$CONTEXT_OUT"
 
-echo "Generated context.json at /etc/mailbag/context.json"
+echo "Generated context.json at $CONTEXT_OUT"
 echo "Now run deployment/k8s/generate-host-scripts.sh to create the host preparation script"

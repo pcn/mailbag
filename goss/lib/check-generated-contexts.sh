@@ -1,44 +1,32 @@
 #!/bin/bash
-# Check that each generate-context.sh writes a context that satisfies
+# Check that generate-context.sh writes a context that satisfies
 # cue/schema.cue's #Context. Run by goss/repo.yaml.
 #
-# The generators are interactive and write to /etc/mailbag, so instead of
-# running them this renders each one's JSON heredoc with its own defaults. The
-# tool pins are copied in from the example, exactly as the generators do after
-# writing.
+# Runs the real script, answering every prompt with Enter (its defaults) and
+# writing to a scratch path via CONTEXT_OUT, once for each certificate source,
+# since tls is built differently for each.
 
 set -u -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
-EXAMPLE=examples/example-context.json
-CUE=$(scripts/fetch-cue.sh "$EXAMPLE") || exit 1
+CUE=$(scripts/fetch-cue.sh examples/example-context.json) || exit 1
 work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
-
-render() { # generator -> its default context on stdout
-    local g=$1
-    {
-        # Defaults: every line before the first prompt, minus set -e.
-        awk '/^read -p/{exit} {print}' "$g" | grep -v '^set -e'
-        # The root generator turns prefixes into FQDNs after the prompts.
-        echo 'MAIL_HOSTNAME="$MAIL_HOSTNAME.$DOMAIN"; IMAP_HOSTNAME="$IMAP_HOSTNAME.$DOMAIN"; SMTP_HOSTNAME="$SMTP_HOSTNAME.$DOMAIN"'
-        echo 'cat <<EOF'
-        awk '/<< EOF$/{f=1;next} /^EOF$/{f=0} f' "$g"
-        echo 'EOF'
-    } > "$work/render.sh"
-    bash "$work/render.sh"
-}
+printf '\n%.0s' $(seq 20) > "$work/answers"
 
 fail=0
-for g in generate-context.sh deployment/k8s/generate-context.sh; do
-    if ! render "$g" | jq --slurpfile ex "$EXAMPLE" '.tools = $ex[0].tools' > "$work/ctx.json" 2>"$work/err"; then
-        echo "FAIL  $g does not produce valid JSON:"; sed 's/^/        /' "$work/err"
+for source in cert-manager secret; do
+    out="$work/context-$source.json"
+    # Empty answers from a file, not `yes |`: yes dies of SIGPIPE when the
+    # script exits, which pipefail would report as the script failing.
+    if ! CONTEXT_OUT="$out" TLS_SOURCE="$source" ./generate-context.sh <"$work/answers" >"$work/log" 2>&1; then
+        echo "FAIL  generate-context.sh (TLS_SOURCE=$source) exited non-zero:"; sed 's/^/        /' "$work/log"
         fail=1
         continue
     fi
-    if "$CUE" vet -c -d '#Context' ./cue "$work/ctx.json" > "$work/err" 2>&1; then
-        echo "ok    $g writes a context that satisfies the schema"
+    if "$CUE" vet -c -d '#Context' ./cue "$out" > "$work/err" 2>&1; then
+        echo "ok    generate-context.sh (TLS_SOURCE=$source) writes a context the schema accepts"
     else
-        echo "FAIL  $g writes a context the schema rejects:"; sed 's/^/        /' "$work/err"
+        echo "FAIL  generate-context.sh (TLS_SOURCE=$source) writes a context the schema rejects:"; sed 's/^/        /' "$work/err"
         fail=1
     fi
 done
