@@ -1,0 +1,84 @@
+# The host layer below Kubernetes on a mailbag k3s node: k3s configuration,
+# where its data lives, its memory limit, and the free space it needs. Every
+# value comes from the host block of the node's context.json:
+#
+#   GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
+#   "$GOSS" -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate
+#
+# Run as root on the node. Written against farout (PROJ-028) and reused
+# unchanged as the acceptance for the host install script (PROJ-026), so it
+# asserts only what any correctly set-up host must satisfy.
+
+{{- $k3s := .Vars.host.k3s }}
+{{- $free := .Vars.host.min_free_mb }}
+
+service:
+  k3s:
+    enabled: true
+    running: true
+
+file:
+  /etc/rancher/k3s/config.yaml:
+    exists: true
+  /etc/systemd/system/k3s.service.d/10-gomemlimit.conf:
+    exists: true
+  # The data dir moved off the small /var (PROJ-024). Neither the old location
+  # nor the copy left behind by the move may remain.
+  /var/lib/rancher/k3s:
+    exists: false
+  /var/lib/rancher/k3s.old:
+    exists: false
+
+command:
+  config.yaml sets data-dir to {{ $k3s.data_dir }}:
+    # Block scalar: the ": " in the matched line would otherwise end the value.
+    exec: >-
+      grep -qxF 'data-dir: {{ $k3s.data_dir }}' /etc/rancher/k3s/config.yaml
+    exit-status: 0
+{{- range $k3s.disable }}
+  config.yaml disables {{ . }}:
+    exec: grep -qxF '  - {{ . }}' /etc/rancher/k3s/config.yaml
+    exit-status: 0
+{{- end }}
+
+  # k3s-killall.sh and k3s-uninstall.sh never read config.yaml; with a
+  # K3S_DATA_DIR that disagrees, killall does not find the container shims.
+  /etc/environment sets K3S_DATA_DIR to the data-dir:
+    exec: grep -qxF 'K3S_DATA_DIR={{ $k3s.data_dir }}' /etc/environment
+    exit-status: 0
+
+  the k3s drop-in sets GOMEMLIMIT={{ $k3s.gomemlimit }}:
+    exec: grep -qxF 'Environment=GOMEMLIMIT={{ $k3s.gomemlimit }}' /etc/systemd/system/k3s.service.d/10-gomemlimit.conf
+    exit-status: 0
+  # The file can be right while the running process predates it.
+  the running k3s-server has GOMEMLIMIT={{ $k3s.gomemlimit }}:
+    exec: tr '\0' '\n' < /proc/$(pidof k3s-server)/environ | grep -qxF 'GOMEMLIMIT={{ $k3s.gomemlimit }}'
+    exit-status: 0
+
+  k3s is version {{ $k3s.version }}:
+    exec: k3s --version | head -1
+    exit-status: 0
+    stdout:
+      - '{{ $k3s.version }}'
+
+  the node is Ready:
+    exec: kubectl get node "$(hostname)" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+    exit-status: 0
+    stdout:
+      - '/^True$/'
+
+  # Prints "<shims> <shims not under data-dir>". At least one shim must exist
+  # (an empty list would pass vacuously) and none may run from elsewhere.
+  every containerd-shim runs from {{ $k3s.data_dir }}:
+    exec: |
+      ps -eo args= | awk -v d='{{ $k3s.data_dir }}/' '$1 ~ /containerd-shim/ { n++; if (index($1, d) != 1) bad++ } END { print n+0, bad+0 }'
+    exit-status: 0
+    stdout:
+      - '/^[1-9][0-9]* 0$/'
+
+  {{ $k3s.data_dir }} has at least {{ $free.data_dir }}MB free:
+    exec: test "$(df --output=avail -BM '{{ $k3s.data_dir }}' | tail -1 | tr -dc 0-9)" -ge {{ $free.data_dir }}
+    exit-status: 0
+  /var has at least {{ $free.var }}MB free:
+    exec: test "$(df --output=avail -BM /var | tail -1 | tr -dc 0-9)" -ge {{ $free.var }}
+    exit-status: 0

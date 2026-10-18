@@ -100,6 +100,18 @@
     "source": "cert-manager",
     "issuer": "letsencrypt-staging"
   },
+  "host": {
+    "k3s": {
+      "version": "v1.32.5+k3s1",
+      "data_dir": "/home/k3s",
+      "gomemlimit": "300MiB",
+      "disable": ["traefik", "metrics-server", "local-storage"]
+    },
+    "min_free_mb": {
+      "data_dir": 2048,
+      "var": 1024
+    }
+  },
   "tools": {
     "goss": {
       "version": "0.4.10",

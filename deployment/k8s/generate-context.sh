@@ -20,6 +20,13 @@ AUTHLIB_USER="daemon"
 # injected by hand (scripts/make-test-cert.sh). See deploy-services.sh.
 TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
 TLS_ISSUER="${TLS_ISSUER:-letsencrypt-staging}"
+# Host layer below Kubernetes, checked by goss/host-k3s.yaml. data_dir belongs
+# on the large filesystem, not a small /var (PROJ-024).
+K3S_VERSION="${K3S_VERSION:-v1.32.5+k3s1}"
+K3S_DATA_DIR="${K3S_DATA_DIR:-/home/k3s}"
+K3S_GOMEMLIMIT="${K3S_GOMEMLIMIT:-300MiB}"
+MIN_FREE_MB_DATA_DIR="${MIN_FREE_MB_DATA_DIR:-2048}"
+MIN_FREE_MB_VAR="${MIN_FREE_MB_VAR:-1024}"
 
 # Get user input
 read -p "Enter your mail domain (default: $DOMAIN): " input
@@ -125,6 +132,18 @@ cat > /etc/mailbag/context.json << EOF
   "tls": {
     "source": "$TLS_SOURCE",
     "issuer": "$TLS_ISSUER"
+  },
+  "host": {
+    "k3s": {
+      "version": "$K3S_VERSION",
+      "data_dir": "$K3S_DATA_DIR",
+      "gomemlimit": "$K3S_GOMEMLIMIT",
+      "disable": ["traefik", "metrics-server", "local-storage"]
+    },
+    "min_free_mb": {
+      "data_dir": $MIN_FREE_MB_DATA_DIR,
+      "var": $MIN_FREE_MB_VAR
+    }
   }
 }
 EOF
