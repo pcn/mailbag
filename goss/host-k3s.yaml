@@ -30,6 +30,16 @@ file:
     exists: false
 
 command:
+  # PROJ-034: the host's own context satisfies the schema -- complete, no
+  # unknown keys. Paths are relative to the deploy tree, which carries cue/.
+  # (No " #" in a key: YAML would read the rest as a comment.)
+  this host's context.json satisfies the schema in cue/schema.cue:
+    exec: >-
+      "$(scripts/fetch-cue.sh /etc/mailbag/context.json)"
+      vet -c -d '#Context' ./cue /etc/mailbag/context.json
+    exit-status: 0
+    timeout: 120000
+
   config.yaml sets data-dir to {{ $k3s.data_dir }}:
     # Block scalar: the ": " in the matched line would otherwise end the value.
     exec: >-

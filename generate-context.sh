@@ -22,6 +22,10 @@ IMAGE_TAG="${IMAGE_TAG:-main}"
 # for a host that cannot answer an ACME challenge yet and has the Secret
 # injected by hand (scripts/make-test-cert.sh). See deploy-services.sh.
 TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
+# userdb.canary must be an account that exists in the userdb: the database
+# build checks it resolves. It cannot be guessed, so the default is a
+# placeholder that fails that check loudly until CANARY names a real account.
+# POSTMASTER is "reject" or the address postmaster and role mail go to.
 TLS_ISSUER="${TLS_ISSUER:-letsencrypt-staging}"
 # Host layer below Kubernetes, checked by goss/host-k3s.yaml. data_dir belongs
 # on the large filesystem, not a small /var (PROJ-024).
@@ -123,7 +127,11 @@ cat > /etc/mailbag/context.json << EOF
   "userdb": {
     "directory": "/etc/authlib/userdb",
     "owner": "$AUTHLIB_USER",
-    "mode": "0700"
+    "mode": "0700",
+    "canary": "${CANARY:-CHANGE-ME@$DOMAIN}"
+  },
+  "aliases": {
+    "postmaster": "${POSTMASTER:-reject}"
   },
   "domain": {
     "name": "mail",
