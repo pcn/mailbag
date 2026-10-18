@@ -2,7 +2,7 @@
 
 set -e -u -o pipefail
 
-VER=0.72.4
+VER=0.73.2
 # Download per https://www.courier-mta.org/download.html
 mkdir /tmp/auth
 cd /tmp/auth

@@ -2,7 +2,7 @@
 
 set -e -u -o pipefail
 
-VER=1.4.1
+VER=2.0.8
 # Download per https://www.courier-mta.org/download.html
 mkdir /tmp/c
 cd /tmp/c
