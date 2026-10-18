@@ -18,6 +18,11 @@ AUTHLIB_USER="daemon"
 # Which published build to deploy. Override per-deploy with IMAGE_TAG=... on
 # deploy-services.sh; a sha-<sha> tag names an exact build and rolls back cleanly.
 IMAGE_TAG="${IMAGE_TAG:-main}"
+# Where the mail certificate comes from: cert-manager issues it, or "secret"
+# for a host that cannot answer an ACME challenge yet and has the Secret
+# injected by hand (scripts/make-test-cert.sh). See deploy-services.sh.
+TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
+TLS_ISSUER="${TLS_ISSUER:-letsencrypt-staging}"
 
 # Helper function to clean up hostname input
 clean_hostname() {
@@ -143,6 +148,10 @@ cat > /etc/mailbag/context.json << EOF
     "k8s_namespace": "mailbag",
     "k8s_services": ["mta", "mta-ssl", "imapd-ssl", "msa"],
     "k8s_pods": ["courier-mta", "courier-mta-ssl", "courier-imapd-ssl", "courier-msa", "courierd"]
+  },
+  "tls": {
+    "source": "$TLS_SOURCE",
+    "issuer": "$TLS_ISSUER"
   }
 }
 EOF

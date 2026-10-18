@@ -95,6 +95,10 @@
   "aliases": {
     "postmaster": "reject"
   },
+  "tls": {
+    "source": "cert-manager",
+    "issuer": "letsencrypt-staging"
+  },
   "tools": {
     "minijinja_cli": {
       "version": "3.0.1",
