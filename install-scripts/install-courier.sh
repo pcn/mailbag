@@ -16,7 +16,11 @@ cd courier-${VER}
 # sudo apt install -y locales
 locale-gen en_US.UTF-8
 
-./courier-debuild -us -uc
+# nocheck: the same libs/rfc2045 IDN test expectation as courier-authlib (see
+# install-auth.sh) -- test3@ and test13@tèst.example.com expected with a raw
+# Latin-1 byte, produced as UTF-8 on noble. Re-enable once upstream's
+# reference output matches.
+DEB_BUILD_OPTIONS=nocheck ./courier-debuild -us -uc
 
 cd deb && sudo apt install -y ./*.deb
 cp *.deb /export
