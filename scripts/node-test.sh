@@ -16,8 +16,9 @@
 #   CANARY_PASSWORD_FILE  default /root/.mailbag-canary-pass; userdb.canary's
 #                         password, never printed. Each run that deploys first
 #                         gives the canary a fresh random password
-#                         (scripts/rotate-canary-password.sh) and writes it
+#                         (scripts/mailbox-passwd.sh --random) and writes it
 #                         here, so the deploy publishes it and the suites use it.
+#   PASSWORDS             default /etc/mailbag/passwords, the mailboxes' hashes
 #   CA_BUNDLE             trust anchor for a private CA (tls.source=secret);
 #                         unset means system trust
 #   SKIP_DEPLOY=1         test what is deployed now, expecting it to be the tag;
@@ -47,10 +48,9 @@ if [ "${SKIP_DEPLOY:-}" = 1 ]; then
     [ -r "$CANARY_PASSWORD_FILE" ] || die "canary password file not readable: $CANARY_PASSWORD_FILE"
 else
     echo "===== canary password"
-    scripts/rotate-canary-password.sh \
-        "$(jq -er '.host_paths.authlib' "$CONTEXT")/userdb" \
+    scripts/mailbox-passwd.sh --random "$CANARY_PASSWORD_FILE" \
         "$(jq -er '.userdb.canary' "$CONTEXT")" \
-        "$CANARY_PASSWORD_FILE" || die "could not rotate the canary password; nothing deployed"
+        || die "could not rotate the canary password; nothing deployed"
     echo "===== deploy $TAG"
     if ! IMAGE_TAG="$TAG" CONTEXT="$CONTEXT" deployment/k8s/deploy-services.sh; then
         echo "node-test: deploy of $TAG failed; not testing" >&2
@@ -75,7 +75,7 @@ suite() {  # name inline-vars-json [goss validate flags...]
     NAMES+=("$name")
 }
 
-suite smoke "$(jq -nc --arg t "$TAG" '{image_tag: $t}')" --retry-timeout 300s --sleep 10s
+suite smoke "$(jq -nc --argjson ca "$ca_json" --arg t "$TAG" '$ca + {image_tag: $t}')" --retry-timeout 300s --sleep 10s
 suite certificates "$ca_json" --retry-timeout 90s --sleep 10s
 if [ "$(jq -r '.tls.source' "$CONTEXT")" = cert-manager ]; then
     suite cert-manager '{}'
@@ -89,4 +89,7 @@ for i in "${!NAMES[@]}"; do
     printf '  %-14s %s\n' "${NAMES[$i]}" "${RESULTS[$i]}"
     [ "${RESULTS[$i]}" = pass ] || status=1
 done
+# Information only, never a failure: mail of removed mailboxes is kept.
+orphans=$(scripts/mailbox-orphans.sh "$CONTEXT" | tr '\n' ' ')
+echo "  orphaned maildirs: ${orphans:-none}"
 exit "$status"

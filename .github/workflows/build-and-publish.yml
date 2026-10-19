@@ -77,6 +77,7 @@ jobs:
               # The base ships the build and validation scripts, because the
               # build job runs as a service image.
               - 'scripts/build-courier-dat.sh'
+              - 'scripts/userdb-source.sh'
               - 'scripts/validate-courier-dat.pl'
               # The renderer pin the base installs lives here.
               - 'examples/example-context.json'

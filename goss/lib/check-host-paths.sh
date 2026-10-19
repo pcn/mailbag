@@ -5,7 +5,8 @@
 # Renders each workload template against the example context with host_paths
 # replaced by distinctive values, so a path hardcoded in a template cannot
 # pass by coinciding with the example. Then, per rendered Deployment or Job:
-# every hostPath volume is the context file or one of the host_paths, the
+# every hostPath volume is the context file, the passwords file (PROJ-040) or
+# one of the host_paths, the
 # host_paths ones are DirectoryOrCreate, and the workload mounts exactly the
 # ones expected of it.
 
@@ -40,7 +41,8 @@ for doc in yaml.safe_load_all(open(rendered)):
         if "persistentVolumeClaim" in v:
             problems.append(f"volume {v['name']} is a PersistentVolumeClaim")
         hp = v.get("hostPath")
-        if not hp or hp["path"] == "/etc/mailbag/context.json":
+        # The two fixed files beside the context, not host_paths directories.
+        if not hp or hp["path"] in ("/etc/mailbag/context.json", "/etc/mailbag/passwords"):
             continue
         if hp["path"] not in allowed:
             problems.append(f"volume {v['name']} hostPath {hp['path']} is not from host_paths")

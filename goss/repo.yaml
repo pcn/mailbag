@@ -156,10 +156,16 @@ command:
     exec: goss/lib/check-ci-guards.sh
     exit-status: 0
     timeout: 60000
-  # PROJ-039: each node test gets a fresh canary password; the rotation
-  # changes only the canary's systempw and never prints the password.
-  the canary password rotation changes only the canary's hash and refuses bad sources:
-    exec: goss/lib/check-canary-rotation.sh
+  # PROJ-040 (and PROJ-039's per-run canary password, which uses it):
+  # mailbox-passwd.sh changes only its address's hash and never prints the
+  # password; userdb-source.sh derives one record per mailbox and refuses
+  # mailboxes and hashes that disagree.
+  mailbox-passwd.sh sets one address's hash and never prints the password:
+    exec: goss/lib/check-mailbox-passwd.sh
+    exit-status: 0
+    timeout: 60000
+  the userdb source is derived from the mailboxes and the passwords file:
+    exec: goss/lib/check-userdb-source.sh
     exit-status: 0
     timeout: 60000
   # PROJ-034

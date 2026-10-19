@@ -40,8 +40,11 @@ each container renders at start.
    lookup), and applies the workloads through kustomize so changed databases
    roll the pods.
 
-4. **Mail accounts.** Add accounts to the userdb source under
-   `<host_paths.authlib>/userdb` on the host, then rerun `./deploy-services.sh`.
+4. **Mail accounts.** Declare them in the context's `mailboxes` (aliases in
+   `aliases.map`), set each password with `scripts/mailbox-passwd.sh
+   <address>` (hashes in `/etc/mailbag/passwords`), then rerun
+   `./deploy-services.sh`: the build job generates the userdb and courierd
+   creates the maildirs. See `README.context.md`, "Mailboxes and aliases".
 
 ## Checking a deployment
 

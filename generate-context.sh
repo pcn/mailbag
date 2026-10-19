@@ -29,10 +29,12 @@ IMAGE_TAG="${IMAGE_TAG:-main}"
 # to the mail domain, and ACME_EMAIL to letsencrypt@<domain>, the convention on
 # every install so the Let's Encrypt account is never tied to a person or role.
 TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
-# userdb.canary must be an account that exists in the userdb: the database
-# build checks it resolves. It cannot be guessed, so the default is a
-# placeholder that fails that check loudly until CANARY names a real account.
-# POSTMASTER is "reject" or the address postmaster and role mail go to.
+# Mailboxes are declared here; their password hashes go in
+# /etc/mailbag/passwords (scripts/mailbox-passwd.sh), and the database build
+# fails for a mailbox without one. userdb.canary is a dedicated test mailbox
+# (default canary@<domain>) the build looks up and scripts/node-test.sh logs
+# in as; letsencrypt@<domain> is the ACME account's address on every install.
+# POSTMASTER is "reject" or the local part postmaster and role mail go to.
 # Host layer below Kubernetes, checked by goss/host-k3s.yaml. data_dir belongs
 # on the large filesystem, not a small /var (PROJ-024).
 K3S_VERSION="${K3S_VERSION:-v1.32.5+k3s1}"
@@ -119,8 +121,9 @@ cat > "$CONTEXT_OUT" << EOF
     "dns_name": "$MAIL_HOSTNAME"
   },
   "userdb": {
-    "canary": "${CANARY:-CHANGE-ME@$DOMAIN}"
+    "canary": "${CANARY:-canary@$DOMAIN}"
   },
+  "mailboxes": ["${CANARY:-canary@$DOMAIN}", "letsencrypt@$DOMAIN"],
   "aliases": {
     "postmaster": "${POSTMASTER:-reject}"
   },

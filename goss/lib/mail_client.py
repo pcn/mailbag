@@ -32,7 +32,8 @@ def parse_args():
     p.add_argument("--auth", action="store_true", help="SMTP AUTH before sending")
     p.add_argument("--imap-host", required=True)
     p.add_argument("--imap-port", type=int, default=993)
-    p.add_argument("--user", required=True)
+    p.add_argument("--user", required=True, help="the mailbox: sender, login and reader")
+    p.add_argument("--to", help="recipient, e.g. an alias of --user (default: --user)")
     p.add_argument("--password-file", required=True)
     p.add_argument("--cafile", help="trust only this CA bundle (default: system trust)")
     p.add_argument("--token", required=True, help="unique Subject and body marker")
@@ -51,7 +52,8 @@ def fail(port, what, err=None):
 
 
 def submit(a, password, ctx):
-    msg = (f"From: {a.user}\r\nTo: {a.user}\r\nSubject: {a.token}\r\n"
+    to = a.to or a.user
+    msg = (f"From: {a.user}\r\nTo: {to}\r\nSubject: {a.token}\r\n"
            f"\r\n{a.token}\r\n")
     if a.tls == "implicit":
         s = smtplib.SMTP_SSL(a.host, a.port, context=ctx, timeout=30)
@@ -64,7 +66,7 @@ def submit(a, password, ctx):
     tls = f"{s.sock.version()} {s.sock.cipher()[0]}"
     if a.auth:
         s.login(a.user, password)
-    refused = s.sendmail(a.user, [a.user], msg)
+    refused = s.sendmail(a.user, [to], msg)
     s.quit()
     if refused:
         raise smtplib.SMTPRecipientsRefused(refused)

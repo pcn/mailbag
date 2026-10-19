@@ -62,6 +62,20 @@ a host path that is not absolute|.host_paths.spool = "mailbag/spool"
 a removed path key: mta.courierd_path_host|.mta.courierd_path_host = "/home/mailbag/spool/courier-mta"
 a removed path key: mda.mail_path_host|.mda = {mail_path_host: "/home/vmail"}
 a removed path key: config.authlib_path|.config = {authlib_path: "/home/mailbag/config/authlib"}
+mailboxes missing|del(.mailboxes)
+no mailboxes at all|.mailboxes = []
+the same mailbox twice|.mailboxes += [.mailboxes[0]]
+a mailbox in a domain the MTA does not accept|.mailboxes += ["someone@other.org"]
+an uppercase mailbox|.mailboxes += ["Someone@the-domain.com"]
+a canary that is not a declared mailbox|.userdb.canary = "nobody@the-domain.com"
+an alias key that is a declared mailbox|.aliases.map[.mailboxes[0]] = "letsencrypt@the-domain.com"
+an alias in a domain the MTA does not accept|.aliases.map["info@other.org"] = .mailboxes[0]
+a virtual-domain alias for a domain the MTA does not accept|.aliases.map["@other.org"] = .mailboxes[0]
+a virtual-domain alias for a domain that has mailboxes|.aliases.map["@the-domain.com"] = .mailboxes[0]
+an alias with two targets|.aliases.map["team@the-domain.com"] = "canary@the-domain.com, letsencrypt@the-domain.com"
+an alias target that is not an address|.aliases.map["team@the-domain.com"] = "canary"
+an uppercase alias key|.aliases.map["Info@the-domain.com"] = .mailboxes[0]
+postmaster as a full address, not a local part|.aliases.postmaster = "admin@the-domain.com"
 EOF
 
 exit "$fail"

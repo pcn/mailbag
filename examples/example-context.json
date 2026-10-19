@@ -21,8 +21,12 @@
     "dns_name": "msa.the-domain.com"
   },
   "userdb": {
-    "canary": "CHANGE-ME@the-domain.com"
+    "canary": "canary@the-domain.com"
   },
+  "mailboxes": [
+    "canary@the-domain.com",
+    "letsencrypt@the-domain.com"
+  ],
   "domain": {
     "zone": "the-domain.com"
   },
@@ -37,7 +41,10 @@
     "k8s_namespace": "mailbag"
   },
   "aliases": {
-    "postmaster": "reject"
+    "postmaster": "reject",
+    "map": {
+      "info@the-domain.com": "canary@the-domain.com"
+    }
   },
   "tls": {
     "source": "cert-manager",

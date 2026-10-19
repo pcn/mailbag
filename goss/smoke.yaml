@@ -87,3 +87,41 @@ command:
     exit-status: 0
     stdout:
       - '/^1$/'
+
+  # PROJ-040: every declared mailbox is accepted at RCPT on port 25 -- which
+  # courierlocal grants only for an address the published userdb resolves --
+  # and an address nobody declared is refused. (Skipped for a domain whose
+  # alias@ catch-all mailbox accepts everything by design.)
+{{- $ca := "" }}
+{{- if hasKey .Vars "ca_bundle" }}{{ $ca = printf "--cafile %s" .Vars.ca_bundle }}{{ end }}
+{{- $mta := .Vars.mta.dns_name }}
+{{- $port := .Vars.services.smtp_port }}
+{{- range $m := .Vars.mailboxes }}
+  mailbox {{ $m }} is accepted at RCPT on {{ $port }}:
+    exec: python3 goss/lib/smtp_rcpt.py --host {{ $mta }} --port {{ $port }} --to {{ $m }} {{ $ca }}
+    exit-status: 0
+    stdout:
+      - '/^RCPT \S+ 250$/'
+{{- end }}
+{{- range $d := .Vars.mta.accept_mail_for }}
+{{- if not (has (printf "alias@%s" $d) $.Vars.mailboxes) }}
+  an undeclared address in {{ $d }} is refused at RCPT:
+    exec: python3 goss/lib/smtp_rcpt.py --host {{ $mta }} --port {{ $port }} --to mailbag-undeclared@{{ $d }} {{ $ca }}
+    exit-status: 0
+    stdout:
+      - '/^RCPT \S+ 550$/'
+{{- end }}
+{{- end }}
+
+file:
+  # PROJ-040: courierd's init container made a maildir for every declared
+  # mailbox: vmail (300), 0700, under the mail root.
+{{- range $m := .Vars.mailboxes }}
+{{- $p := splitList "@" $m }}
+  {{ $.Vars.host_paths.mail }}/{{ index $p 1 }}/{{ index $p 0 }}/Maildir:
+    exists: true
+    filetype: directory
+    uid: 300
+    gid: 300
+    mode: "0700"
+{{- end }}

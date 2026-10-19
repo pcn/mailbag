@@ -51,6 +51,23 @@ data:
     {% endfor %}
     {%- endfor %}
     {%- endif %}
+    {#- aliases.map: one target each, written verbatim for courier to handle,
+        including its "@domain" virtual-domain form. Corner cases:
+        README.context.md, "Mailboxes and aliases". #}
+    {% for from, to in aliases.map | default({}) | items -%}
+    {{ from }}: {{ to }}
+    {% endfor %}
+  userdb.template: |
+    {#-
+      The userdb source, one record per declared mailbox (PROJ-040). Rendered
+      by the database build job, which appends each record's systempw from
+      /etc/mailbag/passwords; never edited by hand. Every mailbox is the vmail
+      user (300) with its maildir under the mail root, /vmail in the pods.
+    -#}
+    {% for m in mailboxes -%}
+    {% set p = m | split("@") | list -%}
+    {{ m }}{{ "\t" }}uid=300|gid=300|home=/vmail/{{ p[1] }}/{{ p[0] }}|mail=/vmail/{{ p[1] }}/{{ p[0] }}/Maildir
+    {% endfor %}
   hosteddomains.template: |
     {% for d in mta.accept_mail_for -%}
     {{ d }}

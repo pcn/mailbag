@@ -48,3 +48,23 @@ command:
       - '/^\[{{ $e.port }}\] OK$/'
     timeout: 120000
 {{- end }}
+
+  # PROJ-040: mail to each address alias of the canary (aliases.map entries
+  # whose target is userdb.canary; "@domain" forms are courier's and not
+  # tested) arrives in the canary's mailbox.
+{{- range $from, $to := (.Vars.aliases.map | default dict) }}
+{{- if and (eq $to $user) (not (hasPrefix "@" $from)) }}
+  mail to the alias {{ $from }} arrives in {{ $user }}:
+    exec: >-
+      python3 goss/lib/mail_client.py
+      --host {{ $.Vars.mta.dns_name }} --port {{ $.Vars.services.smtp_port }} --tls starttls
+      --imap-host {{ $imap }} --imap-port {{ $imapport }}
+      --user {{ $user }} --to {{ $from }} --password-file {{ $pw }} {{ $ca }}
+      --token mailbag-alias-{{ $run }}
+      --expect-by courier-mta --expect-with ESMTPS --timeout 90
+    exit-status: 0
+    stdout:
+      - '/^\[{{ $.Vars.services.smtp_port }}\] OK$/'
+    timeout: 120000
+{{- end }}
+{{- end }}

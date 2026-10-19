@@ -40,17 +40,16 @@ spec:
       initContainers:
       - name: init-dirs
         # The publish volumes' roots, which a host script used to create: the
-        # authlib directory holds the 0600 userdb source and the password
-        # hashes, so it is daemon-owned and 0700. Pinned by digest, as root.
+        # authlib directory receives userdbshadow.dat, the password hashes, so
+        # it is daemon-owned and 0700. Pinned by digest, as root.
         image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
         command:
         - sh
         - -c
         - |
-          mkdir -p /publish/authlib/userdb
-          chown daemon:daemon /publish/courier /publish/authlib /publish/authlib/userdb
+          chown daemon:daemon /publish/courier /publish/authlib
           chmod 755 /publish/courier
-          chmod 700 /publish/authlib /publish/authlib/userdb
+          chmod 700 /publish/authlib
         volumeMounts:
         - name: courier-auth
           mountPath: /publish/authlib
@@ -76,10 +75,10 @@ spec:
           - /publish/courier
           - --publish-authlib
           - /publish/authlib
-          - --userdb-src
-          - /publish/authlib/userdb
+          - --passwords
+          - /passwords
         securityContext:
-          # root: it reads the 0600 userdb source and writes both publish
+          # root: it reads the root-only passwords file and writes both publish
           # volumes, which are daemon-owned.
           runAsUser: 0
           allowPrivilegeEscalation: true
@@ -89,6 +88,11 @@ spec:
         volumeMounts:
         - name: context-json
           mountPath: /context.json
+          readOnly: true
+        # The mailboxes' password hashes, root-only on the host; the userdb
+        # source is generated from them and the context (PROJ-040).
+        - name: passwords
+          mountPath: /passwords
           readOnly: true
         - name: templates
           mountPath: /templates
@@ -109,6 +113,12 @@ spec:
       - name: context-json
         hostPath:
           path: /etc/mailbag/context.json
+          type: File
+      # File, not FileOrCreate: a missing passwords file must stop the build
+      # visibly rather than produce a user database with no logins.
+      - name: passwords
+        hostPath:
+          path: /etc/mailbag/passwords
           type: File
       - name: templates
         configMap:
