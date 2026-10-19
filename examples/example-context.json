@@ -10,13 +10,13 @@
     "courierd_path_host": "/mailbag/spool/courier-mta"
   },
   "imapd_ssl": {
-    "dns_name": "testmail-imapd-ssl.rton.me"
+    "dns_name": "imap.the-domain.com"
   },
   "mta_ssl": {
     "dns_name": "the-domain.com"
   },
   "msa": {
-    "dns_name": "testmail-msa.rton.me"
+    "dns_name": "msa.the-domain.com"
   },
   "userdb": {
     "canary": "CHANGE-ME@the-domain.com"
@@ -43,7 +43,13 @@
   },
   "tls": {
     "source": "cert-manager",
-    "issuer": "letsencrypt-staging"
+    "acme": {
+      "email": "letsencrypt@the-domain.com",
+      "route53": {
+        "zone": "the-domain.com",
+        "hosted_zone_id": "Z0000000000000EXAMPLE"
+      }
+    }
   },
   "host": {
     "k3s": {

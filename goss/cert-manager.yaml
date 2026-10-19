@@ -1,0 +1,73 @@
+# cert-manager checks on a host whose context has tls.source=cert-manager:
+# the Let's Encrypt issuer answers DNS-01 in the context's Route53 zone and
+# nothing else, its key is the only AWS credential in the cluster, and the
+# mail certificate is issued and scheduled for renewal.
+#
+#   GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
+#   "$GOSS" -g goss/cert-manager.yaml --vars /etc/mailbag/context.json validate
+#
+# PROJ-022. The key's IAM policy cannot be inspected from the node (it has no
+# other AWS access); its scope rests on
+# deployment/aws/cert-manager-route53-policy.json.template.
+
+{{- $ns := .Vars.services.k8s_namespace }}
+{{- $zone := .Vars.tls.acme.route53.zone }}
+{{- $zoneid := .Vars.tls.acme.route53.hosted_zone_id }}
+
+command:
+{{- range $d := list "cert-manager" "cert-manager-cainjector" "cert-manager-webhook" }}
+  deployment {{ $d }} is Available:
+    exec: >-
+      kubectl -n cert-manager get deploy {{ $d }}
+      -o jsonpath='{.status.conditions[?(@.type=="Available")].status}'
+    exit-status: 0
+    stdout:
+      - '/^True$/'
+{{- end }}
+
+  the letsencrypt ClusterIssuer is Ready:
+    exec: >-
+      kubectl get clusterissuer letsencrypt
+      -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+    exit-status: 0
+    stdout:
+      - '/^True$/'
+
+  the letsencrypt ClusterIssuer has only a Route53 DNS-01 solver for {{ $zone }}:
+    exec: >-
+      kubectl get clusterissuer letsencrypt -o json | jq -e
+      --arg zone '{{ $zone }}' --arg id '{{ $zoneid }}'
+      '.spec.acme.solvers as $s
+       | ($s | length) == 1
+       and ($s[0] | has("http01") | not)
+       and $s[0].selector.dnsZones == [$zone]
+       and $s[0].dns01.route53.hostedZoneID == $id
+       and $s[0].dns01.route53.accessKeyIDSecretRef.name == "route53-credentials"
+       and $s[0].dns01.route53.secretAccessKeySecretRef.name == "route53-credentials"'
+    exit-status: 0
+
+  route53-credentials holds exactly the access key id and secret:
+    exec: >-
+      kubectl -n cert-manager get secret route53-credentials -o json
+      | jq -e '.data | keys == ["access-key-id", "secret-access-key"]'
+    exit-status: 0
+
+  no other Secret in the cluster carries an AWS key:
+    # Matches on key names and on the AKIA/ASIA access-key-id prefix, across
+    # every namespace, excluding only route53-credentials itself.
+    exec: >-
+      kubectl get secrets -A -o json | jq -e '[.items[]
+        | select(.metadata.namespace + "/" + .metadata.name != "cert-manager/route53-credentials")
+        | select((.data // {}) | to_entries | any(
+            (.key | test("aws|access.?key|secret.?access"; "i"))
+            or (((.value | @base64d)? // "") | test("^(AKIA|ASIA)[A-Z0-9]{16}$"))))
+        | .metadata.namespace + "/" + .metadata.name] | length == 0'
+    exit-status: 0
+
+  the mail Certificate is Ready from letsencrypt with a renewal time set:
+    exec: >-
+      kubectl -n {{ $ns }} get certificate courier-mail-cert -o json | jq -e
+      '.spec.issuerRef.name == "letsencrypt"
+       and (.status.conditions[] | select(.type == "Ready") | .status) == "True"
+       and (.status.renewalTime | length) > 0'
+    exit-status: 0

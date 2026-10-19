@@ -29,9 +29,14 @@ anything not serving that target has been removed.
   from `examples/example-context.json`.
 - **Ports** come from `services.*_port` everywhere -- courier config,
   containerPort, Service, probes, goss. Never write a port number elsewhere.
-- **Certificates** come from `tls.source`: `cert-manager` (with `tls.issuer`)
-  or `secret` (a pre-provisioned `courier-mail-cert-tls`). Services read
-  `/certs/tls.crt` and `/certs/tls.key` directly.
+- **Certificates** come from `tls.source`: `cert-manager` (Let's Encrypt over
+  DNS-01 in the Route53 zone `tls.acme.route53` names; every certificate name
+  must be in that zone) or `secret` (a pre-provisioned `courier-mail-cert-tls`).
+  The ACME account email is `letsencrypt@<domain>` on every install, by
+  convention. The Route53 key is a hand-made `route53-credentials` Secret in the
+  `cert-manager` namespace, for an IAM user whose policy is
+  `deployment/aws/cert-manager-route53-policy.json.template` rendered against
+  the context. Services read `/certs/tls.crt` and `/certs/tls.key` directly.
 
 ## Commands
 
@@ -43,6 +48,8 @@ IMAGE_TAG=sha-<commit> deployment/k8s/deploy-services.sh   # deploy a specific b
 GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
 $GOSS -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate   # on a host
 $GOSS -g goss/smoke.yaml    --vars /etc/mailbag/context.json validate
+$GOSS -g goss/certificates.yaml --vars /etc/mailbag/context.json \
+  --vars-inline '{"ca_bundle": "/root/test-certs/ca.crt"}' validate   # omit ca_bundle for system trust
 ```
 
 Images are built by CI on every branch push and tagged `sha-<commit>`. The

@@ -23,8 +23,12 @@ each container renders at start.
    creates the host directories the PersistentVolumes use.
 
 3. **Certificates** follow `tls.source`:
-   - `cert-manager`: cert-manager must be installed; the deploy applies the
-     ClusterIssuers and the Certificate, and `tls.issuer` selects the issuer.
+   - `cert-manager`: cert-manager must be installed, and
+     `secret/route53-credentials` must exist in the `cert-manager` namespace
+     (keys `access-key-id`, `secret-access-key`) for an IAM user with the
+     policy `renderer --strict -n ../aws/cert-manager-route53-policy.json.template
+     /etc/mailbag/context.json`. The deploy applies the `letsencrypt`
+     ClusterIssuer (DNS-01 in `tls.acme.route53.zone`) and the Certificate.
    - `secret`: create `courier-mail-cert-tls` before deploying.
      `scripts/make-test-cert.sh` makes a CA and server certificate for a test
      host, with SANs from the context.
@@ -47,6 +51,9 @@ From a checkout or the deploy tree on the host:
 GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
 $GOSS -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate
 $GOSS -g goss/smoke.yaml    --vars /etc/mailbag/context.json validate
+# ca_bundle only for a private CA (e.g. the test host's); omit it for system trust.
+$GOSS -g goss/certificates.yaml --vars /etc/mailbag/context.json \
+  --vars-inline '{"ca_bundle": "/root/test-certs/ca.crt"}' validate
 ```
 
 ## Troubleshooting

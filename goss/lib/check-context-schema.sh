@@ -39,8 +39,13 @@ missing services.smtps_port|del(.services.smtps_port)
 a port given as a string|.services.smtp_port = "25"
 two services on one port|.services.smtps_port = .services.smtp_port
 msa.port present|.msa.port = "smtp"
-tls.source cert-manager with no issuer|.tls = {source: "cert-manager"}
-tls.source secret that names an issuer|.tls = {source: "secret", issuer: "letsencrypt-staging"}
+tls.source cert-manager with no acme settings|.tls = {source: "cert-manager"}
+tls.source secret that carries acme settings|.tls = {source: "secret", acme: .tls.acme}
+the removed tls.issuer key|.tls.issuer = "letsencrypt-staging"
+a certificate name outside the Route53 zone|.mta_ssl.dns_name = "mail.elsewhere.org"
+a zone that is only a suffix of a name, not its parent|.tls.acme.route53.zone = "domain.com"
+a hosted zone id not in Route53's form|.tls.acme.route53.hosted_zone_id = "rton.me"
+an acme email that is not an address|.tls.acme.email = "postmaster"
 host.k3s.data_dir under /var|.host.k3s.data_dir = "/var/lib/rancher/k3s"
 host.k3s.data_dir exactly /var|.host.k3s.data_dir = "/var"
 an unknown top-level key|.extra = 1

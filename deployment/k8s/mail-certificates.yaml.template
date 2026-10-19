@@ -1,20 +1,20 @@
+# The mail certificate, issued by the letsencrypt ClusterIssuer
+# (letsencrypt-clusterissuer.yaml.template) into the Secret every service
+# mounts at /certs. Applied by deploy-services.sh when tls.source is
+# cert-manager.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: courier-mail-cert
-  namespace: mailbag
+  namespace: {{ services.k8s_namespace }}
 spec:
-  # Secret name where the certificate will be stored
   secretName: courier-mail-cert-tls
-  # Reference to the ClusterIssuer
   issuerRef:
-    name: letsencrypt-staging  # Start with staging for testing
+    name: letsencrypt
     kind: ClusterIssuer
-  # Common name for the certificate
-  commonName: {{ domain.zone }}
-  # Subject Alternative Names - All mail service hostnames
+  # Every name a service answers on, once each: hosts commonly point several
+  # services at one name, and a repeated dnsName is an invalid order.
   dnsNames:
-  - {{ domain.zone }}                # MTA (port 25)
-  - {{ msa.dns_name }}               # MSA (port 587)
-  - {{ mta_ssl.dns_name }}           # MTA-SSL (port 465)
-  - {{ imapd_ssl.dns_name }}         # IMAP-SSL (port 993)
+{%- for name in [domain.zone, mta.dns_name, msa.dns_name, mta_ssl.dns_name, imapd_ssl.dns_name] | unique %}
+  - {{ name }}
+{%- endfor %}

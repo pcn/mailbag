@@ -83,9 +83,12 @@ TLS_SOURCE=$(jq -er '.tls.source' "$CONTEXT") || {
     exit 1
 }
 CERT_MANIFESTS=(
-    letsencrypt-clusterissuer.yaml
+    letsencrypt-clusterissuer.yaml.template
     mail-certificates.yaml.template
 )
+# The Route53 key the issuer answers DNS-01 with; created by hand, never by
+# this script (see letsencrypt-clusterissuer.yaml.template).
+ACME_CREDENTIALS_SECRET=route53-credentials
 CERT_SECRET=courier-mail-cert-tls
 
 apply_one() {
@@ -118,6 +121,19 @@ case "$TLS_SOURCE" in
     cert-manager)
         if ! kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then
             echo "ERROR: .tls.source is cert-manager, but cert-manager is not installed." >&2
+            exit 1
+        fi
+        # Without the key the issuer registers fine and every challenge then
+        # fails, which shows up only as a Certificate stuck un-Ready.
+        if ! kubectl -n cert-manager get secret "$ACME_CREDENTIALS_SECRET" >/dev/null 2>&1; then
+            cat >&2 <<EOF
+ERROR: .tls.source is cert-manager, but secret/$ACME_CREDENTIALS_SECRET does not
+exist in namespace cert-manager. Create it from the IAM user whose policy is
+deployment/aws/cert-manager-route53-policy.json.template rendered against
+$CONTEXT:
+  kubectl -n cert-manager create secret generic $ACME_CREDENTIALS_SECRET \\
+    --from-literal=access-key-id=AKIA... --from-file=secret-access-key=<file>
+EOF
             exit 1
         fi
         echo "tls.source=cert-manager: applying issuer and Certificate."

@@ -1,0 +1,36 @@
+# The one certificate issuer: Let's Encrypt, answering DNS-01 by writing the
+# challenge TXT record into the Route53 zone named in the context. Applied by
+# deploy-services.sh when tls.source is cert-manager.
+#
+# The AWS key lives in secret/route53-credentials in the cert-manager
+# namespace, created by hand (keys access-key-id, secret-access-key). Its IAM
+# policy, deployment/aws/cert-manager-route53-policy.json.template rendered
+# against the same context, allows only TXT upserts and deletes of the
+# _acme-challenge records for the certificate's own names, in this one zone.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: {{ tls.acme.email }}
+    # The ACME account key, created by cert-manager on first use.
+    privateKeySecretRef:
+      name: letsencrypt-account
+    solvers:
+    - selector:
+        dnsZones:
+        - {{ tls.acme.route53.zone }}
+      dns01:
+        route53:
+          # Route53 is global; the AWS SDK still wants a region to sign for.
+          region: us-east-1
+          # Pinned, so the key needs no permission to list zones.
+          hostedZoneID: {{ tls.acme.route53.hosted_zone_id }}
+          accessKeyIDSecretRef:
+            name: route53-credentials
+            key: access-key-id
+          secretAccessKeySecretRef:
+            name: route53-credentials
+            key: secret-access-key

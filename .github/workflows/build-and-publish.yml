@@ -257,10 +257,16 @@ jobs:
             -g /gossfiles/base.yaml --vars /packages.json validate
 
   services:
-    needs: [changes, base]
+    # PROJ-036: never when packages or base failed. Gating on base alone let a
+    # failed packages job (base then *skipped*) build every service FROM
+    # base:main and push it as this commit's sha- tag (run 39153018251). A
+    # skipped base is fine only because packages succeeded: base then skips
+    # just when none of its inputs changed.
+    needs: [changes, packages, base]
     if: >-
       !cancelled()
-      && needs.base.result != 'failure'
+      && needs.packages.result == 'success'
+      && (needs.base.result == 'success' || needs.base.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -323,10 +329,13 @@ jobs:
   # a courier version bump introducing a new setting has to fail here, and a
   # vendored fixture would quietly agree with itself forever.
   config-completeness:
-    needs: [changes, services]
+    # PROJ-036: the same guard, or it checks an image that is not this commit's.
+    needs: [changes, packages, base, services]
     if: >-
       !cancelled()
-      && needs.services.result != 'failure'
+      && needs.packages.result == 'success'
+      && (needs.base.result == 'success' || needs.base.result == 'skipped')
+      && needs.services.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read

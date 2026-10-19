@@ -24,8 +24,9 @@ host management.
   courier config templates live in `deployment/k8s/configmap.yaml` and are
   rendered by each container at start.
 - **Checks.** goss suites, pinned in the context (`scripts/fetch-goss.sh`):
-  `goss/repo.yaml` from a checkout and in CI, `goss/host-k3s.yaml` and
-  `goss/smoke.yaml` on a host. `make checks` runs the repo-level ones.
+  `goss/repo.yaml` from a checkout and in CI, `goss/host-k3s.yaml`,
+  `goss/smoke.yaml` and `goss/certificates.yaml` on a host.
+  `make checks` runs the repo-level ones.
 - **Work tracking.** `backlog/` (Platypus).
 
 ## Deploying to a host

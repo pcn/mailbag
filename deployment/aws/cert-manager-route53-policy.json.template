@@ -1,0 +1,48 @@
+{#
+  IAM policy for the key cert-manager uses to answer Let's Encrypt DNS-01
+  challenges (deployment/k8s/letsencrypt-clusterissuer.yaml.template).
+  Rendered against the host's context and attached by hand to a dedicated IAM
+  user; the node itself has no other AWS access:
+
+    renderer --strict -n deployment/aws/cert-manager-route53-policy.json.template /etc/mailbag/context.json
+
+  It allows UPSERT and DELETE of TXT records named _acme-challenge.<name>, for
+  exactly the names on the mail certificate, in the one pinned hosted zone --
+  nothing else in the zone (MX, A, other TXT) can be changed with it. Read
+  access is ListResourceRecordSets on that zone and GetChange, which
+  cert-manager polls until the change is INSYNC.
+-#}
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AcmeChallengeRecordsOnly",
+      "Effect": "Allow",
+      "Action": "route53:ChangeResourceRecordSets",
+      "Resource": "arn:aws:route53:::hostedzone/{{ tls.acme.route53.hosted_zone_id }}",
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "route53:ChangeResourceRecordSetsNormalizedRecordNames": [
+{%- for name in [domain.zone, mta.dns_name, msa.dns_name, mta_ssl.dns_name, imapd_ssl.dns_name] | unique %}
+            "_acme-challenge.{{ name }}"{% if not loop.last %},{% endif %}
+{%- endfor %}
+          ],
+          "route53:ChangeResourceRecordSetsRecordTypes": ["TXT"],
+          "route53:ChangeResourceRecordSetsActions": ["UPSERT", "DELETE"]
+        }
+      }
+    },
+    {
+      "Sid": "ReadTheZone",
+      "Effect": "Allow",
+      "Action": "route53:ListResourceRecordSets",
+      "Resource": "arn:aws:route53:::hostedzone/{{ tls.acme.route53.hosted_zone_id }}"
+    },
+    {
+      "Sid": "PollChangeStatus",
+      "Effect": "Allow",
+      "Action": "route53:GetChange",
+      "Resource": "arn:aws:route53:::change/*"
+    }
+  ]
+}

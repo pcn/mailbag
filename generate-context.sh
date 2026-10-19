@@ -20,11 +20,13 @@ CONFIG_PATH="/home/mailbag/config"
 # Which published build to deploy. Override per-deploy with IMAGE_TAG=... on
 # deploy-services.sh; a sha-<sha> tag names an exact build and rolls back cleanly.
 IMAGE_TAG="${IMAGE_TAG:-main}"
-# Where the mail certificate comes from: cert-manager issues it (TLS_ISSUER
-# names the ClusterIssuer), or "secret" for a host that cannot answer an ACME
-# challenge yet and has the Secret injected by hand (scripts/make-test-cert.sh).
+# Where the mail certificate comes from: cert-manager issues it from Let's
+# Encrypt over DNS-01 in a Route53 zone, or "secret" for a host whose Secret is
+# injected by hand (scripts/make-test-cert.sh). For cert-manager,
+# ACME_HOSTED_ZONE_ID is required -- it cannot be guessed -- ACME_ZONE defaults
+# to the mail domain, and ACME_EMAIL to letsencrypt@<domain>, the convention on
+# every install so the Let's Encrypt account is never tied to a person or role.
 TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
-TLS_ISSUER="${TLS_ISSUER:-letsencrypt-staging}"
 # userdb.canary must be an account that exists in the userdb: the database
 # build checks it resolves. It cannot be guessed, so the default is a
 # placeholder that fails that check loudly until CANARY names a real account.
@@ -75,9 +77,16 @@ MAIL_HOSTNAME=$(clean_hostname "$MAIL_HOSTNAME_INPUT" "$DOMAIN")
 IMAP_HOSTNAME=$(clean_hostname "$IMAP_HOSTNAME_INPUT" "$DOMAIN")
 SMTP_HOSTNAME=$(clean_hostname "$SMTP_HOSTNAME_INPUT" "$DOMAIN")
 
-# An issuer exists only for cert-manager; the schema refuses one for "secret".
+# ACME settings exist only for cert-manager; the schema refuses them for "secret".
 if [ "$TLS_SOURCE" = cert-manager ]; then
-    TLS_BLOCK="{\"source\": \"cert-manager\", \"issuer\": \"$TLS_ISSUER\"}"
+    if [ -z "${ACME_HOSTED_ZONE_ID:-}" ]; then
+        echo "ERROR: TLS_SOURCE=cert-manager needs ACME_HOSTED_ZONE_ID, the Route53 hosted zone" >&2
+        echo "       id (Z...) the DNS-01 challenge records are written to." >&2
+        exit 1
+    fi
+    TLS_BLOCK=$(jq -n --arg email "${ACME_EMAIL:-letsencrypt@$DOMAIN}" \
+        --arg zone "${ACME_ZONE:-$DOMAIN}" --arg id "$ACME_HOSTED_ZONE_ID" \
+        '{source: "cert-manager", acme: {email: $email, route53: {zone: $zone, hosted_zone_id: $id}}}')
 else
     TLS_BLOCK="{\"source\": \"$TLS_SOURCE\"}"
 fi

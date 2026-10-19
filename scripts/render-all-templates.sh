@@ -27,6 +27,8 @@ RENDERER=$(scripts/fetch-renderer.sh examples/example-context.json) || exit 1
 TEMPLATES=(
     "deployment/k8s/prepare-host.sh.template:$CONTEXT"
     "deployment/k8s/mail-certificates.yaml.template:$CONTEXT"
+    "deployment/k8s/letsencrypt-clusterissuer.yaml.template:$CONTEXT"
+    "deployment/aws/cert-manager-route53-policy.json.template:$CONTEXT"
     "deployment/k8s/courierd.yaml.template:$CONTEXT"
     "deployment/k8s/courier-mta.yaml.template:$CONTEXT"
     "deployment/k8s/courier-mta-ssl.yaml.template:$CONTEXT"
