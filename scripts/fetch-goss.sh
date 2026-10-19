@@ -47,7 +47,10 @@ if [ ! -x "$bin" ]; then
     found=$(find "$tmp" -type f -name goss | head -1)
     [ -n "$found" ] || die "no goss binary in $tarball"
     mkdir -p "$dir"
-    install -m 0755 "$found" "$bin"
+    # Private name, then an atomic rename, so a concurrent caller never runs a
+    # half-written binary (see fetch-cue.sh).
+    install -m 0755 "$found" "$bin.$$"
+    mv -f "$bin.$$" "$bin"
 fi
 
 # A cached binary is trusted only if it still reports the pinned version.

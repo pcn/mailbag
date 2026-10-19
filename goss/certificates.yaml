@@ -4,11 +4,12 @@
 # optional variable:
 #
 #   GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
-#   "$GOSS" -g goss/certificates.yaml --vars /etc/mailbag/context.json \
-#     --vars-inline '{"ca_bundle": "/root/test-certs/ca.crt"}' validate
+#   "$GOSS" -g goss/certificates.yaml --vars /etc/mailbag/context.json validate
 #
 # With ca_bundle unset, openssl uses the system trust store -- the setting for
-# a Let's Encrypt certificate (PROJ-029). Only openssl is used: no cloud
+# the Let's Encrypt certificate cert-manager issues. For a private CA
+# (tls.source=secret, scripts/make-test-cert.sh) add
+# --vars-inline '{"ca_bundle": "<ca.crt>"}'. Only openssl is used: no cloud
 # credentials, no ACME client.
 #
 # PROJ-008. One check per port, so a failure names the port.

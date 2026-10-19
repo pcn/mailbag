@@ -52,7 +52,10 @@ if [ ! -x "$bin" ]; then
         || die "sha256 mismatch for $url"
     tar -xJf "$tmp/$tarball" -C "$tmp"
     mkdir -p "$dir"
-    install -m 0755 "$tmp/minijinja-cli-$target/minijinja-cli" "$bin"
+    # Private name, then an atomic rename, so a concurrent caller never runs a
+    # half-written binary (see fetch-cue.sh).
+    install -m 0755 "$tmp/minijinja-cli-$target/minijinja-cli" "$bin.$$"
+    mv -f "$bin.$$" "$bin"
 fi
 
 # A cached binary is trusted only if it still reports the pinned version.

@@ -48,8 +48,10 @@ IMAGE_TAG=sha-<commit> deployment/k8s/deploy-services.sh   # deploy a specific b
 GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
 $GOSS -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate   # on a host
 $GOSS -g goss/smoke.yaml    --vars /etc/mailbag/context.json validate
-$GOSS -g goss/certificates.yaml --vars /etc/mailbag/context.json \
-  --vars-inline '{"ca_bundle": "/root/test-certs/ca.crt"}' validate   # omit ca_bundle for system trust
+$GOSS -g goss/certificates.yaml --vars /etc/mailbag/context.json validate
+$GOSS -g goss/cert-manager.yaml --vars /etc/mailbag/context.json validate   # tls.source=cert-manager
+scripts/node-test.sh sha-<commit>   # on the host: deploy that tag, then smoke, certificates,
+                                    # cert-manager and mail-delivery, each reported on its own
 ```
 
 Images are built by CI on every branch push and tagged `sha-<commit>`. The

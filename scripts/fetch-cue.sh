@@ -46,7 +46,11 @@ if [ ! -x "$bin" ]; then
         || die "sha256 mismatch for $url"
     tar -xzf "$tmp/$tarball" -C "$tmp" cue
     mkdir -p "$dir"
-    install -m 0755 "$tmp/cue" "$bin"
+    # Installed under a private name, then renamed: goss runs checks in
+    # parallel, and on a cold cache another one can find "$bin" executable
+    # while install is still writing it. rename(2) is atomic.
+    install -m 0755 "$tmp/cue" "$bin.$$"
+    mv -f "$bin.$$" "$bin"
 fi
 
 # A cached binary is trusted only if it still reports the pinned version.

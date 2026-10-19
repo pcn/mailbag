@@ -51,9 +51,18 @@ From a checkout or the deploy tree on the host:
 GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
 $GOSS -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate
 $GOSS -g goss/smoke.yaml    --vars /etc/mailbag/context.json validate
-# ca_bundle only for a private CA (e.g. the test host's); omit it for system trust.
-$GOSS -g goss/certificates.yaml --vars /etc/mailbag/context.json \
-  --vars-inline '{"ca_bundle": "/root/test-certs/ca.crt"}' validate
+$GOSS -g goss/certificates.yaml --vars /etc/mailbag/context.json validate
+$GOSS -g goss/cert-manager.yaml --vars /etc/mailbag/context.json validate   # tls.source=cert-manager
+# For a private CA (tls.source=secret), add --vars-inline '{"ca_bundle": "<ca.crt>"}'.
+$GOSS -g goss/mail-delivery.yaml --vars /etc/mailbag/context.json \
+  --vars-inline '{"canary_password_file": "/root/.mailbag-canary-pass"}' validate
+```
+
+Or all of it at once, deploying a tag first (`SKIP_DEPLOY=1` to test what is
+running):
+
+```bash
+scripts/node-test.sh sha-<commit>
 ```
 
 ## Troubleshooting
