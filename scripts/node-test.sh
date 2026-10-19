@@ -14,10 +14,15 @@
 # Environment:
 #   CONTEXT               default /etc/mailbag/context.json
 #   CANARY_PASSWORD_FILE  default /root/.mailbag-canary-pass; userdb.canary's
-#                         password, read by the mail client and never printed
+#                         password, never printed. Each run that deploys first
+#                         gives the canary a fresh random password
+#                         (scripts/rotate-canary-password.sh) and writes it
+#                         here, so the deploy publishes it and the suites use it.
 #   CA_BUNDLE             trust anchor for a private CA (tls.source=secret);
 #                         unset means system trust
-#   SKIP_DEPLOY=1         test what is deployed now, expecting it to be the tag
+#   SKIP_DEPLOY=1         test what is deployed now, expecting it to be the tag;
+#                         the password is not rotated, since nothing would
+#                         publish it, and CANARY_PASSWORD_FILE must already exist
 #
 # Only smoke and certificates retry, because their state converges on its own
 # (the rollout finishing, the certificate Secret reaching the pods' mounts).
@@ -35,11 +40,17 @@ CANARY_PASSWORD_FILE="${CANARY_PASSWORD_FILE:-/root/.mailbag-canary-pass}"
 
 die() { echo "node-test: $*" >&2; exit 2; }
 [ -r "$CONTEXT" ] || die "context not readable: $CONTEXT"
-[ -r "$CANARY_PASSWORD_FILE" ] || die "canary password file not readable: $CANARY_PASSWORD_FILE"
 [ -z "${CA_BUNDLE:-}" ] || [ -r "$CA_BUNDLE" ] || die "CA_BUNDLE not readable: $CA_BUNDLE"
 GOSS=$(scripts/fetch-goss.sh "$CONTEXT") || die "could not fetch goss"
 
-if [ "${SKIP_DEPLOY:-}" != 1 ]; then
+if [ "${SKIP_DEPLOY:-}" = 1 ]; then
+    [ -r "$CANARY_PASSWORD_FILE" ] || die "canary password file not readable: $CANARY_PASSWORD_FILE"
+else
+    echo "===== canary password"
+    scripts/rotate-canary-password.sh \
+        "$(jq -er '.config.authlib_path' "$CONTEXT")/userdb" \
+        "$(jq -er '.userdb.canary' "$CONTEXT")" \
+        "$CANARY_PASSWORD_FILE" || die "could not rotate the canary password; nothing deployed"
     echo "===== deploy $TAG"
     if ! IMAGE_TAG="$TAG" CONTEXT="$CONTEXT" deployment/k8s/deploy-services.sh; then
         echo "node-test: deploy of $TAG failed; not testing" >&2
