@@ -70,6 +70,7 @@ jobs:
               # where that key already exists and nothing compiles.
               - 'Dockerfile'
               - 'install-scripts/**'
+              - 'cue/packages.cue'
               - 'scripts/packages-key.sh'
               - 'Dockerfile-base'
               - 'entrypoints/sv/**'
@@ -103,8 +104,8 @@ jobs:
 
   # Content-addressed: the courier compile (10-13 min) runs once per set of
   # inputs, not whenever a path filter happens to fire. scripts/packages-key.sh
-  # hashes Dockerfile and install-scripts/ -- the only repo files the image is
-  # built from -- into pkgs-<hash>. If an image with that tag already exists,
+  # hashes Dockerfile, install-scripts/ and cue/packages.cue -- the only repo
+  # files the image is built from -- into pkgs-<hash>. If an image with that tag already exists,
   # this run only adds its own tags to it; otherwise it compiles and pushes.
   # The base then builds FROM exactly that key, so it can never pair with
   # packages compiled from different scripts.
@@ -149,6 +150,17 @@ jobs:
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
+      # Versions and source checksums are declared once, in cue/packages.cue.
+      - name: Export the courier package pins as build args
+        id: pins
+        if: steps.check.outputs.exists != 'true'
+        run: |
+          CUE=$(scripts/fetch-cue.sh examples/example-context.json)
+          {
+            echo 'build_args<<EOF'
+            "$CUE" export ./cue -e build_args --out text
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         if: steps.check.outputs.exists != 'true'
         with:
@@ -156,6 +168,7 @@ jobs:
           file: Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: ${{ steps.pins.outputs.build_args }}
       # Manifest-only copy: gives this commit its sha-/branch tags on the
       # existing image in seconds, so every commit still has a packages tag.
       - name: Tag the existing image for this commit
@@ -221,13 +234,27 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           # The packages image is named by the content key of this commit's
-          # Dockerfile and install-scripts, never :main, so the base always
-          # installs debs compiled from the scripts it was built with.
+          # Dockerfile, install-scripts and cue/packages.cue, never :main, so
+          # the base always installs debs compiled from the pins it was built with.
           build-args: |
             MINIJINJA_CLI_VERSION=${{ steps.renderer.outputs.version }}
             MINIJINJA_CLI_SHA256_X86_64=${{ steps.renderer.outputs.sha256_x86_64 }}
             MINIJINJA_CLI_SHA256_AARCH64=${{ steps.renderer.outputs.sha256_aarch64 }}
             PACKAGES_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-packages:${{ needs.packages.outputs.key }}
+      # goss/images/base.yaml runs inside the image just pushed: every courier
+      # package it installs must be the version cue/packages.cue pins.
+      - name: The base installs the courier versions cue/packages.cue pins
+        run: |
+          GOSS=$(scripts/fetch-goss.sh examples/example-context.json)
+          CUE=$(scripts/fetch-cue.sh examples/example-context.json)
+          "$CUE" export ./cue -e packages --out json > "$RUNNER_TEMP/packages.json"
+          docker run --rm \
+            -v "$GOSS:/goss:ro" \
+            -v "$PWD/goss/images:/gossfiles:ro" \
+            -v "$RUNNER_TEMP/packages.json:/packages.json:ro" \
+            --entrypoint /goss \
+            "${{ env.REGISTRY }}/${{ github.repository }}:sha-${{ github.sha }}" \
+            -g /gossfiles/base.yaml --vars /packages.json validate
 
   services:
     needs: [changes, base]

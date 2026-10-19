@@ -11,7 +11,8 @@ host management.
   `cue/schema.cue` is its schema; `generate-context.sh` writes a first one.
   `examples/example-context.json` is the reference.
 - **Images.** CI (`.github/workflows/build-and-publish.yml`) builds them on
-  every branch push. The courier packages are compiled once per set of inputs
+  every branch push. The courier packages, at the versions and source
+  checksums pinned in `cue/packages.cue`, are compiled once per set of inputs
   (`scripts/packages-key.sh`), the base installs them, and each service image
   builds on the base. Images are tagged `sha-<commit>`.
 - **Deployment.** `deployment/k8s/deploy-services.sh` renders the manifests

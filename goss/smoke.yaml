@@ -22,3 +22,43 @@ addr:
   tcp://{{ .Vars.imapd_ssl.dns_name }}:{{ .Vars.services.imaps_port }}:
     reachable: true
     timeout: 3000
+
+{{- $ns := .Vars.services.k8s_namespace }}
+{{- $all := "/etc/courier/hosteddomains.dat /etc/courier/esmtpacceptmailfor.dat /etc/courier/smtpaccess.dat /etc/courier/aliases.dat=0 /etc/authlib/userdb.dat /etc/authlib/userdbshadow.dat" }}
+{{- $userdb := "/etc/authlib/userdb.dat /etc/authlib/userdbshadow.dat" }}
+
+command:
+  # PROJ-025/PROJ-010: every mail pod is supervised by runit -- runsvdir is
+  # PID 1 and every service under it is up -- and the databases it reads are
+  # usable inside it (the same assert-courier-dat set its entrypoint runs).
+{{- range $d := list
+      (dict "name" "courier-mta"       "dat" $all)
+      (dict "name" "courier-msa"       "dat" $all)
+      (dict "name" "courier-mta-ssl"   "dat" $all)
+      (dict "name" "courier-imapd-ssl" "dat" $userdb)
+      (dict "name" "courierd"          "dat" $all) }}
+  {{ $d.name }} runs runsvdir as PID 1:
+    exec: kubectl -n {{ $ns }} exec deploy/{{ $d.name }} -c {{ $d.name }} -- cat /proc/1/comm
+    exit-status: 0
+    stdout:
+      - '/^runsvdir$/'
+  {{ $d.name }} has every runit service up:
+    # "run:" for each service, nothing "down:" or "fail:".
+    exec: kubectl -n {{ $ns }} exec deploy/{{ $d.name }} -c {{ $d.name }} -- sh -c 'sv status /etc/service/*'
+    exit-status: 0
+    stdout:
+      - '/^run: /'
+      - '!/^(down|fail|warning):/'
+  {{ $d.name }} passes assert-courier-dat on the databases it reads:
+    exec: kubectl -n {{ $ns }} exec deploy/{{ $d.name }} -c {{ $d.name }} -- /usr/local/bin/assert-courier-dat {{ $d.dat }}
+    exit-status: 0
+{{- end }}
+
+  # PROJ-025/PROJ-004: the newest database build job succeeded.
+  the latest courier-build-dat job succeeded:
+    exec: >-
+      kubectl -n {{ $ns }} get jobs -l component=build-dat
+      --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].status.succeeded}'
+    exit-status: 0
+    stdout:
+      - '/^1$/'

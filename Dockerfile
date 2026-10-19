@@ -15,7 +15,14 @@ RUN apt-get update && apt-get install -y tzdata locales && \
     locale-gen en_US.UTF-8
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
-RUN apt-get update 
+# Versions and source checksums come from cue/packages.cue, the one place they
+# are declared; CI passes `cue export ./cue -e build_args --out text`. No
+# defaults: a build without them fails in the install script, rather than
+# compiling a version nobody chose.
+ARG SYSCONFTOOL_VERSION SYSCONFTOOL_SHA256
+ARG COURIER_UNICODE_VERSION COURIER_UNICODE_SHA256
+ARG COURIER_AUTHLIB_VERSION COURIER_AUTHLIB_SHA256
+ARG COURIER_VERSION COURIER_SHA256
 
 COPY install-scripts/* /tmp/
 
@@ -30,8 +37,6 @@ RUN bash /tmp/install-unicode.sh
 RUN bash /tmp/install-auth.sh
 
 RUN bash /tmp/install-courier.sh
-
-# From now on, use new scripts/things to avoid re-building.
 
 FROM scratch AS export-stage
 COPY --from=build-stage /export /export

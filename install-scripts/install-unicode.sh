@@ -2,12 +2,14 @@
 
 set -e -u -o pipefail
 
-VER=2.6.0
+# Version and checksum come from cue/packages.cue, as build args.
+VER=${COURIER_UNICODE_VERSION:?build arg COURIER_UNICODE_VERSION not set}
+. "$(dirname "$0")/fetch-source.sh"
 # Download per https://www.courier-mta.org/download.html
 mkdir /tmp/unicode
 cd /tmp/unicode
 
-curl -L https://sourceforge.net/projects/courier/files/courier-unicode/${VER}/courier-unicode-${VER}.tar.bz2/download >  courier-unicode-${VER}.tar.bz2
+fetch_source "courier-unicode/${VER}" "courier-unicode-${VER}.tar.bz2" "${COURIER_UNICODE_SHA256:-}"
 
 tar xvf courier-unicode-${VER}.tar.bz2
 

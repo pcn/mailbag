@@ -66,6 +66,23 @@ file:
     exists: true
     contents: *no-literal-ports
 
+  # PROJ-037: courier versions come from cue/packages.cue, as build args; an
+  # install script with its own literal version is a second source.
+  install-scripts/install-courier.sh:
+    exists: true
+    contents: &no-literal-version
+      - '!/^VER=[0-9]/'
+      - '/fetch_source /'
+  install-scripts/install-auth.sh:
+    exists: true
+    contents: *no-literal-version
+  install-scripts/install-unicode.sh:
+    exists: true
+    contents: *no-literal-version
+  install-scripts/install-sysconf.sh:
+    exists: true
+    contents: *no-literal-version
+
 command:
   # PROJ-030
   example context declares every mail port and no msa.port:
@@ -102,6 +119,13 @@ command:
       git grep -nE 'unit-files|tinydns|test-starttls|build-base\.sh|build-services\.sh|manage-mail-users|CERTIFICATE-SETUP|test-workflow|run-goss|goss/goss\.yaml|certbot|network_name'
       -- . ':!backlog' ':!CHANGELOG.md' ':!goss/repo.yaml'
     exit-status: 1
+  # PROJ-037: cue/packages.cue is the one declaration of the courier package
+  # versions and checksums; the Dockerfile, install scripts and packages key
+  # all follow it, and a download with the wrong checksum is refused.
+  the courier package pins are declared once and every consumer follows them:
+    exec: goss/lib/check-package-pins.sh
+    exit-status: 0
+    timeout: 120000
   # PROJ-034
   cue is pinned in the example context with a version and a sha256 per target:
     # Every line at the same indent: in a folded scalar a more-indented line

@@ -47,7 +47,11 @@ $GOSS -g goss/smoke.yaml    --vars /etc/mailbag/context.json validate
 
 Images are built by CI on every branch push and tagged `sha-<commit>`. The
 courier packages image is content-addressed (`scripts/packages-key.sh`), so
-the courier compile runs once per set of `Dockerfile` + `install-scripts/`.
+the courier compile runs once per set of `Dockerfile` + `install-scripts/` +
+`cue/packages.cue`. Courier versions and source sha256s are declared only in
+`cue/packages.cue`; CI passes them as build args
+(`cue export ./cue -e build_args --out text`) and the install scripts refuse a
+download whose checksum differs. Bump a version there and nowhere else.
 
 ## Testing
 

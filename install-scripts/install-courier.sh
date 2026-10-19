@@ -2,12 +2,14 @@
 
 set -e -u -o pipefail
 
-VER=2.0.8
+# Version and checksum come from cue/packages.cue, as build args.
+VER=${COURIER_VERSION:?build arg COURIER_VERSION not set}
+. "$(dirname "$0")/fetch-source.sh"
 # Download per https://www.courier-mta.org/download.html
 mkdir /tmp/c
 cd /tmp/c
 
-curl -L https://sourceforge.net/projects/courier/files/courier/${VER}/courier-${VER}.tar.bz2/download > courier-${VER}.tar.bz2
+fetch_source "courier/${VER}" "courier-${VER}.tar.bz2" "${COURIER_SHA256:-}"
 
 # instructions from https://www.courier-mta.org/install.html
 tar -xvf courier-${VER}.tar.bz2
