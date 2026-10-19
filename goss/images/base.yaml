@@ -1,0 +1,33 @@
+# Run inside the base image by CI's base job, right after it is built, with
+# the pins from cue/packages.cue as vars:
+#
+#   cue export ./cue -e packages --out json > packages.json
+#   docker run --rm -v "$GOSS:/goss:ro" -v "$PWD/goss/images:/gossfiles:ro" \
+#     -v "$PWD/packages.json:/packages.json:ro" --entrypoint /goss <base image> \
+#     -g /gossfiles/base.yaml --vars /packages.json validate
+#
+# PROJ-025/PROJ-032/PROJ-037: every courier package the base installs is the
+# version cue/packages.cue pins. Read from the pins, not restated here, so a
+# bump changes one place and this still holds -- and a base built FROM
+# packages compiled from different pins fails.
+
+command:
+{{- range $c := list
+      (dict "pin" "courier"          "pkg" "courier")
+      (dict "pin" "courier_authlib"  "pkg" "libcourier-auth")
+      (dict "pin" "courier_unicode"  "pkg" "libcourier-unicode[0-9]*")
+      (dict "pin" "sysconftool"      "pkg" "sysconftool") }}
+  {{ $c.pkg }} is the {{ $c.pin }} version cue/packages.cue pins:
+    exec: >-
+      v='{{ (index $.Vars $c.pin).version }}';
+      test -n "$v" &&
+      dpkg-query -W -f='${Version}\n' '{{ $c.pkg }}' | grep -q "^$v-"
+    exit-status: 0
+{{- end }}
+
+  # The template renderer every entrypoint uses is present.
+  /renderer is installed:
+    exec: /renderer --version
+    exit-status: 0
+    stdout:
+      - '/^minijinja-cli /'

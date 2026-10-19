@@ -17,7 +17,7 @@ while ! echo y | apt-get install -y \
             expect libgdbm-dev libidn11-dev gnutls-dev gnutls-bin \
             libgcrypt-dev ghostscript mgetty-fax netpbm aspell \
             libpcre2-dev libaspell-dev libperl-dev debhelper locales \
-            hunspell libhunspell-dev \
+            hunspell libhunspell-dev autoconf-archive \
       ; do   
     sleep 1
 done

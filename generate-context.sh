@@ -1,29 +1,53 @@
 #!/bin/bash
-# This script generates a context.json file based on user input
+# Generate /etc/mailbag/context.json for a k3s mailbag host from a few answers.
+# The result must satisfy cue/schema.cue's #Context; goss/repo.yaml checks that
+# this script's defaults do (goss/lib/check-generated-contexts.sh).
 
 set -e
+
+# Where to write. Overridable so goss/repo.yaml can run this script for real,
+# with every prompt answered by its default, without touching /etc/mailbag.
+CONTEXT_OUT="${CONTEXT_OUT:-/etc/mailbag/context.json}"
 
 # Default values
 DOMAIN="example.com"
 MAIL_HOSTNAME="mail"
 IMAP_HOSTNAME="imap"
 SMTP_HOSTNAME="smtp"
-MAILBAG_SPOOL="/home/mailbag/spool/courier"
+# Host directories (host_paths): the workloads create them if missing and set
+# their owner and mode, so nothing prepares the host beforehand.
+MAILBAG_SPOOL="/home/mailbag/spool/courier-mta"
 MAIL_STORAGE="/home/vmail"
-CERT_PATH="/etc/letsencrypt/live"
 CONFIG_PATH="/home/mailbag/config"
-MAIL_USER="vmail"
-MAIL_USER_ID="300"
-AUTHLIB_USER="daemon"
 # Which published build to deploy. Override per-deploy with IMAGE_TAG=... on
 # deploy-services.sh; a sha-<sha> tag names an exact build and rolls back cleanly.
 IMAGE_TAG="${IMAGE_TAG:-main}"
+# Where the mail certificate comes from: cert-manager issues it from Let's
+# Encrypt over DNS-01 in a Route53 zone, or "secret" for a host whose Secret is
+# injected by hand (scripts/make-test-cert.sh). For cert-manager,
+# ACME_HOSTED_ZONE_ID is required -- it cannot be guessed -- ACME_ZONE defaults
+# to the mail domain, and ACME_EMAIL to letsencrypt@<domain>, the convention on
+# every install so the Let's Encrypt account is never tied to a person or role.
+TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
+# Mailboxes are declared here; their password hashes go in
+# /etc/mailbag/passwords (scripts/mailbox-passwd.sh), and the database build
+# fails for a mailbox without one. userdb.canary is a dedicated test mailbox
+# (default canary@<domain>) the build looks up and scripts/node-test.sh logs
+# in as; letsencrypt@<domain> is the ACME account's address on every install.
+# POSTMASTER is "reject" or the local part postmaster and role mail go to.
+# Host layer below Kubernetes, checked by goss/host-k3s.yaml. data_dir belongs
+# on the large filesystem, not a small /var (PROJ-024).
+K3S_VERSION="${K3S_VERSION:-v1.32.5+k3s1}"
+K3S_DATA_DIR="${K3S_DATA_DIR:-/home/k3s}"
+K3S_GOMEMLIMIT="${K3S_GOMEMLIMIT:-300MiB}"
+MIN_FREE_MB_DATA_DIR="${MIN_FREE_MB_DATA_DIR:-2048}"
+MIN_FREE_MB_VAR="${MIN_FREE_MB_VAR:-1024}"
 
 # Helper function to clean up hostname input
 clean_hostname() {
     local hostname="$1"
     local domain="$2"
-    
+
     # If hostname already contains the domain, use it as-is
     if [[ "$hostname" == *"$domain"* ]]; then
         echo "$hostname"
@@ -52,100 +76,92 @@ MAIL_STORAGE=${input:-$MAIL_STORAGE}
 read -p "Enter path for courier spool (default: $MAILBAG_SPOOL): " input
 MAILBAG_SPOOL=${input:-$MAILBAG_SPOOL}
 
-read -p "Enter path for certificates (default: $CERT_PATH): " input
-CERT_PATH=${input:-$CERT_PATH}
-
 # Clean up hostnames
 MAIL_HOSTNAME=$(clean_hostname "$MAIL_HOSTNAME_INPUT" "$DOMAIN")
-IMAP_HOSTNAME=$(clean_hostname "$IMAP_HOSTNAME_INPUT" "$DOMAIN")  
+IMAP_HOSTNAME=$(clean_hostname "$IMAP_HOSTNAME_INPUT" "$DOMAIN")
 SMTP_HOSTNAME=$(clean_hostname "$SMTP_HOSTNAME_INPUT" "$DOMAIN")
 
+# ACME settings exist only for cert-manager; the schema refuses them for "secret".
+if [ "$TLS_SOURCE" = cert-manager ]; then
+    if [ -z "${ACME_HOSTED_ZONE_ID:-}" ]; then
+        echo "ERROR: TLS_SOURCE=cert-manager needs ACME_HOSTED_ZONE_ID, the Route53 hosted zone" >&2
+        echo "       id (Z...) the DNS-01 challenge records are written to." >&2
+        exit 1
+    fi
+    TLS_BLOCK=$(jq -n --arg email "${ACME_EMAIL:-letsencrypt@$DOMAIN}" \
+        --arg zone "${ACME_ZONE:-$DOMAIN}" --arg id "$ACME_HOSTED_ZONE_ID" \
+        '{source: "cert-manager", acme: {email: $email, route53: {zone: $zone, hosted_zone_id: $id}}}')
+else
+    TLS_BLOCK="{\"source\": \"$TLS_SOURCE\"}"
+fi
+
 # Create output directory
-mkdir -p /etc/mailbag
+mkdir -p "$(dirname "$CONTEXT_OUT")"
 
 # Generate context.json
-cat > /etc/mailbag/context.json << EOF
+cat > "$CONTEXT_OUT" << EOF
 {
-  "mda": {
-    "mail_path_host": "$MAIL_STORAGE/$DOMAIN",
-    "mail_path_container": "/vmail/$DOMAIN",
-    "owner": "$MAIL_USER_ID",
-    "owner_name": "$MAIL_USER",
-    "mode": "0755"
+  "host_paths": {
+    "spool": "$MAILBAG_SPOOL",
+    "mail": "$MAIL_STORAGE",
+    "courier_config": "$CONFIG_PATH/courier",
+    "authlib": "$CONFIG_PATH/authlib"
   },
   "mta": {
     "dns_name": "$DOMAIN",
-    "tls_certfile": "$CERT_PATH/$DOMAIN/fullchain.pem",
-    "tls_keyfile": "$CERT_PATH/$DOMAIN/privkey.pem",
-    "service": "courier-mta",
-    "accept_mail_for": ["$DOMAIN"],
-    "courierd_path_host": "$MAILBAG_SPOOL-mta",
-    "courierd_path_container": "/var/spool/courier"
+    "accept_mail_for": ["$DOMAIN"]
   },
   "imapd_ssl": {
-    "dns_name": "$IMAP_HOSTNAME",
-    "tls_certfile": "$CERT_PATH/$DOMAIN/fullchain.pem",
-    "tls_keyfile": "$CERT_PATH/$DOMAIN/privkey.pem",
-    "service": "courier-imapd-ssl"
+    "dns_name": "$IMAP_HOSTNAME"
   },
   "mta_ssl": {
-    "dns_name": "$SMTP_HOSTNAME",
-    "tls_certfile": "$CERT_PATH/$DOMAIN/fullchain.pem",
-    "tls_keyfile": "$CERT_PATH/$DOMAIN/privkey.pem",
-    "service": "courier-mta-ssl",
-    "accept_mail_for": ["$DOMAIN"],
-    "courierd_path_host": "$MAILBAG_SPOOL-mta-ssl",
-    "courierd_path_container": "/var/spool/courier"
+    "dns_name": "$SMTP_HOSTNAME"
   },
   "msa": {
-    "dns_name": "$MAIL_HOSTNAME",
-    "tls_certfile": "$CERT_PATH/$DOMAIN/fullchain.pem",
-    "tls_keyfile": "$CERT_PATH/$DOMAIN/privkey.pem",
-    "service": "courier-msa",
-    "courierd_path_host": "$MAILBAG_SPOOL-msa",
-    "courierd_path_container": "/var/spool/courier"
-  },
-  "docker": {
-    "network_name": "vmail"
+    "dns_name": "$MAIL_HOSTNAME"
   },
   "userdb": {
-    "directory": "/etc/authlib/userdb",
-    "owner": "$AUTHLIB_USER",
-    "mode": "0700"
+    "canary": "${CANARY:-canary@$DOMAIN}"
+  },
+  "mailboxes": ["${CANARY:-canary@$DOMAIN}", "letsencrypt@$DOMAIN"],
+  "aliases": {
+    "postmaster": "${POSTMASTER:-reject}"
   },
   "domain": {
-    "name": "mail",
     "zone": "$DOMAIN"
   },
   "image": {
     "tag": "$IMAGE_TAG"
   },
-  "config": {
-    "courier_path": "$CONFIG_PATH/courier",
-    "courier_mode": "0755",
-    "authlib_path": "$CONFIG_PATH/authlib",
-    "authlib_mode": "0700"
-  },
-  "filesystem": {
-    "base_storage_mode": "0755",
-    "msgq_mode": "0750",
-    "msgs_mode": "0750",
-    "filters_mode": "0750",
-    "allfilters_mode": "0750",
-    "tmp_mode": "0770",
-    "track_mode": "0755"
-  },
   "services": {
     "smtp_port": 25,
+    "smtps_port": 465,
     "submission_port": 587,
     "imaps_port": 993,
-    "ssh_port": 22,
-    "k8s_namespace": "mailbag",
-    "k8s_services": ["mta", "mta-ssl", "imapd-ssl", "msa"],
-    "k8s_pods": ["courier-mta", "courier-mta-ssl", "courier-imapd-ssl", "courier-msa", "courierd"]
+    "k8s_namespace": "mailbag"
+  },
+  "tls": $TLS_BLOCK,
+  "host": {
+    "k3s": {
+      "version": "$K3S_VERSION",
+      "data_dir": "$K3S_DATA_DIR",
+      "gomemlimit": "$K3S_GOMEMLIMIT",
+      "disable": ["traefik", "metrics-server", "local-storage"]
+    },
+    "min_free_mb": {
+      "data_dir": $MIN_FREE_MB_DATA_DIR,
+      "var": $MIN_FREE_MB_VAR
+    }
   }
 }
 EOF
 
-echo "Generated context.json at /etc/mailbag/context.json"
-echo "Now run deployment/k8s/generate-host-scripts.sh to create the host preparation script"
+# Tool pins (renderer, goss, cue: versions and checksums) are copied from the
+# example context rather than written here, so the repo pins them in one place.
+EXAMPLE_CONTEXT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/examples/example-context.json"
+tmp=$(mktemp)
+jq --slurpfile ex "$EXAMPLE_CONTEXT" '.tools = $ex[0].tools' "$CONTEXT_OUT" > "$tmp"
+mv "$tmp" "$CONTEXT_OUT"
+
+echo "Generated context.json at $CONTEXT_OUT"
+echo "Next: deployment/k8s/deploy-services.sh (it creates the host_paths directories itself)"

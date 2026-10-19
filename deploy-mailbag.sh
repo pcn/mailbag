@@ -29,24 +29,20 @@ log_error() {
 check_prerequisites() {
     log_info "Checking prerequisites..."
     
-    if [ ! -f "$SCRIPT_DIR/render-template" ]; then
-        log_error "render-template not found. Building it now..."
-        cd "$SCRIPT_DIR/templater" && cargo build && cd ..
-        cp templater/target/debug/render-template .
-        log_info "render-template built successfully"
-    fi
-    
     if [ ! -f "/etc/mailbag/context.json" ]; then
         log_error "/etc/mailbag/context.json not found!"
         log_error "Please run ./generate-context.sh first to create the configuration"
         exit 1
     fi
-    
+
     # Validate context.json
     if ! jq . /etc/mailbag/context.json > /dev/null 2>&1; then
         log_error "Invalid JSON in /etc/mailbag/context.json"
         exit 1
     fi
+
+    # The renderer version comes from the host's context.
+    RENDERER=$("$SCRIPT_DIR/scripts/fetch-renderer.sh" /etc/mailbag/context.json)
     
     # Check if kubectl is available
     if ! command -v kubectl &> /dev/null; then
@@ -57,30 +53,11 @@ check_prerequisites() {
     log_info "Prerequisites check passed"
 }
 
-# Step 1: Generate host preparation script and run it
-prepare_host() {
-    log_info "Step 1: Preparing host directories..."
-    
-    cd "$SCRIPT_DIR/deployment/k8s"
-    
-    # Generate the host preparation script
-    "$SCRIPT_DIR/render-template" --context /etc/mailbag/context.json --template prepare-host.sh.template > prepare-host.sh
-    chmod +x prepare-host.sh
-    
-    # Run the host preparation script
-    if [ "$EUID" -eq 0 ]; then
-        ./prepare-host.sh
-    else
-        log_warn "Running host preparation with sudo (requires root permissions)"
-        sudo ./prepare-host.sh
-    fi
-    
-    log_info "Host preparation completed"
-}
-
-# Step 2: Deploy to Kubernetes
+# Step 1: Deploy to Kubernetes. There is no host preparation step: the
+# workloads create their host_paths directories and set owner and mode
+# themselves (PROJ-011).
 deploy_kubernetes() {
-    log_info "Step 2: Deploying to Kubernetes..."
+    log_info "Step 1: Deploying to Kubernetes..."
     
     cd "$SCRIPT_DIR/deployment/k8s"
     
@@ -95,16 +72,13 @@ deploy_kubernetes() {
     log_info "Kubernetes deployment completed"
 }
 
-# Step 3: Check deployment status
+# Step 2: Check deployment status
 check_status() {
-    log_info "Step 3: Checking deployment status..."
-    
+    log_info "Step 2: Checking deployment status..."
+
     NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
-    
-    echo "Persistent Volume Claims:"
-    kubectl get pvc -n $NAMESPACE
-    
-    echo -e "\nServices:"
+
+    echo "Services:"
     kubectl get services -n $NAMESPACE
     
     echo -e "\nPods:"
@@ -130,9 +104,9 @@ check_status() {
     fi
 }
 
-# Step 4: Show next steps
+# Step 3: Show next steps
 show_next_steps() {
-    log_info "Step 4: Next steps for completion..."
+    log_info "Step 3: Next steps for completion..."
     
     NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
     DOMAIN=$(jq -r '.domain.zone' /etc/mailbag/context.json)
@@ -144,9 +118,10 @@ show_next_steps() {
     echo ""
     echo "Next steps to complete your mail server:"
     echo ""
-    echo "1. SSL/TLS Certificates:"
-    echo "   - Set up Let's Encrypt certificates for $DOMAIN"
-    echo "   - Configure DNS records for your mail subdomains"
+    echo "1. Certificates follow tls.source in the context:"
+    echo "   - cert-manager: Let's Encrypt over DNS-01 in Route53, once"
+    echo "     secret/route53-credentials exists in the cert-manager namespace"
+    echo "   - secret: courier-mail-cert-tls, created by hand"
     echo ""
     echo "2. DNS Configuration:"
     echo "   - Create A records for:"
@@ -157,15 +132,17 @@ show_next_steps() {
     echo "   - Create MX record pointing to $(jq -r '.mta.dns_name' /etc/mailbag/context.json)"
     echo ""
     echo "3. Mail Users:"
-    echo "   - Create virtual mail users using deployment/k8s/manage-mail-users.sh"
+    echo "   - Declare them in the context's mailboxes, set each password with"
+    echo "     scripts/mailbox-passwd.sh <address>, then rerun deployment/k8s/deploy-services.sh"
     echo ""
-    echo "4. Testing:"
-    echo "   - Test SMTP: telnet $(jq -r '.mta.dns_name' /etc/mailbag/context.json) 25"
-    echo "   - Test IMAP: openssl s_client -connect $(jq -r '.imapd_ssl.dns_name' /etc/mailbag/context.json):993"
+    echo "4. Testing (goss, pinned in context.json; run from the repo root):"
+    echo "   - GOSS=\$(scripts/fetch-goss.sh /etc/mailbag/context.json)"
+    echo "   - \$GOSS -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate"
+    echo "   - scripts/node-test.sh <image tag>   (deploys the tag, then every host suite)"
     echo ""
     echo "=== TROUBLESHOOTING ==="
     echo "View logs: kubectl logs -n $NAMESPACE <pod-name>"
-    echo "Check status: kubectl get pods,services,pvc -n $NAMESPACE"
+    echo "Check status: kubectl get pods,services -n $NAMESPACE"
     echo ""
 }
 
@@ -177,7 +154,6 @@ main() {
     echo ""
     
     check_prerequisites
-    prepare_host
     deploy_kubernetes
     check_status
     show_next_steps

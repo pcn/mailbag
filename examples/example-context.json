@@ -1,98 +1,94 @@
 {
-  "mda": {
-    "mail_path_host": "/vmail/the-domain.com",
-    "mail_path_container": "/vmail/the-domain.com",
-    "owner": "300",
-    "mode": "0755"
+  "host_paths": {
+    "spool": "/home/mailbag/spool/courier-mta",
+    "mail": "/home/vmail",
+    "courier_config": "/home/mailbag/config/courier",
+    "authlib": "/home/mailbag/config/authlib"
   },
   "mta": {
     "dns_name": "the-domain.com",
-    "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
-    "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
-    "service": "courier-mta.service",
     "accept_mail_for": [
       "the-domain.com"
-    ],
-    "courierd_path_host": "/mailbag/spool/courier-mta",
-    "courierd_path_container": "/var/spool/courier"
+    ]
   },
   "imapd_ssl": {
-    "dns_name": "testmail-imapd-ssl.rton.me",
-    "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
-    "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
-    "service": "courier-imapd-ssl.service"
+    "dns_name": "imap.the-domain.com"
   },
   "mta_ssl": {
-    "dns_name": "the-domain.com",
-    "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
-    "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
-    "service": "courier-mta-ssl.service",
-    "accept_mail_for": [
-      "the-domain.com"
-    ],
-    "courierd_path_host": "/mailbag/spool/courier-mta-ssl",
-    "courierd_path_container": "/var/spool/courier"
+    "dns_name": "the-domain.com"
   },
   "msa": {
-    "dns_name": "testmail-msa.rton.me",
-    "tls_certfile": "/etc/letsencrypt/live/the-domain.com-001/fullchain.pem",
-    "tls_keyfile": "/etc/letsencrypt/live/the-domain.com-001/privkey.pem",
-    "service": "courier-msa.service",
-    "courierd_path_host": "/var/spool/courier-msa",
-    "courierd_path_container": "/var/spool/courier"
-  },
-  "docker": {
-    "network_name": "vmail"
+    "dns_name": "msa.the-domain.com"
   },
   "userdb": {
-    "directory": "/etc/authlib/userdb",
-    "owner": "daemon",
-    "mode": "0700",
-    "canary": "CHANGE-ME@the-domain.com"
+    "canary": "canary@the-domain.com"
   },
+  "mailboxes": [
+    "canary@the-domain.com",
+    "letsencrypt@the-domain.com"
+  ],
   "domain": {
-    "name": "mail",
     "zone": "the-domain.com"
   },
   "image": {
     "tag": "main"
   },
-  "config": {
-    "courier_path": "/home/mailbag/config/courier",
-    "courier_mode": "0755",
-    "authlib_path": "/home/mailbag/config/authlib",
-    "authlib_mode": "0700"
-  },
-  "filesystem": {
-    "base_storage_mode": "0755",
-    "msgq_mode": "0750",
-    "msgs_mode": "0750",
-    "filters_mode": "0750",
-    "allfilters_mode": "0750",
-    "tmp_mode": "0770",
-    "track_mode": "0755"
-  },
   "services": {
     "smtp_port": 25,
+    "smtps_port": 465,
     "submission_port": 587,
     "imaps_port": 993,
-    "ssh_port": 22,
-    "k8s_namespace": "mailbag",
-    "k8s_services": [
-      "mta",
-      "mta-ssl",
-      "imapd-ssl",
-      "msa"
-    ],
-    "k8s_pods": [
-      "courier-mta",
-      "courier-mta-ssl",
-      "courier-imapd-ssl",
-      "courier-msa",
-      "courierd"
-    ]
+    "k8s_namespace": "mailbag"
   },
   "aliases": {
-    "postmaster": "reject"
+    "postmaster": "reject",
+    "map": {
+      "info@the-domain.com": "canary@the-domain.com"
+    }
+  },
+  "tls": {
+    "source": "cert-manager",
+    "acme": {
+      "email": "letsencrypt@the-domain.com",
+      "route53": {
+        "zone": "the-domain.com",
+        "hosted_zone_id": "Z0000000000000EXAMPLE"
+      }
+    }
+  },
+  "host": {
+    "k3s": {
+      "version": "v1.32.5+k3s1",
+      "data_dir": "/home/k3s",
+      "gomemlimit": "300MiB",
+      "disable": ["traefik", "metrics-server", "local-storage"]
+    },
+    "min_free_mb": {
+      "data_dir": 2048,
+      "var": 1024
+    }
+  },
+  "tools": {
+    "cue": {
+      "version": "v0.17.1",
+      "sha256": {
+        "x86_64-unknown-linux-gnu": "a39b0c97695069d95d276d99be0f5dbabb081d801bfdc9ba49b76efaf94e2369",
+        "aarch64-unknown-linux-gnu": "0d729be30d52c952ca38fc9dcb692caa09d8463fa0b64df5781312779183fbcd"
+      }
+    },
+    "goss": {
+      "version": "0.4.10",
+      "sha256": {
+        "x86_64-unknown-linux-gnu": "26e365428946294bcec0c61d867bb3c8349f39feb3d0e6f59084e98632785cc7",
+        "aarch64-unknown-linux-gnu": "90a59612b4d67d9f1a9038634c000790136bb82526a69de1e81ac075c2f6d2c6"
+      }
+    },
+    "minijinja_cli": {
+      "version": "3.0.1",
+      "sha256": {
+        "x86_64-unknown-linux-gnu": "5b2eb07b18d5804e50b4e83ebdaae9b70dda37f4a2d058987881396e6c91c8b6",
+        "aarch64-unknown-linux-gnu": "445bf828667b1ab083cc61383c71897c6c62435bdff797c30d0ca1d4c63f1e25"
+      }
+    }
   }
 }

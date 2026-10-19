@@ -1,0 +1,127 @@
+# Smoke checks against a deployed mailbag host. Every value comes from the
+# host's context.json, passed in as goss vars, so nothing here is hardcoded:
+#
+#   GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
+#   "$GOSS" -g goss/smoke.yaml --vars /etc/mailbag/context.json validate
+#
+# Each block names the backlog item whose acceptance it encodes.
+
+addr:
+  # PROJ-030: each service answers on the hostname and port its context
+  # declares -- the same services.*_port values rendered into the courier
+  # config, the containerPort, the Service and the probes.
+  tcp://{{ .Vars.mta.dns_name }}:{{ .Vars.services.smtp_port }}:
+    reachable: true
+    timeout: 3000
+  tcp://{{ .Vars.mta_ssl.dns_name }}:{{ .Vars.services.smtps_port }}:
+    reachable: true
+    timeout: 3000
+  tcp://{{ .Vars.msa.dns_name }}:{{ .Vars.services.submission_port }}:
+    reachable: true
+    timeout: 3000
+  tcp://{{ .Vars.imapd_ssl.dns_name }}:{{ .Vars.services.imaps_port }}:
+    reachable: true
+    timeout: 3000
+
+{{- $ns := .Vars.services.k8s_namespace }}
+{{- $all := "/etc/courier/hosteddomains.dat /etc/courier/esmtpacceptmailfor.dat /etc/courier/smtpaccess.dat /etc/courier/aliases.dat=0 /etc/authlib/userdb.dat /etc/authlib/userdbshadow.dat" }}
+{{- $userdb := "/etc/authlib/userdb.dat /etc/authlib/userdbshadow.dat" }}
+
+command:
+  # PROJ-025/PROJ-010: every mail pod is supervised by runit -- runsvdir is
+  # PID 1 and every service under it is up -- and the databases it reads are
+  # usable inside it (the same assert-courier-dat set its entrypoint runs).
+{{- range $d := list
+      (dict "name" "courier-mta"       "dat" $all)
+      (dict "name" "courier-msa"       "dat" $all)
+      (dict "name" "courier-mta-ssl"   "dat" $all)
+      (dict "name" "courier-imapd-ssl" "dat" $userdb)
+      (dict "name" "courierd"          "dat" $all) }}
+  {{ $d.name }} runs runsvdir as PID 1:
+    exec: kubectl -n {{ $ns }} exec deploy/{{ $d.name }} -c {{ $d.name }} -- cat /proc/1/comm
+    exit-status: 0
+    stdout:
+      - '/^runsvdir$/'
+  {{ $d.name }} has every runit service up:
+    # "run:" for each service, nothing "down:" or "fail:".
+    exec: kubectl -n {{ $ns }} exec deploy/{{ $d.name }} -c {{ $d.name }} -- sh -c 'sv status /etc/service/*'
+    exit-status: 0
+    stdout:
+      - '/^run: /'
+      - '!/^(down|fail|warning):/'
+  {{ $d.name }} passes assert-courier-dat on the databases it reads:
+    exec: kubectl -n {{ $ns }} exec deploy/{{ $d.name }} -c {{ $d.name }} -- /usr/local/bin/assert-courier-dat {{ $d.dat }}
+    exit-status: 0
+{{- end }}
+
+  # PROJ-009: every deployment has finished rolling out and is Available --
+  # the current generation observed, every replica updated and available --
+  # and, when the image_tag variable is given (scripts/node-test.sh passes
+  # it), runs exactly that tag:
+  #   --vars-inline '{"image_tag": "sha-<commit>"}'
+{{- $tag := "" }}
+{{- if hasKey .Vars "image_tag" }}{{ $tag = .Vars.image_tag }}{{ end }}
+{{- range $d := list
+      (dict "name" "courier-mta"       "image" "courier-mta")
+      (dict "name" "courier-msa"       "image" "courier-msa")
+      (dict "name" "courier-mta-ssl"   "image" "courier-mta-ssl")
+      (dict "name" "courier-imapd-ssl" "image" "courier-imapd-ssl")
+      (dict "name" "courierd"          "image" "courier-courierd") }}
+  {{ $d.name }} is rolled out and Available{{ if $tag }} on {{ $tag }}{{ end }}:
+    exec: >-
+      kubectl -n {{ $ns }} get deploy {{ $d.name }} -o json | jq -e --arg tag '{{ $tag }}'
+      '(.status.observedGeneration == .metadata.generation)
+       and (.status.updatedReplicas == .spec.replicas)
+       and (.status.availableReplicas == .spec.replicas)
+       and ((.status.conditions[] | select(.type == "Available") | .status) == "True")
+       and ($tag == "" or (.spec.template.spec.containers[]
+             | select(.name == "{{ $d.name }}") | .image | endswith("/{{ $d.image }}:" + $tag)))'
+    exit-status: 0
+{{- end }}
+
+  # PROJ-025/PROJ-004: the newest database build job succeeded.
+  the latest courier-build-dat job succeeded:
+    exec: >-
+      kubectl -n {{ $ns }} get jobs -l component=build-dat
+      --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].status.succeeded}'
+    exit-status: 0
+    stdout:
+      - '/^1$/'
+
+  # PROJ-040: every declared mailbox is accepted at RCPT on port 25 -- which
+  # courierlocal grants only for an address the published userdb resolves --
+  # and an address nobody declared is refused. (Skipped for a domain whose
+  # alias@ catch-all mailbox accepts everything by design.)
+{{- $ca := "" }}
+{{- if hasKey .Vars "ca_bundle" }}{{ $ca = printf "--cafile %s" .Vars.ca_bundle }}{{ end }}
+{{- $mta := .Vars.mta.dns_name }}
+{{- $port := .Vars.services.smtp_port }}
+{{- range $m := .Vars.mailboxes }}
+  mailbox {{ $m }} is accepted at RCPT on {{ $port }}:
+    exec: python3 goss/lib/smtp_rcpt.py --host {{ $mta }} --port {{ $port }} --to {{ $m }} {{ $ca }}
+    exit-status: 0
+    stdout:
+      - '/^RCPT \S+ 250$/'
+{{- end }}
+{{- range $d := .Vars.mta.accept_mail_for }}
+{{- if not (has (printf "alias@%s" $d) $.Vars.mailboxes) }}
+  an undeclared address in {{ $d }} is refused at RCPT:
+    exec: python3 goss/lib/smtp_rcpt.py --host {{ $mta }} --port {{ $port }} --to mailbag-undeclared@{{ $d }} {{ $ca }}
+    exit-status: 0
+    stdout:
+      - '/^RCPT \S+ 550$/'
+{{- end }}
+{{- end }}
+
+file:
+  # PROJ-040: courierd's init container made a maildir for every declared
+  # mailbox: vmail (300), 0700, under the mail root.
+{{- range $m := .Vars.mailboxes }}
+{{- $p := splitList "@" $m }}
+  {{ $.Vars.host_paths.mail }}/{{ index $p 1 }}/{{ index $p 0 }}/Maildir:
+    exists: true
+    filetype: directory
+    uid: 300
+    gid: 300
+    mode: "0700"
+{{- end }}

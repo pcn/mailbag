@@ -4,77 +4,9 @@ metadata:
   name: mailbag-context
   namespace: mailbag
 data:
-  context.json: |
-    {
-      "mda": {
-        "mail_path_host": "/vmail/example.com",
-        "mail_path_container": "/vmail/example.com",
-        "owner": "300",
-        "mode": "0755"
-      },
-      "mta": {
-        "dns_name": "mail.example.com",
-        "tls_certfile": "/certs/tls.crt",
-        "tls_keyfile": "/certs/tls.key",
-        "service": "courier-mta",
-        "accept_mail_for": ["example.com"],
-        "courierd_path_host": "/home/mailbag/spool/courier",
-        "courierd_path_container": "/var/spool/courier"
-      },
-      "imapd_ssl": {
-        "dns_name": "imap.example.com",
-        "tls_certfile": "/certs/tls.crt",
-        "tls_keyfile": "/certs/tls.key",
-        "service": "courier-imapd-ssl"
-      },
-      "mta_ssl": {
-        "dns_name": "smtp.example.com",
-        "tls_certfile": "/certs/tls.crt",
-        "tls_keyfile": "/certs/tls.key",
-        "service": "courier-mta-ssl",
-        "accept_mail_for": ["example.com"],
-        "courierd_path_host": "/home/mailbag/spool/courier",
-        "courierd_path_container": "/var/spool/courier"
-      },
-      "msa": {
-        "dns_name": "mail.example.com",
-        "tls_certfile": "/certs/tls.crt",
-        "tls_keyfile": "/certs/tls.key",
-        "service": "courier-msa",
-        "courierd_path_host": "/home/mailbag/spool/courier",
-        "courierd_path_container": "/var/spool/courier",
-        "base_syslog_name": "courieresmtpd",
-        "syslog_name": "courieresmtpd-msa",
-        "tls_protocol": "TLSv1.2++",
-        "max_daemons": "40",
-        "max_per_ip": "4",
-        "auth_methods": "PLAIN LOGIN CRAM-MD5 CRAM-SHA1 CRAM-SHA256",
-        "log_level": "2",
-        "ulimit": "65536",
-        "bofh_check_dns": "0",
-        "tarpit": "1",
-        "no_add_msgid": "1",
-        "no_add_date": "1",
-        "no_addr_rewrite": "0",
-        "esmtp_log_dialog": "0",
-        "auth_required": "0",
-        "mail_user": "daemon",
-        "mail_group": "daemon",
-        "port": "smtp",
-        "tls_dhparams": "/usr/lib/courier/share/dhparams.pem",
-        "tls_trustcerts": "/etc/ssl/certs/ca-certificates.crt",
-        "tls_verifypeer": "NONE"
-      },
-      "userdb": {
-        "directory": "/etc/authlib/userdb",
-        "owner": "daemon",
-        "mode": "0700"
-      },
-      "domain": {
-        "name": "mail",
-        "zone": "example.com"
-      }
-    }
+  # Courier config templates only. The context every pod renders them with is
+  # the host's /etc/mailbag/context.json, mounted from the hostPath; no copy of
+  # a context lives here.
   acceptmailfor.template: |
     {% for d in mta.accept_mail_for -%}
     {{ d }}
@@ -119,6 +51,23 @@ data:
     {% endfor %}
     {%- endfor %}
     {%- endif %}
+    {#- aliases.map: one target each, written verbatim for courier to handle,
+        including its "@domain" virtual-domain form. Corner cases:
+        README.context.md, "Mailboxes and aliases". #}
+    {% for from, to in aliases.map | default({}) | items -%}
+    {{ from }}: {{ to }}
+    {% endfor %}
+  userdb.template: |
+    {#-
+      The userdb source, one record per declared mailbox (PROJ-040). Rendered
+      by the database build job, which appends each record's systempw from
+      /etc/mailbag/passwords; never edited by hand. Every mailbox is the vmail
+      user (300) with its maildir under the mail root, /vmail in the pods.
+    -#}
+    {% for m in mailboxes -%}
+    {% set p = m | split("@") | list -%}
+    {{ m }}{{ "\t" }}uid=300|gid=300|home=/vmail/{{ p[1] }}/{{ p[0] }}|mail=/vmail/{{ p[1] }}/{{ p[0] }}/Maildir
+    {% endfor %}
   hosteddomains.template: |
     {% for d in mta.accept_mail_for -%}
     {{ d }}
@@ -175,7 +124,8 @@ data:
     TLS_VERIFYPEER=NONE
     MAILUSER=daemon
     MAILGROUP=daemon
-    PORT=smtp
+    # esmtpd-msa overrides this; set to the submission port so the two agree.
+    PORT={{ services.submission_port }}
     BLACKLISTS=""
     MAXPERC=5
     TCPDOPTS="-stderrlogger=/usr/sbin/courierlogger"
@@ -201,7 +151,7 @@ data:
     {% endfor -%}
 
     # Additional access rules
-    {% if msa.access_rules -%}
+    {% if msa.access_rules | default(false) -%}
     {% for rule in msa.access_rules -%}
     {{ rule.network }}       {{ rule.action }}
     {% endfor -%}
@@ -322,7 +272,7 @@ data:
     TLS_VERIFYPEER=NONE
     MAILUSER=daemon
     MAILGROUP=daemon
-    PORT=smtp
+    PORT={{ services.smtp_port }}
     BLACKLISTS=""
     ACCESSFILE=${sysconfdir}/smtpaccess
     MAXPERC=5
@@ -380,7 +330,9 @@ data:
     TLS_VERIFYPEER=NONE
     MAILUSER=daemon
     MAILGROUP=daemon
-    PORT=smtp
+    # Plain ESMTP's port. This pod runs only esmtpd-ssl, which listens on
+    # SSLPORT; the setting is kept because the .dist defines it.
+    PORT={{ services.smtp_port }}
     BLACKLISTS=""
     ACCESSFILE=${sysconfdir}/smtpaccess
     MAXPERC=5
@@ -424,7 +376,7 @@ data:
     NOADDRREWRITE=0
     BLACKLISTS=""
     ADDRESS=0
-    PORT=587
+    PORT={{ services.submission_port }}
     PIDFILE=/var/spool/courier/tmp/esmtpd-msa.pid
     ACCESSFILE=${sysconfdir}/smtpaccess
     MAXDAEMONS=40
@@ -491,7 +443,7 @@ data:
     TLS_VERIFYPEER=NONE
     MAILUSER=daemon
     MAILGROUP=daemon
-    PORT=smtp
+    PORT={{ services.smtp_port }}
     BLACKLISTS=""
     ACCESSFILE=${sysconfdir}/smtpaccess
     MAXPERC=5
@@ -555,7 +507,7 @@ data:
     NOADDDATE=1
     NOADDRREWRITE=0
     ESMTP_LOG_DIALOG={{ mta_ssl.log_dialog | default("0") }}
-    SSLPORT=465
+    SSLPORT={{ services.smtps_port }}
     SSLADDRESS=0
     SSLPIDFILE=/var/spool/courier/tmp/esmtpd-ssl.pid
     ESMTPDSSLSTART=NO
@@ -570,7 +522,7 @@ data:
     # setting from imapd-ssl.dist is carried here -- enforced by
     # scripts/check-config-completeness.sh.
     #
-    SSLPORT=993
+    SSLPORT={{ services.imaps_port }}
     SSLADDRESS=0
     SSLPIDFILE=/var/spool/courier/tmp/imapd-ssl.pid
     SSLLOGGEROPTS="-name=imapd-ssl"

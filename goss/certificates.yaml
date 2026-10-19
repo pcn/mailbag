@@ -1,0 +1,51 @@
+# Certificate checks against a deployed mailbag host: every TLS endpoint
+# presents a certificate that verifies, for the name the context gives it.
+# Values come from the host's context.json; the trust anchor is a separate,
+# optional variable:
+#
+#   GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
+#   "$GOSS" -g goss/certificates.yaml --vars /etc/mailbag/context.json validate
+#
+# With ca_bundle unset, openssl uses the system trust store -- the setting for
+# the Let's Encrypt certificate cert-manager issues. For a private CA
+# (tls.source=secret, scripts/make-test-cert.sh) add
+# --vars-inline '{"ca_bundle": "<ca.crt>"}'. Only openssl is used: no cloud
+# credentials, no ACME client.
+#
+# PROJ-008. One check per port, so a failure names the port.
+
+{{- $ca := "" }}
+{{- /* goss errors on a missing key, so test for it before reading it */}}
+{{- if hasKey .Vars "ca_bundle" }}{{ $ca = printf "-CAfile %s" .Vars.ca_bundle }}{{ end }}
+
+command:
+{{- range $e := list
+      (dict "name" "STARTTLS on" "host" .Vars.mta.dns_name       "port" .Vars.services.smtp_port       "starttls" "-starttls smtp")
+      (dict "name" "STARTTLS on" "host" .Vars.msa.dns_name       "port" .Vars.services.submission_port "starttls" "-starttls smtp")
+      (dict "name" "implicit TLS on" "host" .Vars.mta_ssl.dns_name   "port" .Vars.services.smtps_port  "starttls" "")
+      (dict "name" "implicit TLS on" "host" .Vars.imapd_ssl.dns_name "port" .Vars.services.imaps_port  "starttls" "") }}
+  {{ $e.name }} {{ $e.port }} verifies for {{ $e.host }}:
+    exec: >-
+      echo | timeout 15 openssl s_client -brief -verify_return_error
+      -connect {{ $e.host }}:{{ $e.port }} {{ $e.starttls }}
+      -servername {{ $e.host }} -verify_hostname {{ $e.host }} {{ $ca }} 2>&1
+    exit-status: 0
+    stdout:
+      - 'Verification: OK'
+      - 'Verified peername: {{ $e.host }}'
+    timeout: 20000
+
+  # A sibling of the service's own name must not verify, and must fail on the
+  # name rather than on trust. A wildcard covering the service name would
+  # cover this sibling too, so swapping in a wildcard (or a certificate that
+  # carries this name) fails here.
+  {{ $e.name }} {{ $e.port }} rejects a name not on the certificate:
+    exec: >-
+      echo | timeout 15 openssl s_client -brief -verify_return_error
+      -connect {{ $e.host }}:{{ $e.port }} {{ $e.starttls }}
+      -servername {{ $e.host }} -verify_hostname mailbag-not-on-cert-{{ $e.host }} {{ $ca }} 2>&1
+    exit-status: 1
+    stdout:
+      - 'hostname mismatch'
+    timeout: 20000
+{{- end }}

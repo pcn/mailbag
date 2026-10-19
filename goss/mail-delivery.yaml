@@ -1,0 +1,70 @@
+# Mail delivery checks against a deployed mailbag host: a message submitted on
+# each listener reaches the canary's maildir and comes back over IMAPS. Run
+# from a checkout or the deploy tree, on the host (scripts/node-test.sh does):
+#
+#   GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
+#   "$GOSS" -g goss/mail-delivery.yaml --vars /etc/mailbag/context.json \
+#     --vars-inline '{"canary_password_file": "/root/.mailbag-canary-pass"}' validate
+#
+# Variables beyond the context:
+#   canary_password_file  required; the userdb.canary account's password
+#   run_id                optional; tags this run's messages (default: now)
+#   ca_bundle             optional; as in certificates.yaml (default: system trust)
+#
+# PROJ-009. Each check is one round trip through goss/lib/mail_client.py:
+# submit, then poll IMAPS with a deadline (never a fixed sleep), then assert
+# the body and the Received header naming the listener the message came in
+# through. Delivery stays inside the host: the canary is a local account, so
+# nothing depends on outbound port 25. A wrong password must fail every check.
+
+{{- if not (hasKey .Vars "canary_password_file") }}
+{{- fail "mail-delivery.yaml needs --vars-inline '{\"canary_password_file\": \"<file>\"}'" }}
+{{- end }}
+{{- $run := now | date "20060102T150405" }}
+{{- if hasKey .Vars "run_id" }}{{ $run = .Vars.run_id }}{{ end }}
+{{- $ca := "" }}
+{{- if hasKey .Vars "ca_bundle" }}{{ $ca = printf "--cafile %s" .Vars.ca_bundle }}{{ end }}
+{{- $imap := .Vars.imapd_ssl.dns_name }}
+{{- $imapport := .Vars.services.imaps_port }}
+{{- $user := .Vars.userdb.canary }}
+{{- $pw := .Vars.canary_password_file }}
+
+command:
+{{- range $e := list
+      (dict "host" .Vars.mta.dns_name     "port" .Vars.services.smtp_port       "tls" "starttls" "auth" ""       "by" "courier-mta"     "with" "ESMTPS")
+      (dict "host" .Vars.msa.dns_name     "port" .Vars.services.submission_port "tls" "starttls" "auth" "--auth" "by" "courier-msa"     "with" "ESMTPSA")
+      (dict "host" .Vars.mta_ssl.dns_name "port" .Vars.services.smtps_port      "tls" "implicit" "auth" "--auth" "by" "courier-mta-ssl" "with" "ESMTPSA") }}
+  mail submitted on {{ $e.port }} is delivered and retrieved over IMAPS {{ $imapport }}:
+    exec: >-
+      python3 goss/lib/mail_client.py
+      --host {{ $e.host }} --port {{ $e.port }} --tls {{ $e.tls }} {{ $e.auth }}
+      --imap-host {{ $imap }} --imap-port {{ $imapport }}
+      --user {{ $user }} --password-file {{ $pw }} {{ $ca }}
+      --token mailbag-delivery-{{ $run }}-{{ $e.port }}
+      --expect-by {{ $e.by }} --expect-with {{ $e.with }} --timeout 90
+    exit-status: 0
+    stdout:
+      - '/^\[{{ $e.port }}\] Received: by {{ $e.by }}-\S+ with {{ $e.with }}$/'
+      - '/^\[{{ $e.port }}\] OK$/'
+    timeout: 120000
+{{- end }}
+
+  # PROJ-040: mail to each address alias of the canary (aliases.map entries
+  # whose target is userdb.canary; "@domain" forms are courier's and not
+  # tested) arrives in the canary's mailbox.
+{{- range $from, $to := (.Vars.aliases.map | default dict) }}
+{{- if and (eq $to $user) (not (hasPrefix "@" $from)) }}
+  mail to the alias {{ $from }} arrives in {{ $user }}:
+    exec: >-
+      python3 goss/lib/mail_client.py
+      --host {{ $.Vars.mta.dns_name }} --port {{ $.Vars.services.smtp_port }} --tls starttls
+      --imap-host {{ $imap }} --imap-port {{ $imapport }}
+      --user {{ $user }} --to {{ $from }} --password-file {{ $pw }} {{ $ca }}
+      --token mailbag-alias-{{ $run }}
+      --expect-by courier-mta --expect-with ESMTPS --timeout 90
+    exit-status: 0
+    stdout:
+      - '/^\[{{ $.Vars.services.smtp_port }}\] OK$/'
+    timeout: 120000
+{{- end }}
+{{- end }}

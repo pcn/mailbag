@@ -50,7 +50,7 @@ spec:
         image: ghcr.io/pcn/mailbag/courier-mta:{{ image.tag | default("main") }}
         imagePullPolicy: Always
         ports:
-        - containerPort: 25
+        - containerPort: {{ services.smtp_port }}
           name: smtp
         volumeMounts:
         - name: templates
@@ -101,14 +101,14 @@ spec:
           readOnly: true
         readinessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 25 --expect "220"']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port {{ services.smtp_port }} --expect "220"']
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
         livenessProbe:
           exec:
-            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port 25 --expect "220"']
+            command: ["/bin/sh", "-c", '/usr/local/bin/mailbag-probe --port {{ services.smtp_port }} --expect "220"']
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
@@ -136,12 +136,16 @@ spec:
           # group-readable via fsGroup rather than world-readable.
           secretName: courier-userdb
           defaultMode: 0440
+      # Host directories from host_paths, created if missing; courierd's init
+      # container sets their owner and mode (PROJ-011).
       - name: courier-spool
-        persistentVolumeClaim:
-          claimName: courier-spool-pvc
+        hostPath:
+          path: {{ host_paths.spool }}
+          type: DirectoryOrCreate
       - name: mail-storage
-        persistentVolumeClaim:
-          claimName: mail-storage-pvc
+        hostPath:
+          path: {{ host_paths.mail }}
+          type: DirectoryOrCreate
       - name: courier-config
         # Per-pod, not shared. The entrypoint renders this pod's own esmtpd
         # configs here; the databases are mounted read-only on top. Sharing this
@@ -178,7 +182,7 @@ spec:
     app: mailbag
     component: mta
   ports:
-  - port: 25
+  - port: {{ services.smtp_port }}
     targetPort: smtp
     protocol: TCP
     name: smtp

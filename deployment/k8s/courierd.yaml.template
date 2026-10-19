@@ -34,14 +34,43 @@ spec:
         - sh
         - -c
         - |
-          mkdir -p /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
-          chmod 750 /var/spool/courier/{msgq,msgs,filters,allfilters}
-          chmod 770 /var/spool/courier/tmp
-          chmod 755 /var/spool/courier/track
-          chown -R daemon:daemon /var/spool/courier
+          set -e
+          # busybox sh has no brace expansion: the subdirectories are spelled
+          # out. A "{msgq,msgs,...}" directory left by the old form is removed.
+          S=/var/spool/courier
+          rm -rf "$S/{msgq,msgs,track,tmp,filters,allfilters}"
+          mkdir -p $S/msgq $S/msgs $S/track $S/tmp $S/filters $S/allfilters
+          chmod 755 $S $S/track
+          chmod 750 $S/msgq $S/msgs $S/filters $S/allfilters
+          chmod 770 $S/tmp
+          chown -R daemon:daemon $S
+          # The mail root only, never recursively: the domain and maildir
+          # trees below it belong to vmail and to account handling.
+          chown root:root /vmail
+          chmod 755 /vmail
+          # A maildir for every declared mailbox that lacks one (PROJ-040).
+          # Creates only what is missing and never changes or removes an
+          # existing directory: a mailbox removed from the context keeps its
+          # mail. vmail is 300.
+          mkmaildir() {
+            d=/vmail/$1 u=/vmail/$1/$2
+            if [ ! -d "$d" ]; then mkdir "$d"; chown 300:300 "$d"; chmod 755 "$d"; fi
+            [ -d "$u/Maildir" ] && return 0
+            if [ ! -d "$u" ]; then mkdir "$u"; chown 300:300 "$u"; chmod 755 "$u"; fi
+            mkdir "$u/Maildir" "$u/Maildir/cur" "$u/Maildir/new" "$u/Maildir/tmp"
+            chown 300:300 "$u/Maildir" "$u/Maildir/cur" "$u/Maildir/new" "$u/Maildir/tmp"
+            chmod 700 "$u/Maildir" "$u/Maildir/cur" "$u/Maildir/new" "$u/Maildir/tmp"
+            echo "created the maildir for $2@$1"
+          }
+          {%- for m in mailboxes %}
+          {%- set p = m | split("@") | list %}
+          mkmaildir {{ p[1] }} {{ p[0] }}
+          {%- endfor %}
         volumeMounts:
         - name: courier-spool
           mountPath: /var/spool/courier
+        - name: mail-storage
+          mountPath: /vmail
         securityContext:
           runAsUser: 0
       containers:
@@ -123,12 +152,16 @@ spec:
           # group-readable via fsGroup rather than world-readable.
           secretName: courier-userdb
           defaultMode: 0440
+      # Host directories from host_paths, created if missing; the init
+      # container above sets their owner and mode (PROJ-011).
       - name: courier-spool
-        persistentVolumeClaim:
-          claimName: courier-spool-pvc
+        hostPath:
+          path: {{ host_paths.spool }}
+          type: DirectoryOrCreate
       - name: mail-storage
-        persistentVolumeClaim:
-          claimName: mail-storage-pvc
+        hostPath:
+          path: {{ host_paths.mail }}
+          type: DirectoryOrCreate
       - name: courier-auth
         # Per-pod. Only authdaemonrc is written here now; the userdb databases
         # arrive from the Secret and the userdb *source* is the build job's

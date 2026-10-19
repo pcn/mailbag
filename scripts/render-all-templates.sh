@@ -2,14 +2,15 @@
 # Render every template in the repo against its context and fail if any of them
 # references a key the context does not provide.
 #
-# render-template treats printing an undefined value as an error, so this
-# catches the case where a template references a context key that was never
-# added -- which previously rendered as an empty string with a zero exit code
-# and produced silently broken courier config.
+# The renderer runs with --strict, which treats printing an undefined value as
+# an error, so this catches the case where a template references a context key
+# that was never added -- which would otherwise render as an empty string with
+# a zero exit code and produce silently broken courier config.
 #
-# Templates do not all share one context: unit-files/Makefile.template is
-# rendered against unit-files/files.json, everything else against the example
-# context. Keep the table below in sync when templates are added.
+# Every template renders against the example context. Keep the table below in
+# sync when templates are added. The courier config templates carried as data
+# in configmap.yaml are rendered too, because the entrypoints render them with
+# the same renderer at container start.
 
 set -u -o pipefail
 
@@ -18,28 +19,21 @@ cd "$REPO_ROOT"
 
 CONTEXT="${CONTEXT:-examples/example-context.json}"
 
-# Build from source rather than trusting the committed render-template binary,
-# which is a stale artifact (see PROJ-014).
-RENDERER="templater/target/debug/render-template"
-if [ ! -x "$RENDERER" ] || [ "templater/src/main.rs" -nt "$RENDERER" ]; then
-    echo "building $RENDERER ..."
-    (cd templater && cargo build --quiet) || exit 1
-fi
+# The renderer and its version come from the example context, the same pin the
+# images are built with.
+RENDERER=$(scripts/fetch-renderer.sh examples/example-context.json) || exit 1
 
 # template path : context path
 TEMPLATES=(
-    "acceptmailfor.template:$CONTEXT"
-    "hosteddomains.template:$CONTEXT"
-    "host/Makefile.template:$CONTEXT"
-    "deployment/k8s/prepare-host.sh.template:$CONTEXT"
     "deployment/k8s/mail-certificates.yaml.template:$CONTEXT"
+    "deployment/k8s/letsencrypt-clusterissuer.yaml.template:$CONTEXT"
+    "deployment/aws/cert-manager-route53-policy.json.template:$CONTEXT"
     "deployment/k8s/courierd.yaml.template:$CONTEXT"
     "deployment/k8s/courier-mta.yaml.template:$CONTEXT"
     "deployment/k8s/courier-mta-ssl.yaml.template:$CONTEXT"
     "deployment/k8s/courier-imapd-ssl.yaml.template:$CONTEXT"
     "deployment/k8s/courier-msa.yaml.template:$CONTEXT"
     "deployment/k8s/build-dat-job.yaml.template:$CONTEXT"
-    "unit-files/Makefile.template:unit-files/files.json"
 )
 
 # Fail if a template exists that the table does not cover, so new templates
@@ -47,7 +41,6 @@ TEMPLATES=(
 mapfile -t FOUND < <(
     find . -name '*.template' \
         -not -path './.git/*' \
-        -not -path './templater/target/*' \
         -printf '%P\n' | sort
 )
 declare -A LISTED=()
@@ -74,10 +67,30 @@ for entry in "${TEMPLATES[@]}"; do
         continue
     fi
 
-    if out=$("$RENDERER" --context "$context" --template "$template" 2>&1); then
+    if out=$("$RENDERER" --strict -n "$template" "$context" 2>&1); then
         printf 'ok         %-46s (%s)\n' "$template" "$context"
     else
         printf 'FAIL       %-46s (%s)\n' "$template" "$context"
+        printf '%s\n' "$out" | sed 's/^/               /'
+        status=1
+    fi
+done
+
+CM_WORK=$(mktemp -d); trap 'rm -rf "$CM_WORK"' EXIT
+python3 -I - deployment/k8s/configmap.yaml "$CM_WORK" <<'PYEOF'
+import pathlib, sys, yaml
+out = pathlib.Path(sys.argv[2])
+for doc in yaml.safe_load_all(pathlib.Path(sys.argv[1]).read_text()):
+    for name, body in ((doc or {}).get("data") or {}).items():
+        if name.endswith(".template"):
+            (out / name).write_text(body)
+PYEOF
+for template in "$CM_WORK"/*.template; do
+    label="configmap.yaml:$(basename "$template")"
+    if out=$("$RENDERER" --strict -n "$template" "$CONTEXT" 2>&1); then
+        printf 'ok         %-46s (%s)\n' "$label" "$CONTEXT"
+    else
+        printf 'FAIL       %-46s (%s)\n' "$label" "$CONTEXT"
         printf '%s\n' "$out" | sed 's/^/               /'
         status=1
     fi

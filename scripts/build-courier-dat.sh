@@ -31,11 +31,12 @@ set -u -o pipefail
 
 CONTEXT="${CONTEXT:-/context.json}"
 TEMPLATES="${TEMPLATES:-/templates}"
-RENDER="${RENDER:-/render-template}"
+RENDER="${RENDER:-/renderer}"
 VALIDATE="${VALIDATE:-/usr/local/bin/validate-courier-dat.pl}"
+USERDB_SOURCE="${USERDB_SOURCE:-/usr/local/bin/userdb-source.sh}"
 PUBLISH_COURIER="${PUBLISH_COURIER:-}"
 PUBLISH_AUTHLIB="${PUBLISH_AUTHLIB:-}"
-USERDB_SRC="${USERDB_SRC:-}"
+PASSWORDS="${PASSWORDS:-}"
 CANARY="${CANARY:-}"
 
 COURIER=/etc/courier
@@ -50,7 +51,9 @@ usage: $0 [options]
   --templates DIR          rendered-template source dir (default: $TEMPLATES)
   --publish-courier DIR    live /etc/courier volume to publish into
   --publish-authlib DIR    live /etc/authlib volume to publish into
-  --userdb-src DIR         copy the userdb source from here before building
+  --passwords FILE         address:hash lines (/etc/mailbag/passwords); the
+                           userdb source is generated from the context's
+                           mailboxes plus these hashes
   --canary ADDRESS         userdb address that must resolve after the build
 Without --publish-*, builds and validates only. That is the dry run.
 EOF
@@ -63,7 +66,7 @@ while [ $# -gt 0 ]; do
         --templates)       TEMPLATES=${2:?}; shift 2 ;;
         --publish-courier) PUBLISH_COURIER=${2:?}; shift 2 ;;
         --publish-authlib) PUBLISH_AUTHLIB=${2:?}; shift 2 ;;
-        --userdb-src)      USERDB_SRC=${2:?}; shift 2 ;;
+        --passwords)       PASSWORDS=${2:?}; shift 2 ;;
         --canary)          CANARY=${2:?}; shift 2 ;;
         -h|--help)         usage ;;
         *) echo "$0: unknown argument '$1'" >&2; usage ;;
@@ -81,7 +84,7 @@ step() { echo "==> $*"; }
 render() {
     local tmpl="$TEMPLATES/$1" out="$2"
     [ -r "$tmpl" ] || die "template not found: $tmpl"
-    "$RENDER" --context "$CONTEXT" --template "$tmpl" > "$out" \
+    "$RENDER" --strict -n "$tmpl" "$CONTEXT" > "$out" \
         || die "rendering $1 failed"
 }
 
@@ -93,37 +96,24 @@ count_src() {
 }
 
 # ------------------------------------------------------------------ sources
-# The userdb source usually lives on a volume, but makeuserdb has to run with it
-# at the compiled-in path: it derives each record's "_=" location field from the
-# @userdb@ prefix (makeuserdb.in:132), not from -f, so building against a volume
-# path writes wrong location fields. Copy it to the canonical path, which in a
-# build job is ephemeral, and publish the results back afterwards. That is also
-# what keeps a failed build from touching the live databases.
-if [ -n "$USERDB_SRC" ]; then
-    [ -d "$USERDB_SRC" ] || die "userdb source not a directory: $USERDB_SRC"
-    step "copying userdb source from $USERDB_SRC"
+# The userdb source is generated, never hand-edited (PROJ-040): one record per
+# mailbox in the context (userdb.template), each with its systempw from the
+# passwords file. makeuserdb has to run with it at the compiled-in path -- it
+# derives each record's "_=" location field from the @userdb@ prefix
+# (makeuserdb.in:132), not from -f -- which in a build job is ephemeral; the
+# results are published afterwards, so a failed build never touches the live
+# databases.
+if [ -n "$PASSWORDS" ]; then
+    [ -r "$PASSWORDS" ] || die "passwords file not readable: $PASSWORDS"
+    step "generating the userdb source from the context's mailboxes and $PASSWORDS"
     mkdir -p "$AUTHLIB/userdb" || die "mkdir $AUTHLIB/userdb failed"
-    # The source directory carries lock files and courier's own scratch entries;
-    # only the per-domain files are input.
-    copied=0
-    for f in "$USERDB_SRC"/*; do
-        [ -f "$f" ] || continue
-        case "$(basename "$f")" in
-            .*|dummy) continue ;;
-        esac
-        # Plain cp, not cp -p. The source files are daemon-owned on the
-        # volume; -p chowns the copy to daemon and then chmods it, which needs
-        # CAP_FOWNER once root is no longer the owner, and fails with
-        # "preserving permissions ... Operation not permitted". Their ownership
-        # is irrelevant anyway -- these are build inputs, and what makeuserdb
-        # actually requires is that the directory have no group or world
-        # permission bits, which is set explicitly below.
-        cp "$f" "$AUTHLIB/userdb/" || die "copying $f failed"
-        copied=$((copied + 1))
-    done
-    [ "$copied" -gt 0 ] || die "no userdb source files found in $USERDB_SRC"
     chmod 700 "$AUTHLIB/userdb"
-    echo "    copied $copied source file(s)"
+    # userdb-source.sh stops on a mailbox without a hash, a hash without a
+    # mailbox, or a duplicate, naming the addresses and never a hash.
+    ( umask 077; "$USERDB_SOURCE" "$RENDER" "$TEMPLATES/userdb.template" "$CONTEXT" "$PASSWORDS" \
+        > "$AUTHLIB/userdb/mailboxes" ) \
+        || die "mailboxes and $PASSWORDS disagree; refusing to build"
+    echo "    $(grep -c . "$AUTHLIB/userdb/mailboxes") mailbox record(s)"
 fi
 
 step "rendering sources from $CONTEXT"

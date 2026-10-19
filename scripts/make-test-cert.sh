@@ -2,11 +2,10 @@
 # Generate a self-signed CA and a server certificate for a test node, and
 # optionally load it into Kubernetes as the Secret the mail services mount.
 #
-# This exists because a test node cannot obtain a real certificate. Both ACME
-# challenge types need a DNS write against the zone -- DNS-01 needs the
-# challenge TXT record, HTTP-01 needs an A record pointing at the node -- and
-# neither CI nor the node is permitted credentials for that zone. So automated
-# testing uses a CA generated here, and the test client is pointed at it.
+# For a host using tls.source=secret: one with no Route53 key for the
+# Let's Encrypt DNS-01 issuer, or a fallback while that issuer is being set
+# up. The test client is pointed at the CA generated here (goss
+# certificates.yaml's ca_bundle).
 #
 # The SANs come from context.json rather than being passed in, so the
 # certificate cannot drift from the hostnames the services are actually

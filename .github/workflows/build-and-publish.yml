@@ -9,11 +9,10 @@
 #
 # Dependency graph:
 #
-#   support ─┐
-#            ├─> base ─> {mta, msa, mta-ssl, imapd-ssl, courierd}
-#   packages ┘
+#   packages ─> base ─> {mta, msa, mta-ssl, imapd-ssl, courierd}
 #
-#   tinydns has no dependency on base.
+# The base also installs the template renderer (upstream minijinja-cli) at the
+# version and checksums pinned in examples/example-context.json.
 #
 # A single `changes` job runs paths-filter once and exposes every filter as an
 # output. Downstream jobs both `needs:` their upstream (for ordering) and gate
@@ -23,10 +22,15 @@
 name: Build and publish images
 
 on:
-  pull_request:
+  # Every branch push builds, so any commit yields deployable sha-<sha> images
+  # without needing a PR open. pull_request is deliberately absent: with both,
+  # a branch with an open PR built twice, and the push trigger already covers
+  # every same-repo PR -- fork PRs could never publish anyway, since their token
+  # is read-only. For a non-default branch, paths-filter compares against the
+  # default branch, so a new branch rebuilds everything that differs from main.
   push:
     branches:
-      - main
+      - '**'
     tags:
       - 'v*'
   # Needed to rebuild something whose own inputs did not change -- a stale
@@ -44,41 +48,39 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      support: ${{ steps.filter.outputs.support }}
-      packages: ${{ steps.filter.outputs.packages }}
       base: ${{ steps.filter.outputs.base }}
       mta: ${{ steps.filter.outputs.mta }}
       msa: ${{ steps.filter.outputs.msa }}
       mta_ssl: ${{ steps.filter.outputs.mta_ssl }}
       imapd_ssl: ${{ steps.filter.outputs.imapd_ssl }}
       courierd: ${{ steps.filter.outputs.courierd }}
-      tinydns: ${{ steps.filter.outputs.tinydns }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: filter
         with:
           # This workflow file appears in every filter on purpose: it defines
-          # how each image is built, so changing it should rebuild them.
+          # how each image is built, so changing it should rebuild them. The
+          # packages image has no filter: it is content-addressed (see the
+          # packages job), so it compiles only when its inputs are new.
           filters: |
-            support:
-              - 'templater/**'
-              - 'Dockerfile-support'
-              - 'install-scripts/packages.sh'
-              - '.github/workflows/build-and-publish.yml'
-            packages:
+            base:
+              # The packages inputs: a branch whose courier build differs from
+              # main must get a base FROM its own packages key, even on pushes
+              # where that key already exists and nothing compiles.
               - 'Dockerfile'
               - 'install-scripts/**'
-              - '.github/workflows/build-and-publish.yml'
-            base:
+              - 'cue/packages.cue'
+              - 'scripts/packages-key.sh'
               - 'Dockerfile-base'
-              - 'acceptmailfor.template'
-              - 'hosteddomains.template'
               - 'entrypoints/sv/**'
               # The base ships the build and validation scripts, because the
               # build job runs as a service image.
               - 'scripts/build-courier-dat.sh'
+              - 'scripts/userdb-source.sh'
               - 'scripts/validate-courier-dat.pl'
+              # The renderer pin the base installs lives here.
+              - 'examples/example-context.json'
               - '.github/workflows/build-and-publish.yml'
             mta:
               - 'Dockerfile-mta'
@@ -100,64 +102,31 @@ jobs:
               - 'Dockerfile-courierd'
               - 'entrypoints/courier-courierd'
               - '.github/workflows/build-and-publish.yml'
-            tinydns:
-              - 'Dockerfile-tinydns'
-              - 'entrypoints/tinydns'
-              - 'tinydns/**'
-              - '.github/workflows/build-and-publish.yml'
 
-  support:
-    needs: changes
-    if: >-
-      needs.changes.outputs.support == 'true'
-      || github.event_name == 'workflow_dispatch'
-      || startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      built: 'true'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: make render-template
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-support
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=sha,format=long,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile-support
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-
+  # Content-addressed: the courier compile (10-13 min) runs once per set of
+  # inputs, not whenever a path filter happens to fire. scripts/packages-key.sh
+  # hashes Dockerfile, install-scripts/ and cue/packages.cue -- the only repo
+  # files the image is built from -- into pkgs-<hash>. If an image with that tag already exists,
+  # this run only adds its own tags to it; otherwise it compiles and pushes.
+  # The base then builds FROM exactly that key, so it can never pair with
+  # packages compiled from different scripts.
   packages:
-    needs: changes
-    if: >-
-      needs.changes.outputs.packages == 'true'
-      || github.event_name == 'workflow_dispatch'
-      || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     outputs:
-      built: 'true'
+      key: ${{ steps.key.outputs.key }}
+      built: ${{ steps.check.outputs.exists == 'true' && 'false' || 'true' }}
+    env:
+      # Job-level env cannot read the workflow's env context, so the registry
+      # is written out; it matches env.REGISTRY.
+      IMAGE: ghcr.io/${{ github.repository }}-packages
     steps:
       - uses: actions/checkout@v4
+      - name: Compute the content key
+        id: key
+        run: echo "key=$(scripts/packages-key.sh)" >> "$GITHUB_OUTPUT"
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -166,33 +135,64 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-packages
+          images: ${{ env.IMAGE }}
           tags: |
+            type=raw,value=${{ steps.key.outputs.key }}
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=sha,format=long,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+      - name: Is this key already built?
+        id: check
+        run: |
+          if docker buildx imagetools inspect "$IMAGE:${{ steps.key.outputs.key }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "packages $IMAGE:${{ steps.key.outputs.key }} already built; not compiling"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      # Versions and source checksums are declared once, in cue/packages.cue.
+      - name: Export the courier package pins as build args
+        id: pins
+        if: steps.check.outputs.exists != 'true'
+        run: |
+          CUE=$(scripts/fetch-cue.sh examples/example-context.json)
+          {
+            echo 'build_args<<EOF'
+            "$CUE" export ./cue -e build_args --out text
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
+        if: steps.check.outputs.exists != 'true'
         with:
           context: .
           file: Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: ${{ steps.pins.outputs.build_args }}
+      # Manifest-only copy: gives this commit its sha-/branch tags on the
+      # existing image in seconds, so every commit still has a packages tag.
+      - name: Tag the existing image for this commit
+        if: steps.check.outputs.exists == 'true'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          args=()
+          while read -r t; do [ -n "$t" ] && args+=(-t "$t"); done <<< "$TAGS"
+          docker buildx imagetools create "${args[@]}" "$IMAGE:${{ steps.key.outputs.key }}"
 
   base:
-    needs: [changes, support, packages]
-    # Rebuild when the base's own inputs changed OR when support or packages
-    # actually rebuilt -- the transitive case that previously left the base
-    # stale. `!cancelled()` plus the failure guards let this run when an
-    # upstream was skipped (nothing to do) but not when one failed.
+    needs: [changes, packages]
+    # Rebuild when the base's own inputs changed -- which include the packages
+    # inputs, so a branch whose install-scripts differ from main always gets a
+    # base built FROM its own packages key rather than falling back to main's
+    # base -- or when packages compiled a new key in this run. packages always
+    # runs, so it must have succeeded: the base needs its key.
     if: >-
       !cancelled()
-      && needs.support.result != 'failure'
-      && needs.packages.result != 'failure'
+      && needs.packages.result == 'success'
       && (needs.changes.outputs.base == 'true'
-          || needs.support.result == 'success'
-          || needs.packages.result == 'success'
+          || needs.packages.outputs.built == 'true'
           || github.event_name == 'workflow_dispatch'
           || startsWith(github.ref, 'refs/tags/'))
     runs-on: ubuntu-latest
@@ -218,24 +218,56 @@ jobs:
             type=semver,pattern={{version}}
             type=sha,format=long,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+      # The renderer pin lives in the example context, nowhere else.
+      - name: Read the renderer pin from the example context
+        id: renderer
+        run: |
+          c=examples/example-context.json
+          {
+            echo "version=$(jq -er '.tools.minijinja_cli.version' "$c")"
+            echo "sha256_x86_64=$(jq -er '.tools.minijinja_cli.sha256["x86_64-unknown-linux-gnu"]' "$c")"
+            echo "sha256_aarch64=$(jq -er '.tools.minijinja_cli.sha256["aarch64-unknown-linux-gnu"]' "$c")"
+          } >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile-base
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          # Consume the exact upstream built in this run when there was one,
-          # otherwise the current published :main. Without this the base could
-          # be assembled from a half-updated set of dependencies.
+          # The packages image is named by the content key of this commit's
+          # Dockerfile, install-scripts and cue/packages.cue, never :main, so
+          # the base always installs debs compiled from the pins it was built with.
           build-args: |
-            SUPPORT_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-support:${{ needs.support.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
-            PACKAGES_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-packages:${{ needs.packages.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
+            MINIJINJA_CLI_VERSION=${{ steps.renderer.outputs.version }}
+            MINIJINJA_CLI_SHA256_X86_64=${{ steps.renderer.outputs.sha256_x86_64 }}
+            MINIJINJA_CLI_SHA256_AARCH64=${{ steps.renderer.outputs.sha256_aarch64 }}
+            PACKAGES_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}-packages:${{ needs.packages.outputs.key }}
+      # goss/images/base.yaml runs inside the image just pushed: every courier
+      # package it installs must be the version cue/packages.cue pins.
+      - name: The base installs the courier versions cue/packages.cue pins
+        run: |
+          GOSS=$(scripts/fetch-goss.sh examples/example-context.json)
+          CUE=$(scripts/fetch-cue.sh examples/example-context.json)
+          "$CUE" export ./cue -e packages --out json > "$RUNNER_TEMP/packages.json"
+          docker run --rm \
+            -v "$GOSS:/goss:ro" \
+            -v "$PWD/goss/images:/gossfiles:ro" \
+            -v "$RUNNER_TEMP/packages.json:/packages.json:ro" \
+            --entrypoint /goss \
+            "${{ env.REGISTRY }}/${{ github.repository }}:sha-${{ github.sha }}" \
+            -g /gossfiles/base.yaml --vars /packages.json validate
 
   services:
-    needs: [changes, base]
+    # PROJ-036: never when packages or base failed. Gating on base alone let a
+    # failed packages job (base then *skipped*) build every service FROM
+    # base:main and push it as this commit's sha- tag (run 39153018251). A
+    # skipped base is fine only because packages succeeded: base then skips
+    # just when none of its inputs changed.
+    needs: [changes, packages, base]
     if: >-
       !cancelled()
-      && needs.base.result != 'failure'
+      && needs.packages.result == 'success'
+      && (needs.base.result == 'success' || needs.base.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -293,56 +325,24 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}:${{ needs.base.result == 'success' && format('sha-{0}', github.sha) || 'main' }}
 
-  tinydns:
-    needs: changes
-    if: >-
-      needs.changes.outputs.tinydns == 'true'
-      || github.event_name == 'workflow_dispatch'
-      || startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/djbdns-tinydns
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=sha,format=long,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile-tinydns
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-
   # Runs after the images exist, because the .dist files it checks against are
   # read from the image rather than from a checked-in copy. That is deliberate:
   # a courier version bump introducing a new setting has to fail here, and a
   # vendored fixture would quietly agree with itself forever.
   config-completeness:
-    needs: [changes, services]
+    # PROJ-036: the same guard, or it checks an image that is not this commit's.
+    needs: [changes, packages, base, services]
     if: >-
       !cancelled()
-      && needs.services.result != 'failure'
+      && needs.packages.result == 'success'
+      && (needs.base.result == 'success' || needs.base.result == 'skipped')
+      && needs.services.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -354,3 +354,5 @@ jobs:
         run: ./scripts/check-config-completeness.sh
       - name: Every template renders against the example context
         run: ./scripts/render-all-templates.sh
+      - name: Repo goss suite (goss pinned in the example context)
+        run: '"$(scripts/fetch-goss.sh examples/example-context.json)" -g goss/repo.yaml validate'

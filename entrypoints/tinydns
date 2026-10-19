@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -e -x -o pipefail
-
-# And start the server
-tinydns

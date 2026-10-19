@@ -11,12 +11,12 @@ set -e -x -o pipefail
 # had written into the shared /etc/courier. The image's copy is not a
 # substitute -- it carries TLS_CERTFILE=/usr/lib/courier/share/esmtpd.pem,
 # a file this image does not ship, so STARTTLS would have no certificate.
-/render-template --context /context.json --template /esmtpd-mta.template > /etc/courier/esmtpd
+/renderer --strict -n /esmtpd-mta.template /context.json > /etc/courier/esmtpd
 
 # Every pod renders its own authdaemonrc. /etc/authlib is a per-pod emptyDir,
 # so the image's copy is masked, and relying on a peer having written one into
 # a shared volume is the ordering race this deployment is removing.
-/render-template --context /context.json --template /authdaemonrc.template > /etc/authlib/authdaemonrc
+/renderer --strict -n /authdaemonrc.template /context.json > /etc/authlib/authdaemonrc
 
 # The derived databases are built out of band and mounted read-only; this pod
 # does not build them. Prove they are usable before starting anything, so a
