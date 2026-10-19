@@ -17,12 +17,12 @@ each container renders at start.
 ## Steps
 
 1. **Context.** `./generate-context.sh` (from the repo root), then edit as
-   needed. Set `userdb.canary` to an account that will exist.
+   needed. Set `userdb.canary` to an account that will exist. `host_paths`
+   names the host directories; there is no host preparation step -- the
+   workloads mount them as hostPath volumes, create them if missing and set
+   their owner and mode.
 
-2. **Host preparation.** `./generate-host-scripts.sh && sudo ./prepare-host.sh`
-   creates the host directories the PersistentVolumes use.
-
-3. **Certificates** follow `tls.source`:
+2. **Certificates** follow `tls.source`:
    - `cert-manager`: cert-manager must be installed, and
      `secret/route53-credentials` must exist in the `cert-manager` namespace
      (keys `access-key-id`, `secret-access-key`) for an IAM user with the
@@ -33,15 +33,15 @@ each container renders at start.
      `scripts/make-test-cert.sh` makes a CA and server certificate for a test
      host, with SANs from the context.
 
-4. **Deploy.** `./deploy-services.sh`, or
+3. **Deploy.** `./deploy-services.sh`, or
    `IMAGE_TAG=sha-<commit> ./deploy-services.sh` for a specific build. It
-   applies the namespace, configmap and storage, runs the database build job
+   applies the namespace and configmap, runs the database build job
    (which builds and validates the courier databases, including a canary
    lookup), and applies the workloads through kustomize so changed databases
    roll the pods.
 
-5. **Mail accounts.** Add accounts to the userdb source under
-   `<config.authlib_path>/userdb` on the host, then rerun `./deploy-services.sh`.
+4. **Mail accounts.** Add accounts to the userdb source under
+   `<host_paths.authlib>/userdb` on the host, then rerun `./deploy-services.sh`.
 
 ## Checking a deployment
 
@@ -68,7 +68,7 @@ scripts/node-test.sh sha-<commit>
 ## Troubleshooting
 
 ```bash
-kubectl get pods,svc,pvc -n mailbag
+kubectl get pods,svc -n mailbag
 kubectl logs -n mailbag deploy/courier-mta
 kubectl describe pod -n mailbag <pod>
 ```

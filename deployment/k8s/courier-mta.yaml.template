@@ -136,12 +136,16 @@ spec:
           # group-readable via fsGroup rather than world-readable.
           secretName: courier-userdb
           defaultMode: 0440
+      # Host directories from host_paths, created if missing; courierd's init
+      # container sets their owner and mode (PROJ-011).
       - name: courier-spool
-        persistentVolumeClaim:
-          claimName: courier-spool-pvc
+        hostPath:
+          path: {{ host_paths.spool }}
+          type: DirectoryOrCreate
       - name: mail-storage
-        persistentVolumeClaim:
-          claimName: mail-storage-pvc
+        hostPath:
+          path: {{ host_paths.mail }}
+          type: DirectoryOrCreate
       - name: courier-config
         # Per-pod, not shared. The entrypoint renders this pod's own esmtpd
         # configs here; the databases are mounted read-only on top. Sharing this

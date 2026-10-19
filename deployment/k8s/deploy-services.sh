@@ -170,7 +170,9 @@ esac
 
 # ---------------------------------------------------------------------------
 # Phase 1: the resources the build job needs before it can run.
-for manifest in namespace.yaml configmap.yaml storage.yaml; do
+# No storage step: workloads mount hostPath volumes from host_paths, created on
+# first use (PROJ-011).
+for manifest in namespace.yaml configmap.yaml; do
     apply_one "$manifest"
 done
 
@@ -232,6 +234,11 @@ HELPER="courier-dat-collect-$$"
 cleanup_helper() { kubectl delete pod "$HELPER" -n "$NAMESPACE" --ignore-not-found --wait=false >/dev/null 2>&1 || true; }
 trap 'rm -f "$BUILD_TMP"; cleanup_helper' EXIT
 
+# The directories the build job just published into; Directory, not
+# DirectoryOrCreate, since a missing one here means the build did not run.
+COURIER_CONFIG_DIR=$(jq -er '.host_paths.courier_config' "$CONTEXT")
+AUTHLIB_DIR=$(jq -er '.host_paths.authlib' "$CONTEXT")
+
 echo
 echo "Collecting databases via pod/$HELPER ..."
 kubectl apply -f - <<HELPER_POD >/dev/null
@@ -253,9 +260,9 @@ spec:
     - {name: courier-auth, mountPath: /src/authlib, readOnly: true}
   volumes:
   - name: courier-config
-    persistentVolumeClaim: {claimName: courier-config-pvc}
+    hostPath: {path: "$COURIER_CONFIG_DIR", type: Directory}
   - name: courier-auth
-    persistentVolumeClaim: {claimName: courier-auth-pvc}
+    hostPath: {path: "$AUTHLIB_DIR", type: Directory}
 HELPER_POD
 
 kubectl wait --for=condition=ready "pod/$HELPER" -n "$NAMESPACE" --timeout=120s >/dev/null \

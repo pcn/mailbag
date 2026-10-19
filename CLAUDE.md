@@ -27,6 +27,10 @@ anything not serving that target has been removed.
   sha256 per target under `tools` in the context, and fetched by
   `scripts/fetch-{cue,goss,renderer}.sh`. The images take the renderer pin
   from `examples/example-context.json`.
+- **Host directories** come from `host_paths` (spool, mail, courier_config,
+  authlib). Workloads mount them as `hostPath` volumes with
+  `DirectoryOrCreate`, and init containers set owner and mode -- there are no
+  persistent volume claims and no host preparation script.
 - **Ports** come from `services.*_port` everywhere -- courier config,
   containerPort, Service, probes, goss. Never write a port number elsewhere.
 - **Certificates** come from `tls.source`: `cert-manager` (Let's Encrypt over
@@ -43,7 +47,7 @@ anything not serving that target has been removed.
 ```bash
 make checks                      # template render check, config completeness, goss/repo.yaml
 ./generate-context.sh            # write /etc/mailbag/context.json
-./deploy-mailbag.sh              # prepare the host, then deploy
+./deploy-mailbag.sh              # deploy, then show status and next steps
 IMAGE_TAG=sha-<commit> deployment/k8s/deploy-services.sh   # deploy a specific build
 GOSS=$(scripts/fetch-goss.sh /etc/mailbag/context.json)
 $GOSS -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate   # on a host

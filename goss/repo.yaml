@@ -66,6 +66,15 @@ file:
     exists: true
     contents: *no-literal-ports
 
+  # PROJ-011: no host preparation script and no PV/PVC layer; workloads mount
+  # hostPath volumes from host_paths.
+  deployment/k8s/storage.yaml:
+    exists: false
+  deployment/k8s/prepare-host.sh.template:
+    exists: false
+  deployment/k8s/generate-host-scripts.sh:
+    exists: false
+
   # PROJ-037: courier versions come from cue/packages.cue, as build args; an
   # install script with its own literal version is a second source.
   install-scripts/install-courier.sh:
@@ -119,6 +128,21 @@ command:
       git grep -nE 'unit-files|tinydns|test-starttls|build-base\.sh|build-services\.sh|manage-mail-users|CERTIFICATE-SETUP|test-workflow|run-goss|goss/goss\.yaml|certbot|network_name'
       -- . ':!backlog' ':!CHANGELOG.md' ':!goss/repo.yaml'
     exit-status: 1
+  # PROJ-011: nothing runs prepare-host or claims a PersistentVolume, and the
+  # old path keys are gone. backlog/ and the changelog are history; this file
+  # and the schema check name the patterns.
+  no file references prepare-host, PersistentVolumeClaims or the old path keys:
+    exec: >-
+      git grep -nE 'prepare-host|generate-host-scripts|PersistentVolume|claimName|authlib_path|courier_path|mail_path_host|courierd_path_host'
+      -- . ':!backlog' ':!CHANGELOG.md' ':!goss/repo.yaml' ':!goss/lib/check-context-schema.sh'
+      ':!goss/lib/check-host-paths.sh'
+    exit-status: 1
+  every workload takes its hostPath volumes from host_paths:
+    # Each rendered Deployment or Job: every hostPath is either the context
+    # file or one of the four host_paths values, and none is missing.
+    exec: goss/lib/check-host-paths.sh
+    exit-status: 0
+    timeout: 60000
   # PROJ-037: cue/packages.cue is the one declaration of the courier package
   # versions and checksums; the Dockerfile, install scripts and packages key
   # all follow it, and a download with the wrong checksum is refused.

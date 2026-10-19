@@ -48,7 +48,7 @@ if [ "${SKIP_DEPLOY:-}" = 1 ]; then
 else
     echo "===== canary password"
     scripts/rotate-canary-password.sh \
-        "$(jq -er '.config.authlib_path' "$CONTEXT")/userdb" \
+        "$(jq -er '.host_paths.authlib' "$CONTEXT")/userdb" \
         "$(jq -er '.userdb.canary' "$CONTEXT")" \
         "$CANARY_PASSWORD_FILE" || die "could not rotate the canary password; nothing deployed"
     echo "===== deploy $TAG"

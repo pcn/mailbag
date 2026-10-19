@@ -3,7 +3,7 @@
 #
 #   scripts/rotate-canary-password.sh USERDB_DIR CANARY PASSWORD_FILE
 #
-# USERDB_DIR is the userdb source directory (<config.authlib_path>/userdb on
+# USERDB_DIR is the userdb source directory (<host_paths.authlib>/userdb on
 # the host), CANARY the userdb.canary address. Replaces only the systempw
 # field of the canary's record with a SHA-512 crypt hash (openssl passwd -6;
 # userdbpw is not on the node), keeping the file's owner and mode, and writes

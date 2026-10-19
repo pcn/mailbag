@@ -11,22 +11,21 @@ import (
 //   cue vet -c -d '#Context' ./cue examples/example-context.json
 //
 // It declares exactly what the k3s deployment reads -- the k8s manifests,
-// prepare-host, the courier config templates in configmap.yaml, the deploy
-// scripts and the goss suites -- and is closed, so a key nothing reads is an
+// the courier config templates in configmap.yaml, the deploy scripts and the
+// goss suites -- and is closed, so a key nothing reads is an
 // error rather than a setting that silently does nothing. A key is required
 // when some consumer prints it with no default, and optional (?) when every
 // consumer supplies `| default(...)`: the default lives in the consumer, so
 // the context is never a second source for it.
 
 #Context: close({
-	mda:       #Mda
 	mta:       #Mta
 	mta_ssl:   #MtaSsl
 	msa:       #Msa
 	imapd_ssl: #ImapdSsl
 	userdb:    #Userdb
 	domain:    #Domain
-	config:    #Config
+	host_paths: #HostPaths
 	services:  #Services
 	image?:    close({tag?: #ImageTag})
 	aliases:   #Aliases
@@ -80,9 +79,7 @@ import (
 #Mta: {
 	#Esmtpd
 	accept_mail_for: [...#Hostname] & list.MinItems(1)
-	// Host path of the shared courier spool (prepare-host).
-	courierd_path_host: #Path
-	dns_checks?:        #Bool01
+	dns_checks?:     #Bool01
 }
 
 #MtaSsl: {
@@ -105,9 +102,14 @@ import (
 
 // ---------------------------------------------------------------- storage and auth
 
-#Mda: close({
-	// Host path of the mail store (prepare-host).
-	mail_path_host: #Path
+// Where each volume lives on the host. The workloads mount these as hostPath
+// volumes (DirectoryOrCreate) and their init containers set owner and mode,
+// so nothing has to prepare the host before a deploy (PROJ-011).
+#HostPaths: close({
+	spool:          #Path // the shared courier spool (daemon, 0755)
+	mail:           #Path // the mail store root, /vmail in the pods (root, 0755)
+	courier_config: #Path // /etc/courier (daemon, 0755)
+	authlib:        #Path // /etc/authlib, holding the userdb source (daemon, 0700)
 })
 
 #Userdb: close({
@@ -122,12 +124,6 @@ import (
 
 #Domain: close({
 	zone: #Hostname
-})
-
-// Host paths of the courier and authlib config volumes (prepare-host).
-#Config: close({
-	courier_path: #Path
-	authlib_path: #Path
 })
 
 // Every mail port is declared here and nowhere else (PROJ-030), each once.
