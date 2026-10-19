@@ -1,13 +1,15 @@
 {
-  "mda": {
-    "mail_path_host": "/vmail/the-domain.com"
+  "host_paths": {
+    "spool": "/home/mailbag/spool/courier-mta",
+    "mail": "/home/vmail",
+    "courier_config": "/home/mailbag/config/courier",
+    "authlib": "/home/mailbag/config/authlib"
   },
   "mta": {
     "dns_name": "the-domain.com",
     "accept_mail_for": [
       "the-domain.com"
-    ],
-    "courierd_path_host": "/mailbag/spool/courier-mta"
+    ]
   },
   "imapd_ssl": {
     "dns_name": "imap.the-domain.com"
@@ -26,10 +28,6 @@
   },
   "image": {
     "tag": "main"
-  },
-  "config": {
-    "courier_path": "/home/mailbag/config/courier",
-    "authlib_path": "/home/mailbag/config/authlib"
   },
   "services": {
     "smtp_port": 25,

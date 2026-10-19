@@ -6,8 +6,8 @@
 # place where failure costs inbound mail, with the result depending on which pod
 # ran last.
 #
-# The job runs to completion and publishes into courier-config-pvc and
-# courier-auth-pvc -- volumes no serving pod mounts any more. The deploy step
+# The job runs to completion and publishes into the host_paths.courier_config
+# and host_paths.authlib directories -- which no serving pod mounts any more. The deploy step
 # then extracts the six databases and hands them to kustomize, which hashes them
 # into ConfigMap and Secret names and rolls the pods that reference them.
 #
@@ -37,6 +37,27 @@ spec:
       restartPolicy: Never
       securityContext:
         fsGroup: 1
+      initContainers:
+      - name: init-dirs
+        # The publish volumes' roots, which a host script used to create: the
+        # authlib directory holds the 0600 userdb source and the password
+        # hashes, so it is daemon-owned and 0700. Pinned by digest, as root.
+        image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /publish/authlib/userdb
+          chown daemon:daemon /publish/courier /publish/authlib /publish/authlib/userdb
+          chmod 755 /publish/courier
+          chmod 700 /publish/authlib /publish/authlib/userdb
+        volumeMounts:
+        - name: courier-auth
+          mountPath: /publish/authlib
+        - name: courier-config
+          mountPath: /publish/courier
+        securityContext:
+          runAsUser: 0
       containers:
       - name: build-dat
         # Any service image will do; they all carry the courier tools and the
@@ -92,9 +113,13 @@ spec:
       - name: templates
         configMap:
           name: mailbag-context
+      # Host directories from host_paths, created if missing; the init
+      # container sets their owner and mode (PROJ-011).
       - name: courier-auth
-        persistentVolumeClaim:
-          claimName: courier-auth-pvc
+        hostPath:
+          path: {{ host_paths.authlib }}
+          type: DirectoryOrCreate
       - name: courier-config
-        persistentVolumeClaim:
-          claimName: courier-config-pvc
+        hostPath:
+          path: {{ host_paths.courier_config }}
+          type: DirectoryOrCreate

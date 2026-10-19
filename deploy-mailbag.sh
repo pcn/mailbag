@@ -53,30 +53,11 @@ check_prerequisites() {
     log_info "Prerequisites check passed"
 }
 
-# Step 1: Generate host preparation script and run it
-prepare_host() {
-    log_info "Step 1: Preparing host directories..."
-    
-    cd "$SCRIPT_DIR/deployment/k8s"
-    
-    # Generate the host preparation script
-    "$RENDERER" --strict -n prepare-host.sh.template /etc/mailbag/context.json > prepare-host.sh
-    chmod +x prepare-host.sh
-    
-    # Run the host preparation script
-    if [ "$EUID" -eq 0 ]; then
-        ./prepare-host.sh
-    else
-        log_warn "Running host preparation with sudo (requires root permissions)"
-        sudo ./prepare-host.sh
-    fi
-    
-    log_info "Host preparation completed"
-}
-
-# Step 2: Deploy to Kubernetes
+# Step 1: Deploy to Kubernetes. There is no host preparation step: the
+# workloads create their host_paths directories and set owner and mode
+# themselves (PROJ-011).
 deploy_kubernetes() {
-    log_info "Step 2: Deploying to Kubernetes..."
+    log_info "Step 1: Deploying to Kubernetes..."
     
     cd "$SCRIPT_DIR/deployment/k8s"
     
@@ -91,16 +72,13 @@ deploy_kubernetes() {
     log_info "Kubernetes deployment completed"
 }
 
-# Step 3: Check deployment status
+# Step 2: Check deployment status
 check_status() {
-    log_info "Step 3: Checking deployment status..."
-    
+    log_info "Step 2: Checking deployment status..."
+
     NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
-    
-    echo "Persistent Volume Claims:"
-    kubectl get pvc -n $NAMESPACE
-    
-    echo -e "\nServices:"
+
+    echo "Services:"
     kubectl get services -n $NAMESPACE
     
     echo -e "\nPods:"
@@ -126,9 +104,9 @@ check_status() {
     fi
 }
 
-# Step 4: Show next steps
+# Step 3: Show next steps
 show_next_steps() {
-    log_info "Step 4: Next steps for completion..."
+    log_info "Step 3: Next steps for completion..."
     
     NAMESPACE=$(jq -r '.services.k8s_namespace' /etc/mailbag/context.json)
     DOMAIN=$(jq -r '.domain.zone' /etc/mailbag/context.json)
@@ -140,9 +118,10 @@ show_next_steps() {
     echo ""
     echo "Next steps to complete your mail server:"
     echo ""
-    echo "1. SSL/TLS Certificates:"
-    echo "   - Set up Let's Encrypt certificates for $DOMAIN"
-    echo "   - Configure DNS records for your mail subdomains"
+    echo "1. Certificates follow tls.source in the context:"
+    echo "   - cert-manager: Let's Encrypt over DNS-01 in Route53, once"
+    echo "     secret/route53-credentials exists in the cert-manager namespace"
+    echo "   - secret: courier-mail-cert-tls, created by hand"
     echo ""
     echo "2. DNS Configuration:"
     echo "   - Create A records for:"
@@ -153,17 +132,17 @@ show_next_steps() {
     echo "   - Create MX record pointing to $(jq -r '.mta.dns_name' /etc/mailbag/context.json)"
     echo ""
     echo "3. Mail Users:"
-    echo "   - Add accounts to the userdb source under $(jq -r '.config.authlib_path' /etc/mailbag/context.json)/userdb,"
+    echo "   - Add accounts to the userdb source under $(jq -r '.host_paths.authlib' /etc/mailbag/context.json)/userdb,"
     echo "     then rerun deployment/k8s/deploy-services.sh: its build job rebuilds and validates the databases"
     echo ""
     echo "4. Testing (goss, pinned in context.json; run from the repo root):"
     echo "   - GOSS=\$(scripts/fetch-goss.sh /etc/mailbag/context.json)"
     echo "   - \$GOSS -g goss/host-k3s.yaml --vars /etc/mailbag/context.json validate"
-    echo "   - \$GOSS -g goss/smoke.yaml --vars /etc/mailbag/context.json validate"
+    echo "   - scripts/node-test.sh <image tag>   (deploys the tag, then every host suite)"
     echo ""
     echo "=== TROUBLESHOOTING ==="
     echo "View logs: kubectl logs -n $NAMESPACE <pod-name>"
-    echo "Check status: kubectl get pods,services,pvc -n $NAMESPACE"
+    echo "Check status: kubectl get pods,services -n $NAMESPACE"
     echo ""
 }
 
@@ -175,7 +154,6 @@ main() {
     echo ""
     
     check_prerequisites
-    prepare_host
     deploy_kubernetes
     check_status
     show_next_steps

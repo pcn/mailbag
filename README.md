@@ -34,6 +34,6 @@ host management.
 
 ```bash
 ./generate-context.sh                       # writes /etc/mailbag/context.json
-./deploy-mailbag.sh                         # prepare the host, then deploy
+./deploy-mailbag.sh                         # deploy, then show status and next steps
 IMAGE_TAG=sha-<commit> deployment/k8s/deploy-services.sh   # deploy a specific build
 ```

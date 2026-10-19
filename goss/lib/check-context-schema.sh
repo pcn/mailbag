@@ -56,6 +56,12 @@ a removed systemd-era key: mta.service|.mta.service = "courier-mta.service"
 a removed systemd-era key: mta.tls_certfile|.mta.tls_certfile = "/etc/letsencrypt/live/x/fullchain.pem"
 a removed unread block: filesystem|.filesystem = {tmp_mode: "0770"}
 a removed unread key: services.k8s_pods|.services.k8s_pods = ["courier-mta"]
+host_paths missing|del(.host_paths)
+host_paths.authlib missing|del(.host_paths.authlib)
+a host path that is not absolute|.host_paths.spool = "mailbag/spool"
+a removed path key: mta.courierd_path_host|.mta.courierd_path_host = "/home/mailbag/spool/courier-mta"
+a removed path key: mda.mail_path_host|.mda = {mail_path_host: "/home/vmail"}
+a removed path key: config.authlib_path|.config = {authlib_path: "/home/mailbag/config/authlib"}
 EOF
 
 exit "$fail"

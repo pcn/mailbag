@@ -35,13 +35,20 @@ spec:
         - -c
         - |
           mkdir -p /var/spool/courier/{msgq,msgs,track,tmp,filters,allfilters}
+          chmod 755 /var/spool/courier
           chmod 750 /var/spool/courier/{msgq,msgs,filters,allfilters}
           chmod 770 /var/spool/courier/tmp
           chmod 755 /var/spool/courier/track
           chown -R daemon:daemon /var/spool/courier
+          # The mail root only, never recursively: the domain and maildir
+          # trees below it belong to vmail and to account handling.
+          chown root:root /vmail
+          chmod 755 /vmail
         volumeMounts:
         - name: courier-spool
           mountPath: /var/spool/courier
+        - name: mail-storage
+          mountPath: /vmail
         securityContext:
           runAsUser: 0
       containers:
@@ -123,12 +130,16 @@ spec:
           # group-readable via fsGroup rather than world-readable.
           secretName: courier-userdb
           defaultMode: 0440
+      # Host directories from host_paths, created if missing; the init
+      # container above sets their owner and mode (PROJ-011).
       - name: courier-spool
-        persistentVolumeClaim:
-          claimName: courier-spool-pvc
+        hostPath:
+          path: {{ host_paths.spool }}
+          type: DirectoryOrCreate
       - name: mail-storage
-        persistentVolumeClaim:
-          claimName: mail-storage-pvc
+        hostPath:
+          path: {{ host_paths.mail }}
+          type: DirectoryOrCreate
       - name: courier-auth
         # Per-pod. Only authdaemonrc is written here now; the userdb databases
         # arrive from the Secret and the userdb *source* is the build job's

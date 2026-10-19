@@ -29,6 +29,23 @@ file:
   /var/lib/rancher/k3s.old:
     exists: false
 
+  # PROJ-011: the host_paths directories, which the workloads create and whose
+  # owner and mode their init containers set -- courierd's for the spool and
+  # the mail root, the database build job's for courier_config and authlib.
+  # daemon is UID 1 in the images and on the host.
+{{- range $p := list
+      (dict "path" .Vars.host_paths.spool          "owner" "daemon" "mode" "0755")
+      (dict "path" .Vars.host_paths.mail           "owner" "root"   "mode" "0755")
+      (dict "path" .Vars.host_paths.courier_config "owner" "daemon" "mode" "0755")
+      (dict "path" .Vars.host_paths.authlib        "owner" "daemon" "mode" "0700") }}
+  {{ $p.path }}:
+    exists: true
+    filetype: directory
+    owner: {{ $p.owner }}
+    group: {{ $p.owner }}
+    mode: "{{ $p.mode }}"
+{{- end }}
+
 command:
   # PROJ-034: the host's own context satisfies the schema -- complete, no
   # unknown keys. Paths are relative to the deploy tree, which carries cue/.

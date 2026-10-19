@@ -14,7 +14,9 @@ DOMAIN="example.com"
 MAIL_HOSTNAME="mail"
 IMAP_HOSTNAME="imap"
 SMTP_HOSTNAME="smtp"
-MAILBAG_SPOOL="/home/mailbag/spool/courier"
+# Host directories (host_paths): the workloads create them if missing and set
+# their owner and mode, so nothing prepares the host beforehand.
+MAILBAG_SPOOL="/home/mailbag/spool/courier-mta"
 MAIL_STORAGE="/home/vmail"
 CONFIG_PATH="/home/mailbag/config"
 # Which published build to deploy. Override per-deploy with IMAGE_TAG=... on
@@ -97,13 +99,15 @@ mkdir -p "$(dirname "$CONTEXT_OUT")"
 # Generate context.json
 cat > "$CONTEXT_OUT" << EOF
 {
-  "mda": {
-    "mail_path_host": "$MAIL_STORAGE/$DOMAIN"
+  "host_paths": {
+    "spool": "$MAILBAG_SPOOL",
+    "mail": "$MAIL_STORAGE",
+    "courier_config": "$CONFIG_PATH/courier",
+    "authlib": "$CONFIG_PATH/authlib"
   },
   "mta": {
     "dns_name": "$DOMAIN",
-    "accept_mail_for": ["$DOMAIN"],
-    "courierd_path_host": "$MAILBAG_SPOOL-mta"
+    "accept_mail_for": ["$DOMAIN"]
   },
   "imapd_ssl": {
     "dns_name": "$IMAP_HOSTNAME"
@@ -125,10 +129,6 @@ cat > "$CONTEXT_OUT" << EOF
   },
   "image": {
     "tag": "$IMAGE_TAG"
-  },
-  "config": {
-    "courier_path": "$CONFIG_PATH/courier",
-    "authlib_path": "$CONFIG_PATH/authlib"
   },
   "services": {
     "smtp_port": 25,
@@ -161,4 +161,4 @@ jq --slurpfile ex "$EXAMPLE_CONTEXT" '.tools = $ex[0].tools' "$CONTEXT_OUT" > "$
 mv "$tmp" "$CONTEXT_OUT"
 
 echo "Generated context.json at $CONTEXT_OUT"
-echo "Now run deployment/k8s/generate-host-scripts.sh to create the host preparation script"
+echo "Next: deployment/k8s/deploy-services.sh (it creates the host_paths directories itself)"
