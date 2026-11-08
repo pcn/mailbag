@@ -14,9 +14,11 @@ import (
 //   cue cmd -t ctx="$(cat /etc/mailbag/context.json)" apply  ./cue   # converge
 //   cue cmd verify ./cue                                             # goss/host-k3s.yaml
 //
-// A context the schema rejects (or a missing -t ctx) stops plan and apply
-// before any task runs, but the error names where the bad value was first
-// used, not the rule it broke. For a readable error:
+// A context the schema rejects stops plan and apply before anything is read
+// or changed: a wrong value (or a missing -t ctx) before any task runs, and a
+// missing required field at the gate task, which needs the whole context
+// complete. Either error names where the bad value was used, not the rule it
+// broke. For a readable error:
 //
 //   cue vet -c -d '#Context' ./cue /etc/mailbag/context.json
 //
@@ -45,11 +47,17 @@ _at:  (#Rooted & {root: _root}).paths
 
 // Everything #Plan needs to know about the host.
 _read: {
-	config: exec.Run & {cmd: ["cat", _at.config], stdout: string, stderr: string, mustSucceed: false}
-	dropin: exec.Run & {cmd: ["cat", _at.dropin], stdout: string, stderr: string, mustSucceed: false}
-	env:    exec.Run & {cmd: ["cat", _at.env], stdout: string, stderr: string, mustSucceed: false}
-	k3s:    exec.Run & {cmd: ["sh", "-c", "k3s --version 2>/dev/null || true"], stdout: string}
-	old:    exec.Run & {cmd: ["test", "-e", _at.oldDataDir], mustSucceed: false}
+	// The gate: a context missing a required field is only incomplete, which
+	// #Plan would not notice unless it needed that field. Marshalling the
+	// whole context fails here ("invalid environment variable value") before
+	// anything is read, and everything else runs after the reads.
+	gate: exec.Run & {cmd: ["true"], env: MAILBAG_CONTEXT: json.Marshal(_ctx)}
+
+	config: exec.Run & {cmd: ["cat", _at.config], stdout: string, stderr: string, mustSucceed: false, $after: gate}
+	dropin: exec.Run & {cmd: ["cat", _at.dropin], stdout: string, stderr: string, mustSucceed: false, $after: gate}
+	env:    exec.Run & {cmd: ["cat", _at.env], stdout: string, stderr: string, mustSucceed: false, $after: gate}
+	k3s:    exec.Run & {cmd: ["sh", "-c", "k3s --version 2>/dev/null || true"], stdout: string, $after: gate}
+	old:    exec.Run & {cmd: ["test", "-e", _at.oldDataDir], mustSucceed: false, $after: gate}
 }
 
 command: plan: {

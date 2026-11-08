@@ -1,7 +1,7 @@
 #!/bin/bash
 # PROJ-031: the pinned renderer (upstream minijinja-cli, invoked as
 # `renderer --strict -n TEMPLATE CONTEXT`) keeps the guarantee the in-house
-# render-template gave: printing anything undefined is an error, while
+# renderer it replaced gave: printing anything undefined is an error, while
 # `| default(...)` still works. Run by goss/repo.yaml; offline.
 
 set -u -o pipefail
