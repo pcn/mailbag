@@ -25,9 +25,10 @@ IMAGE_TAG="${IMAGE_TAG:-main}"
 # Where the mail certificate comes from: cert-manager issues it from Let's
 # Encrypt over DNS-01 in a Route53 zone, or "secret" for a host whose Secret is
 # injected by hand (scripts/make-test-cert.sh). For cert-manager,
-# ACME_HOSTED_ZONE_ID is required -- it cannot be guessed -- ACME_ZONE defaults
-# to the mail domain, and ACME_EMAIL to letsencrypt@<domain>, the convention on
-# every install so the Let's Encrypt account is never tied to a person or role.
+# ACME_HOSTED_ZONE_ID is required -- it cannot be guessed -- and ACME_ZONE
+# defaults to the mail domain. The account email is always letsencrypt@<domain>
+# (the schema enforces it, PROJ-038), so the Let's Encrypt account is never
+# tied to a person or role; it is also declared as a mailbox below.
 TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
 # Mailboxes are declared here; their password hashes go in
 # /etc/mailbag/passwords (scripts/mailbox-passwd.sh), and the database build
@@ -37,7 +38,20 @@ TLS_SOURCE="${TLS_SOURCE:-cert-manager}"
 # POSTMASTER is "reject" or the local part postmaster and role mail go to.
 # Host layer below Kubernetes, checked by goss/host-k3s.yaml. data_dir belongs
 # on the large filesystem, not a small /var (PROJ-024).
-K3S_VERSION="${K3S_VERSION:-v1.32.5+k3s1}"
+# K3S_INSTALL_SHA256 pins upstream's install.sh at that version tag
+# (PROJ-026); the default belongs to the default version only, so overriding
+# K3S_VERSION requires giving its hash too:
+#   curl -fsSL "https://raw.githubusercontent.com/k3s-io/k3s/<version>/install.sh" | sha256sum
+K3S_DEFAULT_VERSION="v1.32.5+k3s1"
+K3S_VERSION="${K3S_VERSION:-$K3S_DEFAULT_VERSION}"
+if [ -z "${K3S_INSTALL_SHA256:-}" ]; then
+    if [ "$K3S_VERSION" != "$K3S_DEFAULT_VERSION" ]; then
+        echo "Error: K3S_VERSION=$K3S_VERSION needs K3S_INSTALL_SHA256, the sha256 of" >&2
+        echo "       that tag's install.sh." >&2
+        exit 1
+    fi
+    K3S_INSTALL_SHA256="d75e014f2d2ab5d30a318efa5c326f3b0b7596f194afcff90fa7a7a91166d5f7"
+fi
 K3S_DATA_DIR="${K3S_DATA_DIR:-/home/k3s}"
 K3S_GOMEMLIMIT="${K3S_GOMEMLIMIT:-300MiB}"
 MIN_FREE_MB_DATA_DIR="${MIN_FREE_MB_DATA_DIR:-2048}"
@@ -88,7 +102,7 @@ if [ "$TLS_SOURCE" = cert-manager ]; then
         echo "       id (Z...) the DNS-01 challenge records are written to." >&2
         exit 1
     fi
-    TLS_BLOCK=$(jq -n --arg email "${ACME_EMAIL:-letsencrypt@$DOMAIN}" \
+    TLS_BLOCK=$(jq -n --arg email "letsencrypt@$DOMAIN" \
         --arg zone "${ACME_ZONE:-$DOMAIN}" --arg id "$ACME_HOSTED_ZONE_ID" \
         '{source: "cert-manager", acme: {email: $email, route53: {zone: $zone, hosted_zone_id: $id}}}')
 else
@@ -144,6 +158,7 @@ cat > "$CONTEXT_OUT" << EOF
   "host": {
     "k3s": {
       "version": "$K3S_VERSION",
+      "install_sha256": "$K3S_INSTALL_SHA256",
       "data_dir": "$K3S_DATA_DIR",
       "gomemlimit": "$K3S_GOMEMLIMIT",
       "disable": ["traefik", "metrics-server", "local-storage"]

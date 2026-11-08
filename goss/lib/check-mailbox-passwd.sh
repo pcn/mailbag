@@ -72,4 +72,23 @@ else
     bad "refused to prompt but changed the file"
 fi
 
+# --- --remove ------------------------------------------------------------------
+fixture
+if PASSWORDS="$work/passwords" "$TOOL" --remove "$TARGET" > "$work/out" 2>&1 \
+   && ! grep -q "^$TARGET:" "$work/passwords" \
+   && grep -qxF "$OTHER" "$work/passwords" && grep -qxF '# comment kept' "$work/passwords" \
+   && [ "$(stat -c %a "$work/passwords")" = 640 ]; then
+    ok "--remove deletes only that address's line and keeps the file's mode"
+else
+    bad "--remove:"; sed 's/^/        /' "$work/out"
+fi
+cp "$work/passwords" "$work/before"
+if PASSWORDS="$work/passwords" "$TOOL" --remove "$TARGET" > "$work/out" 2>&1; then
+    bad "--remove succeeded for an address with no hash"
+elif cmp -s "$work/before" "$work/passwords"; then
+    ok "--remove refuses an address with no hash, nothing written"
+else
+    bad "--remove refused but changed the file"
+fi
+
 exit "$fail"

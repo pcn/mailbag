@@ -85,18 +85,40 @@ done < "$work/exported"
 
 # --- the packages key covers the pins ---------------------------------------
 
-mkdir -p "$work/tree/scripts" "$work/tree/cue"
-cp -r Dockerfile install-scripts "$work/tree/"
-cp scripts/packages-key.sh "$work/tree/scripts/"
-cp cue/packages.cue "$work/tree/cue/"
-before=$("$work/tree/scripts/packages-key.sh")
-echo '// changed' >> "$work/tree/cue/packages.cue"
-after=$("$work/tree/scripts/packages-key.sh")
-if [ "$before" = "$(scripts/packages-key.sh)" ] && [ "$before" != "$after" ]; then
-    ok "changing cue/packages.cue changes the packages key"
+# PROJ-032/PROJ-037: the key names exactly what is compiled. Each case edits a
+# fresh copy of the inputs (plus the workflow file, which must not count).
+fresh_tree() {
+    rm -rf "$work/tree"
+    mkdir -p "$work/tree/scripts" "$work/tree/cue" "$work/tree/.github/workflows"
+    cp -r Dockerfile install-scripts "$work/tree/"
+    cp scripts/packages-key.sh "$work/tree/scripts/"
+    cp cue/packages.cue "$work/tree/cue/"
+    cp .github/workflows/build-and-publish.yml "$work/tree/.github/workflows/"
+}
+fresh_tree
+base=$("$work/tree/scripts/packages-key.sh")
+if [ "$base" = "$("$work/tree/scripts/packages-key.sh")" ] && [ "$base" = "$(scripts/packages-key.sh)" ]; then
+    ok "the packages key is stable across runs and checkouts ($base)"
 else
-    bad "packages key did not follow cue/packages.cue ($before -> $after)"
+    bad "the packages key is not stable"
 fi
+# name | file to append a byte to | should the key change (yes/no)
+while IFS='|' read -r name file changes; do
+    [ -n "$name" ] || continue
+    fresh_tree
+    echo '#' >> "$work/tree/$file"
+    after=$("$work/tree/scripts/packages-key.sh")
+    if { [ "$changes" = yes ] && [ "$after" != "$base" ]; } || { [ "$changes" = no ] && [ "$after" = "$base" ]; }; then
+        ok "packages key $([ "$changes" = yes ] && echo changes || echo "does not change") when $name changes"
+    else
+        bad "packages key $base -> $after when $name changes (expected change: $changes)"
+    fi
+done <<'EOF'
+cue/packages.cue|cue/packages.cue|yes
+Dockerfile|Dockerfile|yes
+an install script|install-scripts/install-courier.sh|yes
+the workflow file|.github/workflows/build-and-publish.yml|no
+EOF
 
 # --- fetch_source verifies the checksum, offline via SOURCE_DIR -------------
 

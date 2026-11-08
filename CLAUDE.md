@@ -36,8 +36,8 @@ anything not serving that target has been removed.
 - **Certificates** come from `tls.source`: `cert-manager` (Let's Encrypt over
   DNS-01 in the Route53 zone `tls.acme.route53` names; every certificate name
   must be in that zone) or `secret` (a pre-provisioned `courier-mail-cert-tls`).
-  The ACME account email is `letsencrypt@<domain>` on every install, by
-  convention. The Route53 key is a hand-made `route53-credentials` Secret in the
+  The ACME account email is `letsencrypt@<domain.zone>` on every install, and
+  a declared mailbox; the schema enforces both. The Route53 key is a hand-made `route53-credentials` Secret in the
   `cert-manager` namespace, for an IAM user whose policy is
   `deployment/aws/cert-manager-route53-policy.json.template` rendered against
   the context. Services read `/certs/tls.crt` and `/certs/tls.key` directly.

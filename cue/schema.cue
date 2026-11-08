@@ -47,6 +47,11 @@ import (
 		_certNamesInZone: [for n in [domain.zone, mta.dns_name, msa.dns_name, mta_ssl.dns_name, imapd_ssl.dns_name] {
 			strings.HasSuffix("."+n, "."+tls.acme.route53.zone) & true
 		}]
+		// PROJ-038: the Let's Encrypt account is letsencrypt@<zone> on every
+		// install -- never a person, never postmaster (which may reject) --
+		// and it is a real mailbox, so its mail arrives.
+		tls: acme: email:    "letsencrypt@" + domain.zone
+		_acmeEmailIsMailbox: list.Contains(mailboxes, tls.acme.email) & true
 	}
 
 	// Accounts (PROJ-040). Each rule names the offending address in its error.
@@ -209,6 +214,12 @@ import (
 #Host: close({
 	k3s: close({
 		version: =~"^v[0-9]+\\.[0-9]+\\.[0-9]+\\+k3s[0-9]+$"
+		// sha256 of upstream's install.sh at the version tag
+		// (raw.githubusercontent.com/k3s-io/k3s/<version>/install.sh), which
+		// host setup checks before running it (PROJ-026). One script for every
+		// target; it verifies the k3s binary itself against the release's
+		// sha256sum file.
+		install_sha256: #Sha256
 		// The data dir belongs on the large filesystem, never the small /var
 		// (PROJ-024).
 		data_dir:   #Path & !~"^/var(/|$)"

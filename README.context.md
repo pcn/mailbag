@@ -40,7 +40,9 @@ handed to courier as written, and courier's behaviour is what is described.
   `/vmail/<domain>/<user>`), and refuses to build if a mailbox has no hash or
   a hash names no mailbox. courierd's init container creates each missing
   maildir (vmail, 0700). Then redeploy: `deployment/k8s/deploy-services.sh`.
-- **Removing a mailbox keeps its mail.** The login goes; the maildir stays,
+- **Removing a mailbox keeps its mail.** Take it out of `mailboxes`, drop its
+  hash with `scripts/mailbox-passwd.sh --remove <address>` (the build refuses
+  a hash for no mailbox), and redeploy. The login goes; the maildir stays,
   and `scripts/mailbox-orphans.sh` (also printed by `scripts/node-test.sh`)
   lists such orphans. Nothing deletes mail.
 - **aliases.map** is `from: to`, one target each. Each entry is written

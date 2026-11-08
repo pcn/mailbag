@@ -248,7 +248,10 @@ jobs:
         run: |
           GOSS=$(scripts/fetch-goss.sh examples/example-context.json)
           CUE=$(scripts/fetch-cue.sh examples/example-context.json)
-          "$CUE" export ./cue -e packages --out json > "$RUNNER_TEMP/packages.json"
+          "$CUE" export ./cue -e packages --out json \
+            | jq --slurpfile ex examples/example-context.json \
+                '. + {renderer_version: $ex[0].tools.minijinja_cli.version}' \
+            > "$RUNNER_TEMP/packages.json"
           docker run --rm \
             -v "$GOSS:/goss:ro" \
             -v "$PWD/goss/images:/gossfiles:ro" \

@@ -28,6 +28,15 @@ addr:
 {{- $userdb := "/etc/authlib/userdb.dat /etc/authlib/userdbshadow.dat" }}
 
 command:
+  # PROJ-024: the deploy did not push the node into DiskPressure, which makes
+  # kubelet evict every mailbag pod and keeps the condition latched for the
+  # eviction-pressure-transition-period even after space is freed.
+  the node is not under DiskPressure:
+    exec: kubectl get node "$(hostname)" -o jsonpath='{.status.conditions[?(@.type=="DiskPressure")].status}'
+    exit-status: 0
+    stdout:
+      - '/^False$/'
+
   # PROJ-025/PROJ-010: every mail pod is supervised by runit -- runsvdir is
   # PID 1 and every service under it is up -- and the databases it reads are
   # usable inside it (the same assert-courier-dat set its entrypoint runs).

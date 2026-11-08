@@ -46,8 +46,12 @@ a certificate name outside the Route53 zone|.mta_ssl.dns_name = "mail.elsewhere.
 a zone that is only a suffix of a name, not its parent|.tls.acme.route53.zone = "domain.com"
 a hosted zone id not in Route53's form|.tls.acme.route53.hosted_zone_id = "rton.me"
 an acme email that is not an address|.tls.acme.email = "postmaster"
+an acme email other than letsencrypt@ the zone|.tls.acme.email = "admin@the-domain.com"
+an acme email that is not a declared mailbox|.mailboxes -= ["letsencrypt@the-domain.com"]
 host.k3s.data_dir under /var|.host.k3s.data_dir = "/var/lib/rancher/k3s"
 host.k3s.data_dir exactly /var|.host.k3s.data_dir = "/var"
+host.k3s.install_sha256 missing|del(.host.k3s.install_sha256)
+host.k3s.install_sha256 not 64 hex characters|.host.k3s.install_sha256 = "abc123"
 an unknown top-level key|.extra = 1
 a sha256 that is not 64 hex characters|.tools.goss.sha256["x86_64-unknown-linux-gnu"] = "abc123"
 tools.cue missing|del(.tools.cue)

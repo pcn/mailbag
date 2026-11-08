@@ -5,6 +5,10 @@
 #   scripts/mailbox-passwd.sh --random FILE ADDRESS   random, written to FILE (0600)
 #   scripts/mailbox-passwd.sh --random - ADDRESS      random, not kept: a
 #                                                     receive-only mailbox
+#   scripts/mailbox-passwd.sh --remove ADDRESS        delete its hash, after
+#                                                     removing the mailbox from
+#                                                     the context (its mail is
+#                                                     kept, PROJ-040)
 #
 # PASSWORDS (default /etc/mailbag/passwords) holds address:hash lines, root
 # only. Only ADDRESS's line changes -- replaced, or added -- and the file is
@@ -22,14 +26,31 @@ set -e -u -o pipefail
 PASSWORDS="${PASSWORDS:-/etc/mailbag/passwords}"
 die() { echo "mailbox-passwd: $*" >&2; exit 1; }
 
-random=""
-if [ "${1:-}" = --random ]; then
-    random=${2:?usage: $0 [--random FILE|-] ADDRESS}
-    shift 2
-fi
-address="${1:?usage: $0 [--random FILE|-] ADDRESS}"
+USAGE="usage: $0 [--random FILE|-] ADDRESS | --remove ADDRESS"
+random="" remove=""
+case "${1:-}" in
+    --random) random=${2:?$USAGE}; shift 2 ;;
+    --remove) remove=1; shift ;;
+esac
+address="${1:?$USAGE}"
 [[ "$address" =~ ^[a-z0-9][a-z0-9._+-]*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$ ]] \
     || die "not a lowercase address: $address"
+
+if [ -n "$remove" ]; then
+    [ -e "$PASSWORDS" ] || die "no passwords file: $PASSWORDS"
+    awk -v a="$address" 'index($0, a ":") == 1 { found = 1 } END { exit !found }' "$PASSWORDS" \
+        || die "$address has no hash in $PASSWORDS"
+    umask 077
+    tmp=$(mktemp "$(dirname "$PASSWORDS")/.passwords.XXXXXX")
+    trap 'rm -f "$tmp"' EXIT
+    awk -v a="$address" 'index($0, a ":") != 1' "$PASSWORDS" > "$tmp"
+    chown --reference="$PASSWORDS" "$tmp"
+    chmod --reference="$PASSWORDS" "$tmp"
+    mv -f "$tmp" "$PASSWORDS"
+    trap - EXIT
+    echo "removed the hash for $address from $PASSWORDS"
+    exit 0
+fi
 
 if [ -n "$random" ]; then
     # 32 alphanumerics. Captured whole, then cut: piping into head -c would

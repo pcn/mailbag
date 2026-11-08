@@ -66,6 +66,13 @@ file:
     exists: true
     contents: *no-literal-ports
 
+  # PROJ-031: the in-house render-template is gone; upstream minijinja-cli is
+  # the renderer.
+  templater:
+    exists: false
+  Dockerfile-support:
+    exists: false
+
   # PROJ-011: no host preparation script and no PV/PVC layer; workloads mount
   # hostPath volumes from host_paths.
   deployment/k8s/storage.yaml:
@@ -121,6 +128,14 @@ command:
     exec: goss/lib/check-generated-contexts.sh
     exit-status: 0
     timeout: 120000
+  # PROJ-026: host setup keeps every decision in plain .cue, where the #Plan
+  # tests cover it; the *_tool.cue files only orchestrate. The tests pass, and
+  # fail on scratch copies that move our /etc/environment line to the end or
+  # write an unchanged drop-in.
+  the host-setup plan tests pass and the tool files only orchestrate:
+    exec: goss/lib/check-host-plan.sh
+    exit-status: 0
+    timeout: 240000
   # PROJ-035: nothing still points at what was removed. backlog/ and the
   # changelog are history; this file names the patterns, so it is excluded.
   no file references the removed systemd, tinydns or certbot-job paths:
@@ -141,6 +156,27 @@ command:
     # Each rendered Deployment or Job: every hostPath is either the context
     # file or one of the four host_paths values, and none is missing.
     exec: goss/lib/check-host-paths.sh
+    exit-status: 0
+    timeout: 60000
+  # PROJ-031: nothing invokes the old renderer; the pinned one keeps its
+  # fail-on-undefined guarantee; every template renders under --strict.
+  no file invokes render-template:
+    exec: >-
+      git grep -nE '(^|[^-])render-template\b'
+      -- . ':!backlog' ':!CHANGELOG.md' ':!goss/repo.yaml' ':!goss/images/base.yaml'
+    exit-status: 1
+  the pinned renderer fails on anything undefined and honours default():
+    exec: goss/lib/check-renderer.sh
+    exit-status: 0
+    timeout: 60000
+  every template renders against the example context under --strict:
+    exec: scripts/render-all-templates.sh
+    exit-status: 0
+    timeout: 120000
+  # PROJ-032/PROJ-031: the base builds FROM this commit's packages key and
+  # takes the renderer pin from the example context.
+  the images are wired to the packages key and the renderer pin:
+    exec: goss/lib/check-image-wiring.sh
     exit-status: 0
     timeout: 60000
   # PROJ-037: cue/packages.cue is the one declaration of the courier package

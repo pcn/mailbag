@@ -25,9 +25,15 @@ command:
     exit-status: 0
 {{- end }}
 
-  # The template renderer every entrypoint uses is present.
+  # PROJ-031: the template renderer every entrypoint uses is the pinned
+  # upstream minijinja-cli (renderer_version comes from the example context
+  # in CI), and the old in-house one is gone.
   /renderer is installed:
     exec: /renderer --version
     exit-status: 0
     stdout:
-      - '/^minijinja-cli /'
+      - '/^minijinja-cli {{ if hasKey .Vars "renderer_version" }}{{ .Vars.renderer_version | replace "." "\\." }}$/{{ else }}/{{ end }}'
+
+file:
+  /render-template:
+    exists: false

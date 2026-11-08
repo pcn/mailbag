@@ -3,7 +3,9 @@
 #
 #   scripts/node-test.sh sha-<commit>
 #
-# Run on the host, as root, from a checkout or the deploy tree. Deploys the tag
+# Run on the host, as root, from a checkout or the deploy tree. First checks the
+# host with goss/host-k3s.yaml (k3s config, data-dir, free-space floors) and
+# refuses to deploy if it fails (PROJ-024). Deploys the tag
 # with deployment/k8s/deploy-services.sh, then runs each goss suite as its own
 # run, in an order that keeps failures diagnosable -- smoke (pods, rollout,
 # image tag, ports), certificates (TLS on every port), cert-manager (when
@@ -47,6 +49,12 @@ GOSS=$(scripts/fetch-goss.sh "$CONTEXT") || die "could not fetch goss"
 if [ "${SKIP_DEPLOY:-}" = 1 ]; then
     [ -r "$CANARY_PASSWORD_FILE" ] || die "canary password file not readable: $CANARY_PASSWORD_FILE"
 else
+    # PROJ-024: refuse to deploy onto a host below its free-space floors (or
+    # otherwise not set up as host-k3s expects), rather than let kubelet hit
+    # DiskPressure mid-rollout and evict every mail pod.
+    echo "===== host-k3s (preflight)"
+    "$GOSS" -g goss/host-k3s.yaml --vars "$CONTEXT" validate --format documentation \
+        || die "host-k3s preflight failed; nothing deployed"
     echo "===== canary password"
     scripts/mailbox-passwd.sh --random "$CANARY_PASSWORD_FILE" \
         "$(jq -er '.userdb.canary' "$CONTEXT")" \

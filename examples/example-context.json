@@ -59,6 +59,7 @@
   "host": {
     "k3s": {
       "version": "v1.32.5+k3s1",
+      "install_sha256": "d75e014f2d2ab5d30a318efa5c326f3b0b7596f194afcff90fa7a7a91166d5f7",
       "data_dir": "/home/k3s",
       "gomemlimit": "300MiB",
       "disable": ["traefik", "metrics-server", "local-storage"]

@@ -10,6 +10,11 @@ host management.
   hostnames, ports, paths, certificate source, k3s settings and tool pins.
   `cue/schema.cue` is its schema; `generate-context.sh` writes a first one.
   `examples/example-context.json` is the reference.
+- **Host layer.** k3s itself and its host configuration (`config.yaml`, the
+  GOMEMLIMIT drop-in, `K3S_DATA_DIR` in `/etc/environment`) come from
+  `host.k3s` in the context, applied by `cue cmd plan / apply / verify`
+  (`cue/host_tool.cue`). Every decision is in `cue/plan.cue`, tested by
+  `cue/plan_tests.cue`.
 - **Images.** CI (`.github/workflows/build-and-publish.yml`) builds them on
   every branch push. The courier packages, at the versions and source
   checksums pinned in `cue/packages.cue`, are compiled once per set of inputs
@@ -29,6 +34,26 @@ host management.
   `goss/mail-delivery.yaml` on a host, where `scripts/node-test.sh <tag>`
   deploys a tag and runs them. `make checks` runs the repo-level ones.
 - **Work tracking.** `backlog/` (Platypus).
+
+## Setting up a host
+
+On a Debian host, as root, from a checkout, with the context in place
+(`./generate-context.sh`). `scripts/fetch-cue.sh` downloads the cue pinned in
+the context and checks its sha256; that is the one bootstrap step.
+
+```bash
+CUE=$(scripts/fetch-cue.sh /etc/mailbag/context.json)
+"$CUE" cmd -t ctx="$(cat /etc/mailbag/context.json)" plan  ./cue   # show what apply would change
+"$CUE" cmd -t ctx="$(cat /etc/mailbag/context.json)" apply ./cue   # converge
+"$CUE" cmd verify ./cue                                            # goss/host-k3s.yaml
+```
+
+`apply` writes only files that differ, restarts k3s only when its config or
+drop-in changed (the mail pods keep running), and installs k3s from upstream's
+`install.sh`, pinned by version and sha256, only when it is missing or at
+another version. On a host whose k3s data is still under
+`/var/lib/rancher/k3s`, `plan` and `apply` refuse and print the manual
+migration steps.
 
 ## Deploying to a host
 
