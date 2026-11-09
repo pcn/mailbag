@@ -18,6 +18,9 @@ SMTP_HOSTNAME="smtp"
 # their owner and mode, so nothing prepares the host beforehand.
 MAILBAG_SPOOL="/home/mailbag/spool/courier-mta"
 MAIL_STORAGE="/home/vmail"
+# Archived orphan maildirs (PROJ-042): outside MAIL_STORAGE but on the same
+# filesystem, so scripts/mailbox-archive.sh moves one with a single rename.
+MAIL_ARCHIVE="/home/vmail-archive"
 CONFIG_PATH="/home/mailbag/config"
 # Which published build to deploy. Override per-deploy with IMAGE_TAG=... on
 # deploy-services.sh; a sha-<sha> tag names an exact build and rolls back cleanly.
@@ -118,6 +121,7 @@ cat > "$CONTEXT_OUT" << EOF
   "host_paths": {
     "spool": "$MAILBAG_SPOOL",
     "mail": "$MAIL_STORAGE",
+    "mail_archive": "$MAIL_ARCHIVE",
     "courier_config": "$CONFIG_PATH/courier",
     "authlib": "$CONFIG_PATH/authlib"
   },

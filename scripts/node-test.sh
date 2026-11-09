@@ -100,4 +100,5 @@ done
 # Information only, never a failure: mail of removed mailboxes is kept.
 orphans=$(scripts/mailbox-orphans.sh "$CONTEXT" | tr '\n' ' ')
 echo "  orphaned maildirs: ${orphans:-none}"
+echo "  archived maildirs: $(scripts/mailbox-orphans.sh --archived "$CONTEXT" | wc -l)"
 exit "$status"

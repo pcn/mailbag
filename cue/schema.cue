@@ -146,7 +146,20 @@ import (
 	mail:           #Path // the mail store root, /vmail in the pods (root, 0755)
 	courier_config: #Path // /etc/courier (daemon, 0755)
 	authlib:        #Path // /etc/authlib, holding the userdb source (daemon, 0700)
-})
+	// Archived orphan maildirs (PROJ-042): mounted by nothing, so courier,
+	// IMAP and the orphan report never see them. scripts/mailbox-archive.sh
+	// creates it (root, 0700) and refuses unless it shares a filesystem with
+	// mail, so an archive is one rename(2).
+	mail_archive: #Path
+}) & {
+	mail:         _
+	mail_archive: _
+	let m = strings.TrimSuffix(mail, "/") + "/"
+	let a = strings.TrimSuffix(mail_archive, "/") + "/"
+	// Neither inside the other, nor the same directory.
+	_archiveOutsideMail: !strings.HasPrefix(a, m) & true
+	_mailOutsideArchive: !strings.HasPrefix(m, a) & true
+}
 
 #Userdb: close({
 	// An account that must exist: the database build checks it resolves.

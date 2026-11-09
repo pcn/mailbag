@@ -8,7 +8,8 @@
 # every hostPath volume is the context file, the passwords file (PROJ-040) or
 # one of the host_paths, the
 # host_paths ones are DirectoryOrCreate, and the workload mounts exactly the
-# ones expected of it.
+# ones expected of it. host_paths.mail_archive is not among the allowed
+# paths: no workload may mount it (PROJ-042).
 
 set -u -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
@@ -17,7 +18,8 @@ RENDERER=$(scripts/fetch-renderer.sh examples/example-context.json) || exit 1
 work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
 
 jq '.host_paths = {spool: "/check/spool", mail: "/check/mail",
-                   courier_config: "/check/courier-config", authlib: "/check/authlib"}' \
+                   courier_config: "/check/courier-config", authlib: "/check/authlib",
+                   mail_archive: "/check/mail-archive"}' \
     examples/example-context.json > "$work/context.json"
 
 fail=0

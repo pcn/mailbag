@@ -2,6 +2,7 @@
   "host_paths": {
     "spool": "/home/mailbag/spool/courier-mta",
     "mail": "/home/vmail",
+    "mail_archive": "/home/vmail-archive",
     "courier_config": "/home/mailbag/config/courier",
     "authlib": "/home/mailbag/config/authlib"
   },

@@ -31,6 +31,8 @@ anything not serving that target has been removed.
   authlib). Workloads mount them as `hostPath` volumes with
   `DirectoryOrCreate`, and init containers set owner and mode -- there are no
   persistent volume claims and no host preparation script.
+  `host_paths.mail_archive` is the exception: nothing mounts it; only
+  `scripts/mailbox-archive.sh` (orphaned maildirs, by rename) uses it.
 - **Ports** come from `services.*_port` everywhere -- courier config,
   containerPort, Service, probes, goss. Never write a port number elsewhere.
 - **Certificates** come from `tls.source`: `cert-manager` (Let's Encrypt over

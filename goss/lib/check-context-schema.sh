@@ -52,6 +52,11 @@ host.k3s.data_dir under /var|.host.k3s.data_dir = "/var/lib/rancher/k3s"
 host.k3s.data_dir exactly /var|.host.k3s.data_dir = "/var"
 host.k3s.install_sha256 missing|del(.host.k3s.install_sha256)
 host.k3s.install_sha256 not 64 hex characters|.host.k3s.install_sha256 = "abc123"
+host_paths.mail_archive missing|del(.host_paths.mail_archive)
+host_paths.mail_archive not absolute|.host_paths.mail_archive = "vmail-archive"
+host_paths.mail_archive under host_paths.mail|.host_paths.mail_archive = .host_paths.mail + "/archive"
+host_paths.mail_archive equal to host_paths.mail (trailing slash)|.host_paths.mail_archive = .host_paths.mail + "/"
+host_paths.mail under host_paths.mail_archive|.host_paths.mail_archive = "/home"
 an unknown top-level key|.extra = 1
 a sha256 that is not 64 hex characters|.tools.goss.sha256["x86_64-unknown-linux-gnu"] = "abc123"
 tools.cue missing|del(.tools.cue)

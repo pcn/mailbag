@@ -45,6 +45,16 @@ handed to courier as written, and courier's behaviour is what is described.
   a hash for no mailbox), and redeploy. The login goes; the maildir stays,
   and `scripts/mailbox-orphans.sh` (also printed by `scripts/node-test.sh`)
   lists such orphans. Nothing deletes mail.
+- **Archiving an orphan** puts it away without deleting it:
+  `scripts/mailbox-archive.sh <address>` moves `<mail>/<domain>/<user>` to
+  `<host_paths.mail_archive>/<domain>/<user>-<UTC timestamp>`, outside the
+  mail root, so courier, IMAP and the orphan report no longer see it
+  (`scripts/mailbox-orphans.sh --archived` lists archived ones).
+  `scripts/mailbox-archive.sh --restore <archived dir>` moves it back;
+  declare the mailbox again and set its password to read it. Each move is a
+  single rename on one filesystem, so `mail_archive` must share a
+  filesystem with `mail`; the script refuses otherwise, and refuses a
+  declared mailbox or an existing target. Run it by hand; no deploy does.
 - **aliases.map** is `from: to`, one target each. Each entry is written
   verbatim, after the postmaster and role entries, into courier's aliases
   source, which `makealiases` compiles; courier's semantics apply.
