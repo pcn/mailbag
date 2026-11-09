@@ -40,6 +40,13 @@ import (
 
 	envLine: "K3S_DATA_DIR=\(k.data_dir)"
 
+	// cert-manager's static release manifest (PROJ-027).
+	certManager: {
+		version:     in.cert_manager.version
+		manifestURL: "https://github.com/cert-manager/cert-manager/releases/download/\(version)/cert-manager.yaml"
+		sha256:      in.cert_manager.manifest_sha256
+	}
+
 	// Why each component is disabled, for the ones mailbag knows about. A
 	// component not listed here is still disabled, without a comment.
 	let why = {

@@ -9,10 +9,18 @@
 # PROJ-022. The key's IAM policy cannot be inspected from the node (it has no
 # other AWS access); its scope rests on
 # deployment/aws/cert-manager-route53-policy.json.template.
+#
+# PROJ-027: each deployment runs the version host.cert_manager pins, so a pin
+# that differs from what is deployed fails here until host setup applies it.
+# Given the variable cert_manager_generations ({deployment: generation}),
+# each deployment's generation must still equal it: scripts/cert-manager-
+# rerun-test.sh records them, re-runs host setup, and passes them in, to show
+# a re-run at the same version changes nothing.
 
 {{- $ns := .Vars.services.k8s_namespace }}
 {{- $zone := .Vars.tls.acme.route53.zone }}
 {{- $zoneid := .Vars.tls.acme.route53.hosted_zone_id }}
+{{- $pin := .Vars.host.cert_manager.version }}
 
 command:
 {{- range $d := list "cert-manager" "cert-manager-cainjector" "cert-manager-webhook" }}
@@ -23,6 +31,24 @@ command:
     exit-status: 0
     stdout:
       - '/^True$/'
+
+  deployment {{ $d }} runs the pinned cert-manager {{ $pin }}:
+    exec: >-
+      kubectl -n cert-manager get deploy {{ $d }}
+      -o jsonpath='{.spec.template.spec.containers[0].image}'
+    exit-status: 0
+    stdout:
+      - '/^quay\.io/jetstack/[a-z-]+:{{ $pin | replace "." "\\." }}$/'
+{{- if hasKey $.Vars "cert_manager_generations" }}
+
+  deployment {{ $d }} generation is unchanged ({{ index $.Vars.cert_manager_generations $d }}):
+    exec: >-
+      kubectl -n cert-manager get deploy {{ $d }}
+      -o jsonpath='{.metadata.generation}'
+    exit-status: 0
+    stdout:
+      - '/^{{ index $.Vars.cert_manager_generations $d }}$/'
+{{- end }}
 {{- end }}
 
   the letsencrypt ClusterIssuer is Ready:

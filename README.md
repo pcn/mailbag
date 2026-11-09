@@ -13,8 +13,11 @@ host management.
 - **Host layer.** k3s itself and its host configuration (`config.yaml`, the
   GOMEMLIMIT drop-in, `K3S_DATA_DIR` in `/etc/environment`) come from
   `host.k3s` in the context, applied by `cue cmd plan / apply / verify`
-  (`cue/host_tool.cue`). Every decision is in `cue/plan.cue`, tested by
-  `cue/plan_tests.cue`.
+  (`cue/host_tool.cue`). When `tls.source` is `cert-manager`, the same apply
+  installs cert-manager from its static release manifest, pinned by version
+  and sha256 in `host.cert_manager` and checked before anything is applied;
+  an upgrade is a bump of both values. Every decision is in `cue/plan.cue`,
+  tested by `cue/plan_tests.cue`.
 - **Images.** CI (`.github/workflows/build-and-publish.yml`) builds them on
   every branch push. The courier packages, at the versions and source
   checksums pinned in `cue/packages.cue`, are compiled once per set of inputs

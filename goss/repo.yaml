@@ -130,12 +130,18 @@ command:
     timeout: 120000
   # PROJ-026: host setup keeps every decision in plain .cue, where the #Plan
   # tests cover it; the *_tool.cue files only orchestrate. The tests pass, and
-  # fail on scratch copies that move our /etc/environment line to the end or
-  # write an unchanged drop-in.
+  # fail on scratch copies that move our /etc/environment line to the end,
+  # write an unchanged drop-in, or re-apply cert-manager at its version.
   the host-setup plan tests pass and the tool files only orchestrate:
     exec: goss/lib/check-host-plan.sh
     exit-status: 0
     timeout: 240000
+  # PROJ-027: cert-manager's pin is declared once, and host setup never
+  # applies a manifest whose sha256 differs (it fails before kubectl runs).
+  host setup installs cert-manager only from the pinned, checksummed manifest:
+    exec: goss/lib/check-cert-manager-install.sh
+    exit-status: 0
+    timeout: 120000
   # PROJ-035: nothing still points at what was removed. backlog/ and the
   # changelog are history; this file names the patterns, so it is excluded.
   no file references the removed systemd, tinydns or certbot-job paths:

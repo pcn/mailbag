@@ -1,12 +1,18 @@
 package mailbag
 
-// Test cases for #Plan (PROJ-026), run by goss/repo.yaml:
+import (
+	"encoding/json"
+	"list"
+	"strings"
+)
+
+// Test cases for #Plan (PROJ-026, PROJ-027), run by goss/repo.yaml:
 //
 //   cue export ./cue -e tests > /dev/null
 //
 // Each case starts from a host already in sync, overrides only the inputs it
-// is about, and unifies #Plan's result with a closed expectation: an extra
-// write, restart or install conflicts as surely as a missing one.
+// is about, and compares every field of #Plan's result with its expectation:
+// an extra write, restart or install fails as surely as a missing one.
 
 _testHost: #Host & {
 	k3s: {
@@ -16,7 +22,21 @@ _testHost: #Host & {
 		gomemlimit:     "300MiB"
 		disable: ["traefik", "metrics-server", "local-storage"]
 	}
+	// A placeholder checksum: the real pin lives only in the example context
+	// (PROJ-027), and these tests never fetch anything.
+	cert_manager: {
+		version:         "v1.21.2"
+		manifest_sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	}
 	min_free_mb: {data_dir: 2048, var: 1024}
+}
+
+// Markers for the script's steps, for order checks.
+_step: {
+	verifyCertManager: "\"$t/cert-manager.yaml\" | sha256sum -c -"
+	restartK3s:        "systemctl restart k3s"
+	installK3s:        "INSTALL_K3S_VERSION="
+	applyCertManager:  "kubectl apply --server-side"
 }
 
 let _want = #Desired & {in: _testHost}
@@ -24,48 +44,66 @@ let _want = #Desired & {in: _testHost}
 #Expect: close({
 	mkdirs: [...string]
 	writes: [...string] // paths, in order
-	daemonReload: bool
-	restartK3s:   bool
-	installK3s:   bool
-	refuse:       bool
+	daemonReload:       bool
+	restartK3s:         bool
+	installK3s:         bool
+	refuse:             bool
+	installCertManager: bool
 	// When given, the exact /etc/environment text written.
 	env?: string
+	// When given, these script steps (_step values) appear in this order.
+	order?: [...string]
 })
 
 #Case: {
 	have: {
-		config:     *_want.config | string
-		dropin:     *_want.dropin | string
-		env:        *"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin\nK3S_DATA_DIR=/home/k3s\n" | string
-		k3sVersion: *"k3s version v1.32.5+k3s1 (8e8f2a47)\ngo version go1.23.8\n" | string
-		oldDataDir: *false | bool
+		config:           *_want.config | string
+		dropin:           *_want.dropin | string
+		env:              *"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin\nK3S_DATA_DIR=/home/k3s\n" | string
+		k3sVersion:       *"k3s version v1.32.5+k3s1 (8e8f2a47)\ngo version go1.23.8\n" | string
+		oldDataDir:       *false | bool
+		certManagerImage: *"quay.io/jetstack/cert-manager-controller:v1.21.2" | string
 	}
-	want: #Expect
+	tlsSource: *"cert-manager" | "secret"
+	want:      #Expect
 
 	let h = have
-	let p = #Plan & {host: _testHost, have: h}
+	let s = tlsSource
+	let p = #Plan & {host: _testHost, tlsSource: s, have: h}
 	got: #Expect & {
 		mkdirs: p.mkdirs
 		writes: [for w in p.writes {w.path}]
-		daemonReload: p.daemonReload
-		restartK3s:   p.restartK3s
-		installK3s:   p.installK3s
-		refuse:       p.refuse
+		daemonReload:       p.daemonReload
+		restartK3s:         p.restartK3s
+		installK3s:         p.installK3s
+		refuse:             p.refuse
+		installCertManager: p.installCertManager
 		if want.env != _|_ {
 			env: [for w in p.writes if w.path == #Paths.env {w.contents}][0]
 		}
+		if want.order != _|_ {
+			// Each step present, and their first occurrences ascending.
+			let at = [for m in want.order {strings.Index(p.script, m)}]
+			_present: [for i in at {i >= 0 & true}]
+			_ordered: list.IsSorted(at, list.Ascending) & true
+			order:    want.order
+		}
 	}
-	got: want
+	// Every field, compared with defaults resolved. Unifying got with want
+	// would not do: want's fields are defaults (*false | bool), which accept
+	// any bool, so an unexpected restart or install would pass.
+	_match: {for k, v in got {(k): (json.Marshal(v) == json.Marshal(want[k])) & true}}
 }
 
 // Nothing to do. Defaults, so a case overrides only what it expects to happen.
 let _none = {
-	mkdirs:       *[] | [...string]
-	writes:       *[] | [...string]
-	daemonReload: *false | bool
-	restartK3s:   *false | bool
-	installK3s:   *false | bool
-	refuse:       *false | bool
+	mkdirs: *[] | [...string]
+	writes: *[] | [...string]
+	daemonReload:       *false | bool
+	restartK3s:         *false | bool
+	installK3s:         *false | bool
+	refuse:             *false | bool
+	installCertManager: *false | bool
 }
 
 tests: [string]: #Case
@@ -118,12 +156,15 @@ tests: {
 		}
 	}
 	freshHost: {
-		have: {config: "", dropin: "", env: "", k3sVersion: ""}
-		// install.sh reloads systemd and starts k3s itself.
+		have: {config: "", dropin: "", env: "", k3sVersion: "", certManagerImage: ""}
+		// install.sh reloads systemd and starts k3s itself. The manifest is
+		// checked before k3s is installed, and applied after.
 		want: _none & {
 			mkdirs: [#Paths.configDir, #Paths.dropinDir]
 			writes: [#Paths.config, #Paths.dropin, #Paths.env]
-			installK3s: true
+			installK3s:         true
+			installCertManager: true
+			order: [_step.verifyCertManager, _step.installK3s, _step.applyCertManager]
 		}
 	}
 	versionDrift: {
@@ -132,7 +173,35 @@ tests: {
 	}
 	oldDataDirRefused: {
 		// Even with every file wrong, nothing is planned but the refusal.
-		have: {config: "", dropin: "", env: "", k3sVersion: "", oldDataDir: true}
+		have: {config: "", dropin: "", env: "", k3sVersion: "", oldDataDir: true, certManagerImage: ""}
 		want: _none & {refuse: true}
+	}
+
+	// cert-manager (PROJ-027).
+	certManagerMissing: {
+		have: certManagerImage: ""
+		want: _none & {
+			installCertManager: true
+			order: [_step.verifyCertManager, _step.applyCertManager]
+		}
+	}
+	certManagerOtherVersion: {
+		have: certManagerImage: "quay.io/jetstack/cert-manager-controller:v1.20.5"
+		want: _none & {installCertManager: true}
+	}
+	certManagerNotNeededForSecret: {
+		tlsSource: "secret"
+		have: certManagerImage: ""
+		want: _none
+	}
+	certManagerAfterK3sRestart: {
+		have: {config: "data-dir: /home/k3s\n", certManagerImage: ""}
+		want: _none & {
+			mkdirs: [#Paths.configDir]
+			writes: [#Paths.config]
+			restartK3s:         true
+			installCertManager: true
+			order: [_step.verifyCertManager, _step.restartK3s, _step.applyCertManager]
+		}
 	}
 }

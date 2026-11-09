@@ -23,7 +23,8 @@ each container renders at start.
    their owner and mode.
 
 2. **Certificates** follow `tls.source`:
-   - `cert-manager`: cert-manager must be installed, and
+   - `cert-manager`: cert-manager must be installed -- host setup's
+     `cue cmd apply` installs the version `host.cert_manager` pins -- and
      `secret/route53-credentials` must exist in the `cert-manager` namespace
      (keys `access-key-id`, `secret-access-key`) for an IAM user with the
      policy `renderer --strict -n ../aws/cert-manager-route53-policy.json.template

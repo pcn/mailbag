@@ -19,20 +19,20 @@ import (
 // the context is never a second source for it.
 
 #Context: close({
-	mta:       #Mta
-	mta_ssl:   #MtaSsl
-	msa:       #Msa
-	imapd_ssl: #ImapdSsl
-	userdb:    #Userdb
-	mailboxes: #Mailboxes
-	domain:    #Domain
+	mta:        #Mta
+	mta_ssl:    #MtaSsl
+	msa:        #Msa
+	imapd_ssl:  #ImapdSsl
+	userdb:     #Userdb
+	mailboxes:  #Mailboxes
+	domain:     #Domain
 	host_paths: #HostPaths
-	services:  #Services
-	image?:    close({tag?: #ImageTag})
-	aliases:   #Aliases
-	tls:       #Tls
-	host:      #Host
-	tools:     #Tools
+	services:   #Services
+	image?: close({tag?: #ImageTag})
+	aliases: #Aliases
+	tls:     #Tls
+	host:    #Host
+	tools:   #Tools
 }) & {
 	// DNS-01 can answer only for names inside the zone the Route53 key may
 	// write, so every name on the certificate must be in it. Kept outside the
@@ -50,7 +50,7 @@ import (
 		// PROJ-038: the Let's Encrypt account is letsencrypt@<zone> on every
 		// install -- never a person, never postmaster (which may reject) --
 		// and it is a real mailbox, so its mail arrives.
-		tls: acme: email:    "letsencrypt@" + domain.zone
+		tls: acme: email: "letsencrypt@" + domain.zone
 		_acmeEmailIsMailbox: list.Contains(mailboxes, tls.acme.email) & true
 	}
 
@@ -75,6 +75,7 @@ import (
 			if strings.HasPrefix(from, "@") {
 				_domainAliasShadowsMailboxes: (from): list.Contains([for m in mailboxes {"@" + strings.SplitN(m, "@", 2)[1]}], from) & false
 			}
+
 			// The alias address must be one the MTA accepts mail for.
 			_aliasDomainAccepted: (from): list.Contains(mta.accept_mail_for, strings.SplitN(from, "@", 2)[1]) & true
 		}
@@ -83,18 +84,21 @@ import (
 
 // ---------------------------------------------------------------- scalars
 
-#Path:     =~"^/"
+#Path: =~"^/"
+
 #Digits:   =~"^[0-9]+$" // numbers the courier configs print verbatim
 #Bool01:   "0" | "1"
 #Hostname: =~"^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$"
+
 // Lowercase only: courier compares domains case-insensitively, so requiring
 // one case is what makes the exact comparisons in the account rules below
 // correct (an alias "Info@x" must not slip past a mailbox "info@x").
 #LocalPart: =~"^[a-z0-9][a-z0-9._+-]*$"
 #Address:   =~"^[a-z0-9][a-z0-9._+-]*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$"
-#Port:     int & >0 & <65536
-#ImageTag: =~"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$"
-#Sha256:   =~"^[0-9a-f]{64}$"
+#Port:      int & >0 & <65536
+#ImageTag:  =~"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$"
+
+#Sha256: =~"^[0-9a-f]{64}$"
 
 // ---------------------------------------------------------------- listeners
 
@@ -115,7 +119,7 @@ import (
 #Mta: {
 	#Esmtpd
 	accept_mail_for: [...#Hostname] & list.MinItems(1)
-	dns_checks?:     #Bool01
+	dns_checks?: #Bool01
 }
 
 #MtaSsl: {
@@ -156,6 +160,7 @@ import (
 	mail_archive: _
 	let m = strings.TrimSuffix(mail, "/") + "/"
 	let a = strings.TrimSuffix(mail_archive, "/") + "/"
+
 	// Neither inside the other, nor the same directory.
 	_archiveOutsideMail: !strings.HasPrefix(a, m) & true
 	_mailOutsideArchive: !strings.HasPrefix(m, a) & true
@@ -217,7 +222,7 @@ import (
 #Acme: close({
 	email: #Address // Let's Encrypt account contact
 	route53: close({
-		zone:           #Hostname         // the hosted zone the challenge TXT records go in
+		zone:           #Hostname        // the hosted zone the challenge TXT records go in
 		hosted_zone_id: =~"^Z[A-Z0-9]+$" // pinned, so the key needs no zone listing
 	})
 })
@@ -238,6 +243,16 @@ import (
 		data_dir:   #Path & !~"^/var(/|$)"
 		gomemlimit: =~"^[0-9]+(MiB|GiB)$"
 		disable: [...string]
+	})
+	// cert-manager's static release manifest (the k3s helm controller is
+	// disabled), applied by host setup when tls.source is cert-manager
+	// (PROJ-027). Required on every host, so switching source is one apply.
+	// An upgrade is a bump of both values here.
+	cert_manager: close({
+		version: =~"^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+		// sha256 of github.com/cert-manager/cert-manager/releases/download/
+		// <version>/cert-manager.yaml, checked before anything is applied.
+		manifest_sha256: #Sha256
 	})
 	min_free_mb: close({
 		data_dir: int & >0

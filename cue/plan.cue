@@ -12,6 +12,9 @@ import (
 // the result.
 #Plan: {
 	host: #Host
+	// The context's tls.source: cert-manager is installed only when it issues
+	// the certificate (PROJ-027).
+	tlsSource: "cert-manager" | "secret"
 	// Prefix for every managed path: "" on a real host, a scratch directory
 	// when testing the tool layer.
 	root: *"" | =~"^/.*[^/]$"
@@ -23,6 +26,9 @@ import (
 		k3sVersion: string
 		// Whether k3s data still exists under /var/lib/rancher/k3s.
 		oldDataDir: bool
+		// The cert-manager controller deployment's image, "" when there is
+		// none (or the API did not answer).
+		certManagerImage: string
 	}
 
 	let want = #Desired & {in: host}
@@ -32,6 +38,7 @@ import (
 
 	// "k3s version v1.32.5+k3s1 (8e8f2a47)" on the first line.
 	let fields = strings.Fields(strings.Split(have.k3sVersion, "\n")[0])
+
 	// Guards nest so fields is indexed only when long enough.
 	installed: [
 		if len(fields) >= 3 {[if fields[0] == "k3s" && fields[1] == "version" {fields[2]}, ""][0]},
@@ -52,10 +59,20 @@ import (
 	// Restarting k3s does not stop the mail pods (KillMode=process).
 	restartK3s: (configChanged || dropinChanged) && !installK3s
 
+	// "quay.io/jetstack/cert-manager-controller:v1.21.2" -> "v1.21.2".
+	let imageParts = strings.Split(have.certManagerImage, ":")
+	certManagerInstalled: [
+		if have.certManagerImage != "" && len(imageParts) > 1 {imageParts[len(imageParts)-1]},
+		"",
+	][0]
+	// Only when the deployed version differs, so a re-run at the same
+	// version applies nothing and the deployments' generations stay put.
+	installCertManager: go && tlsSource == "cert-manager" && certManagerInstalled != want.certManager.version
+
 	let why = {
 		config: [if have.config == "" {"missing"}, "differs"][0]
 		dropin: [if have.dropin == "" {"missing"}, "differs"][0]
-		env:    [if have.env == "" {"missing"}, "K3S_DATA_DIR line"][0]
+		env: [if have.env == "" {"missing"}, "K3S_DATA_DIR line"][0]
 	}
 
 	mkdirs: [
@@ -68,31 +85,63 @@ import (
 		if envChanged {{path: at.env, contents: envText, reason: why.env}},
 	]
 
-	// Run after the writes, in one shell so the order is the plan's.
+	// Run after the writes, in one shell so the order is the plan's. Downloads
+	// share one temp directory, removed on exit.
+	let tempDir = """
+		t=$(mktemp -d)
+		trap 'rm -rf "$t"' EXIT
+		"""
 	let installScript = """
-		f=$(mktemp)
-		trap 'rm -f "$f"' EXIT
-		curl -fsSL -o "$f" '\(want.installURL)'
-		echo '\(want.installSha256)  '"$f" | sha256sum -c -
-		INSTALL_K3S_VERSION='\(want.version)' sh "$f"
+		curl -fsSL -o "$t/install.sh" '\(want.installURL)'
+		echo '\(want.installSha256)  '"$t/install.sh" | sha256sum -c -
+		INSTALL_K3S_VERSION='\(want.version)' sh "$t/install.sh"
+		"""
+
+	// Fetched and checked first, before k3s is touched or the cluster is
+	// contacted: a wrong manifest changes nothing.
+	let cm = want.certManager
+	let fetchCertManager = """
+		curl -fsSL -o "$t/cert-manager.yaml" '\(cm.manifestURL)'
+		echo '\(cm.sha256)  '"$t/cert-manager.yaml" | sha256sum -c -
+		"""
+
+	// After any k3s restart or install, wait for the API before applying.
+	let applyCertManager = """
+		i=0
+		until kubectl get --raw=/readyz >/dev/null 2>&1; do
+		  i=$((i + 1))
+		  [ "$i" -le 90 ] || { echo "k3s API not ready after 180s" >&2; exit 1; }
+		  sleep 2
+		done
+		kubectl apply --server-side -f "$t/cert-manager.yaml"
+		# rollout status, not wait --for=Available: during an upgrade the old
+		# pods keep the deployments Available, so that would return at once.
+		for d in cert-manager cert-manager-cainjector cert-manager-webhook; do
+		  kubectl -n cert-manager rollout status "deploy/$d" --timeout=300s
+		done
 		"""
 	script: strings.Join(list.Concat([
 		["set -eu"],
+		[if installK3s || installCertManager {tempDir}],
+		[if installCertManager {fetchCertManager}],
 		[if daemonReload {"systemctl daemon-reload"}],
 		[if restartK3s {"systemctl restart k3s"}],
 		[if installK3s {installScript}],
+		[if installCertManager {applyCertManager}],
 	]), "\n")
-	runScript: daemonReload || restartK3s || installK3s
+	runScript: daemonReload || restartK3s || installK3s || installCertManager
 
+	let none = {in: string, out: [if in == "" {"none"}, in][0]}
 	let steps = list.Concat([
 		[for w in writes {"  write \(w.path) (\(w.reason))"}],
 		[if daemonReload {"  systemctl daemon-reload"}],
 		[if restartK3s {"  restart k3s"}],
-		[if installK3s {"  install k3s \(want.version) (installed: \([if installed == "" {"none"}, installed][0]))"}],
+		[if installK3s {"  install k3s \(want.version) (installed: \((none & {in: installed}).out))"}],
+		[if installCertManager {"  install cert-manager \(cm.version) (installed: \((none & {in: certManagerInstalled}).out))"}],
 	])
 
 	refusal: """
-		k3s host setup: refusing, nothing changed. k3s data is still under
+		host setup: refusing, nothing changed. k3s data is still under
 		\(at.oldDataDir), and host setup does not migrate it. Move it by
 		hand first, as verified on farout (PROJ-028):
 		  1. systemctl stop k3s && k3s-killall.sh
@@ -106,7 +155,7 @@ import (
 
 	summary: [
 		if refuse {refusal},
-		if len(steps) == 0 {"k3s host setup: in sync"},
-		"k3s host setup: \(len(steps)) change(s)\n" + strings.Join(steps, "\n"),
+		if len(steps) == 0 {"host setup: in sync"},
+		"host setup: \(len(steps)) change(s)\n" + strings.Join(steps, "\n"),
 	][0]
 }

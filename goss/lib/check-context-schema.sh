@@ -52,6 +52,10 @@ host.k3s.data_dir under /var|.host.k3s.data_dir = "/var/lib/rancher/k3s"
 host.k3s.data_dir exactly /var|.host.k3s.data_dir = "/var"
 host.k3s.install_sha256 missing|del(.host.k3s.install_sha256)
 host.k3s.install_sha256 not 64 hex characters|.host.k3s.install_sha256 = "abc123"
+host.cert_manager missing|del(.host.cert_manager)
+host.cert_manager.version without the v|.host.cert_manager.version = "1.21.2"
+host.cert_manager.manifest_sha256 not 64 hex characters|.host.cert_manager.manifest_sha256 = "e03b668e"
+host.cert_manager with an unknown key|.host.cert_manager.url = "https://example.org/cm.yaml"
 host_paths.mail_archive missing|del(.host_paths.mail_archive)
 host_paths.mail_archive not absolute|.host_paths.mail_archive = "vmail-archive"
 host_paths.mail_archive under host_paths.mail|.host_paths.mail_archive = .host_paths.mail + "/archive"

@@ -175,11 +175,14 @@ cat > "$CONTEXT_OUT" << EOF
 }
 EOF
 
-# Tool pins (renderer, goss, cue: versions and checksums) are copied from the
-# example context rather than written here, so the repo pins them in one place.
+# Tool pins (renderer, goss, cue: versions and checksums) and the cert-manager
+# pin (host.cert_manager, PROJ-027) are copied from the example context rather
+# than written here, so the repo pins them in one place.
 EXAMPLE_CONTEXT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/examples/example-context.json"
 tmp=$(mktemp)
-jq --slurpfile ex "$EXAMPLE_CONTEXT" '.tools = $ex[0].tools' "$CONTEXT_OUT" > "$tmp"
+jq --slurpfile ex "$EXAMPLE_CONTEXT" \
+    '.tools = $ex[0].tools | .host.cert_manager = $ex[0].host.cert_manager' \
+    "$CONTEXT_OUT" > "$tmp"
 mv "$tmp" "$CONTEXT_OUT"
 
 echo "Generated context.json at $CONTEXT_OUT"

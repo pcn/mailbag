@@ -121,6 +121,7 @@ case "$TLS_SOURCE" in
     cert-manager)
         if ! kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then
             echo "ERROR: .tls.source is cert-manager, but cert-manager is not installed." >&2
+            echo "       Host setup installs it: cue cmd -t ctx=\"\$(cat $CONTEXT)\" apply ./cue" >&2
             exit 1
         fi
         # Without the key the issuer registers fine and every challenge then

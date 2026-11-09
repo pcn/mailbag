@@ -7,7 +7,8 @@ import (
 	"tool/file"
 )
 
-// Host setup for a mailbag k3s node (PROJ-026). Run as root from the deploy
+// Host setup for a mailbag k3s node (PROJ-026), including cert-manager when
+// tls.source is cert-manager (PROJ-027). Run as root from the deploy
 // tree (or a checkout), with the pinned cue (scripts/fetch-cue.sh):
 //
 //   cue cmd -t ctx="$(cat /etc/mailbag/context.json)" plan   ./cue   # print what apply would do
@@ -38,12 +39,12 @@ import (
 // /etc/mailbag/context.json, for verify), root (a scratch prefix for every
 // managed path, for testing; default none).
 
-_ctxJSON: string @tag(ctx)
+_ctxJSON: string                                @tag(ctx)
 _ctxPath: *"/etc/mailbag/context.json" | string @tag(ctxpath)
-_root:    *"" | string @tag(root)
+_root:    *"" | string                          @tag(root)
 
 _ctx: #Context & json.Unmarshal(_ctxJSON)
-_at:  (#Rooted & {root: _root}).paths
+_at: (#Rooted & {root: _root}).paths
 
 // Everything #Plan needs to know about the host.
 _read: {
@@ -55,23 +56,35 @@ _read: {
 
 	config: exec.Run & {cmd: ["cat", _at.config], stdout: string, stderr: string, mustSucceed: false, $after: gate}
 	dropin: exec.Run & {cmd: ["cat", _at.dropin], stdout: string, stderr: string, mustSucceed: false, $after: gate}
-	env:    exec.Run & {cmd: ["cat", _at.env], stdout: string, stderr: string, mustSucceed: false, $after: gate}
-	k3s:    exec.Run & {cmd: ["sh", "-c", "k3s --version 2>/dev/null || true"], stdout: string, $after: gate}
-	old:    exec.Run & {cmd: ["test", "-e", _at.oldDataDir], mustSucceed: false, $after: gate}
+	env: exec.Run & {cmd: ["cat", _at.env], stdout: string, stderr: string, mustSucceed: false, $after: gate}
+	k3s: exec.Run & {cmd: ["sh", "-c", "k3s --version 2>/dev/null || true"], stdout: string, $after: gate}
+	old: exec.Run & {cmd: ["test", "-e", _at.oldDataDir], mustSucceed: false, $after: gate}
+	// The deployed cert-manager controller image; empty when there is no
+	// cluster, no deployment, or the API does not answer (PROJ-027).
+	certManager: exec.Run & {
+		cmd: ["sh", "-c", """
+			kubectl -n cert-manager get deploy cert-manager \\
+			  -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true
+			"""]
+		stdout: string
+		$after: gate
+	}
 }
 
 command: plan: {
 	read: _read
 	decide: {
 		let p = #Plan & {
-			host: _ctx.host
-			root: _root
+			host:      _ctx.host
+			tlsSource: _ctx.tls.source
+			root:      _root
 			have: {
-				config:     read.config.stdout
-				dropin:     read.dropin.stdout
-				env:        read.env.stdout
-				k3sVersion: read.k3s.stdout
-				oldDataDir: read.old.success
+				config:           read.config.stdout
+				dropin:           read.dropin.stdout
+				env:              read.env.stdout
+				k3sVersion:       read.k3s.stdout
+				oldDataDir:       read.old.success
+				certManagerImage: read.certManager.stdout
 			}
 		}
 		print: cli.Print & {text: p.summary}
@@ -85,14 +98,16 @@ command: apply: {
 	read: _read
 	converge: {
 		let p = #Plan & {
-			host: _ctx.host
-			root: _root
+			host:      _ctx.host
+			tlsSource: _ctx.tls.source
+			root:      _root
 			have: {
-				config:     read.config.stdout
-				dropin:     read.dropin.stdout
-				env:        read.env.stdout
-				k3sVersion: read.k3s.stdout
-				oldDataDir: read.old.success
+				config:           read.config.stdout
+				dropin:           read.dropin.stdout
+				env:              read.env.stdout
+				k3sVersion:       read.k3s.stdout
+				oldDataDir:       read.old.success
+				certManagerImage: read.certManager.stdout
 			}
 		}
 		print: cli.Print & {text: p.summary}

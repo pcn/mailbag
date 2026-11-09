@@ -6,9 +6,9 @@
 #     every decision lives in plain .cue where plan_tests.cue covers it.
 #  2. The #Plan test cases pass (cue export -e tests).
 #  3. The tests are not vacuous: on scratch copies, they fail when #EnvEdit
-#     moves our /etc/environment line to the end, and when an unchanged
-#     drop-in is written anyway; and check 1 fails on a tool file given a
-#     comparison.
+#     moves our /etc/environment line to the end, when an unchanged
+#     drop-in is written anyway, and when cert-manager is re-applied at the
+#     deployed version; and check 1 fails on a tool file given a comparison.
 
 set -u -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
@@ -99,6 +99,17 @@ if grep -qF "$from" "$m/plan.cue"; then
     expect_tests_fail "an unchanged drop-in is written anyway" "$m"
 else
     bad "mutation 3b: plan.cue no longer has the line it rewrites"
+fi
+
+# 3d. cert-manager is applied on every run, whatever version is deployed
+#     (PROJ-027: a re-run at the same version must apply nothing).
+m=$(mutant)
+from='certManagerInstalled != want.certManager.version'
+if grep -qF "$from" "$m/plan.cue"; then
+    sed -i "s/$from/true/" "$m/plan.cue"
+    expect_tests_fail "cert-manager is re-applied at the same version" "$m"
+else
+    bad "mutation 3d: plan.cue no longer has the line it rewrites"
 fi
 
 # 3c. A comparison in a tool file is caught by check 1.
