@@ -16,7 +16,9 @@ host management.
   (`cue/host_tool.cue`). When `tls.source` is `cert-manager`, the same apply
   installs cert-manager from its static release manifest, pinned by version
   and sha256 in `host.cert_manager` and checked before anything is applied;
-  an upgrade is a bump of both values. Every decision is in `cue/plan.cue`,
+  an upgrade is a bump of both values. It also caps log growth on `/var`
+  from `host.logs`: a journald drop-in and the logrotate rule for rsyslog's
+  logs. Every decision is in `cue/plan.cue`,
   tested by `cue/plan_tests.cue`.
 - **Images.** CI (`.github/workflows/build-and-publish.yml`) builds them on
   every branch push. The courier packages, at the versions and source

@@ -63,6 +63,8 @@ fixtureScript: (#Plan & {
 		k3sVersion:       "k3s version \(_fixtureHost.k3s.version) (fixture)\n"
 		oldDataDir:       false
 		certManagerImage: ""
+		journald:         _fixtureWant.journald
+		logrotate:        _fixtureWant.logrotate
 	}
 }).script
 EOF
@@ -76,7 +78,7 @@ if s=$(script_for "$pin_sha" 2>"$work/err"); then
     else
         bad "the install step does not use the pinned version and sha256:"; sed 's/^/        /' <<<"$s"
     fi
-    if grep -qE 'systemctl|INSTALL_K3S' <<<"$s"; then
+    if grep -qE 'systemctl|INSTALL_K3S|journald' <<<"$s"; then
         bad "the fixture plan touches k3s, so the shim runs would not isolate cert-manager"
     fi
 else

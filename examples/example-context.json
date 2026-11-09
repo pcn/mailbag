@@ -69,6 +69,18 @@
       "version": "v1.21.3",
       "manifest_sha256": "c04a51295adda2b1a775146751f973e787190778c7f35180861d9678876e5c74"
     },
+    "logs": {
+      "journald": {
+        "system_max_use": "100M",
+        "system_max_file_size": "20M",
+        "max_retention": "1month"
+      },
+      "rsyslog": {
+        "frequency": "daily",
+        "rotate": 4,
+        "maxsize": "50M"
+      }
+    },
     "min_free_mb": {
       "data_dir": 2048,
       "var": 1024

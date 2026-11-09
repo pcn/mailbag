@@ -8,7 +8,8 @@ import (
 )
 
 // Host setup for a mailbag k3s node (PROJ-026), including cert-manager when
-// tls.source is cert-manager (PROJ-027). Run as root from the deploy
+// tls.source is cert-manager (PROJ-027) and the limits on log growth
+// (PROJ-044). Run as root from the deploy
 // tree (or a checkout), with the pinned cue (scripts/fetch-cue.sh):
 //
 //   cue cmd -t ctx="$(cat /etc/mailbag/context.json)" plan   ./cue   # print what apply would do
@@ -57,6 +58,8 @@ _read: {
 	config: exec.Run & {cmd: ["cat", _at.config], stdout: string, stderr: string, mustSucceed: false, $after: gate}
 	dropin: exec.Run & {cmd: ["cat", _at.dropin], stdout: string, stderr: string, mustSucceed: false, $after: gate}
 	env: exec.Run & {cmd: ["cat", _at.env], stdout: string, stderr: string, mustSucceed: false, $after: gate}
+	journald: exec.Run & {cmd: ["cat", _at.journald], stdout: string, stderr: string, mustSucceed: false, $after: gate}
+	logrotate: exec.Run & {cmd: ["cat", _at.logrotate], stdout: string, stderr: string, mustSucceed: false, $after: gate}
 	k3s: exec.Run & {cmd: ["sh", "-c", "k3s --version 2>/dev/null || true"], stdout: string, $after: gate}
 	old: exec.Run & {cmd: ["test", "-e", _at.oldDataDir], mustSucceed: false, $after: gate}
 	// The deployed cert-manager controller image; empty when there is no
@@ -82,6 +85,8 @@ command: plan: {
 				config:           read.config.stdout
 				dropin:           read.dropin.stdout
 				env:              read.env.stdout
+				journald:         read.journald.stdout
+				logrotate:        read.logrotate.stdout
 				k3sVersion:       read.k3s.stdout
 				oldDataDir:       read.old.success
 				certManagerImage: read.certManager.stdout
@@ -105,6 +110,8 @@ command: apply: {
 				config:           read.config.stdout
 				dropin:           read.dropin.stdout
 				env:              read.env.stdout
+				journald:         read.journald.stdout
+				logrotate:        read.logrotate.stdout
 				k3sVersion:       read.k3s.stdout
 				oldDataDir:       read.old.success
 				certManagerImage: read.certManager.stdout

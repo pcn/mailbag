@@ -7,8 +7,9 @@
 #  2. The #Plan test cases pass (cue export -e tests).
 #  3. The tests are not vacuous: on scratch copies, they fail when #EnvEdit
 #     moves our /etc/environment line to the end, when an unchanged
-#     drop-in is written anyway, and when cert-manager is re-applied at the
-#     deployed version; and check 1 fails on a tool file given a comparison.
+#     drop-in is written anyway, when cert-manager is re-applied at the
+#     deployed version, and when a logrotate rewrite restarts journald; and
+#     check 1 fails on a tool file given a comparison.
 
 set -u -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
@@ -110,6 +111,17 @@ if grep -qF "$from" "$m/plan.cue"; then
     expect_tests_fail "cert-manager is re-applied at the same version" "$m"
 else
     bad "mutation 3d: plan.cue no longer has the line it rewrites"
+fi
+
+# 3e. A rewritten logrotate rule also restarts journald (PROJ-044: only the
+#     journald drop-in needs a restart).
+m=$(mutant)
+from='restartJournald: journaldChanged'
+if grep -qF "$from" "$m/plan.cue"; then
+    sed -i "s/$from/restartJournald: journaldChanged || logrotateChanged/" "$m/plan.cue"
+    expect_tests_fail "a logrotate rewrite restarts journald" "$m"
+else
+    bad "mutation 3e: plan.cue no longer has the line it rewrites"
 fi
 
 # 3c. A comparison in a tool file is caught by check 1.

@@ -19,9 +19,11 @@ import (
 	// when testing the tool layer.
 	root: *"" | =~"^/.*[^/]$"
 	have: {
-		config: string // current text of each managed file, "" when missing
-		dropin: string
-		env:    string
+		config:    string // current text of each managed file, "" when missing
+		dropin:    string
+		env:       string
+		journald:  string
+		logrotate: string
 		// Output of `k3s --version`, "" when k3s is not installed.
 		k3sVersion: string
 		// Whether k3s data still exists under /var/lib/rancher/k3s.
@@ -59,6 +61,12 @@ import (
 	// Restarting k3s does not stop the mail pods (KillMode=process).
 	restartK3s: (configChanged || dropinChanged) && !installK3s
 
+	// Log limits (PROJ-044). journald reads its drop-ins only at start;
+	// logrotate reads its files at each run, so needs nothing.
+	let journaldChanged = go && have.journald != want.journald
+	let logrotateChanged = go && have.logrotate != want.logrotate
+	restartJournald: journaldChanged
+
 	// "quay.io/jetstack/cert-manager-controller:v1.21.2" -> "v1.21.2".
 	let imageParts = strings.Split(have.certManagerImage, ":")
 	certManagerInstalled: [
@@ -73,16 +81,22 @@ import (
 		config: [if have.config == "" {"missing"}, "differs"][0]
 		dropin: [if have.dropin == "" {"missing"}, "differs"][0]
 		env: [if have.env == "" {"missing"}, "K3S_DATA_DIR line"][0]
+		journald: [if have.journald == "" {"missing"}, "differs"][0]
+		logrotate: [if have.logrotate == "" {"missing"}, "differs"][0]
 	}
 
 	mkdirs: [
 		if configChanged {at.configDir},
 		if dropinChanged {at.dropinDir},
+		if journaldChanged {at.journaldDir},
+		if logrotateChanged {at.logrotateDir},
 	]
 	writes: [
 		if configChanged {{path: at.config, contents: want.config, reason: why.config}},
 		if dropinChanged {{path: at.dropin, contents: want.dropin, reason: why.dropin}},
 		if envChanged {{path: at.env, contents: envText, reason: why.env}},
+		if journaldChanged {{path: at.journald, contents: want.journald, reason: why.journald}},
+		if logrotateChanged {{path: at.logrotate, contents: want.logrotate, reason: why.logrotate}},
 	]
 
 	// Run after the writes, in one shell so the order is the plan's. Downloads
@@ -125,16 +139,18 @@ import (
 		[if installK3s || installCertManager {tempDir}],
 		[if installCertManager {fetchCertManager}],
 		[if daemonReload {"systemctl daemon-reload"}],
+		[if restartJournald {"systemctl restart systemd-journald"}],
 		[if restartK3s {"systemctl restart k3s"}],
 		[if installK3s {installScript}],
 		[if installCertManager {applyCertManager}],
 	]), "\n")
-	runScript: daemonReload || restartK3s || installK3s || installCertManager
+	runScript: daemonReload || restartJournald || restartK3s || installK3s || installCertManager
 
 	let none = {in: string, out: [if in == "" {"none"}, in][0]}
 	let steps = list.Concat([
 		[for w in writes {"  write \(w.path) (\(w.reason))"}],
 		[if daemonReload {"  systemctl daemon-reload"}],
+		[if restartJournald {"  restart systemd-journald"}],
 		[if restartK3s {"  restart k3s"}],
 		[if installK3s {"  install k3s \(want.version) (installed: \((none & {in: installed}).out))"}],
 		[if installCertManager {"  install cert-manager \(cm.version) (installed: \((none & {in: certManagerInstalled}).out))"}],

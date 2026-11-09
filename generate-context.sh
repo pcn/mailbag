@@ -175,13 +175,16 @@ cat > "$CONTEXT_OUT" << EOF
 }
 EOF
 
-# Tool pins (renderer, goss, cue: versions and checksums) and the cert-manager
-# pin (host.cert_manager, PROJ-027) are copied from the example context rather
-# than written here, so the repo pins them in one place.
+# Tool pins (renderer, goss, cue: versions and checksums), the cert-manager
+# pin (host.cert_manager, PROJ-027) and the log limits (host.logs, PROJ-044)
+# are copied from the example context rather than written here, so the repo
+# declares them in one place. Edit the generated context to change a host's.
 EXAMPLE_CONTEXT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/examples/example-context.json"
 tmp=$(mktemp)
 jq --slurpfile ex "$EXAMPLE_CONTEXT" \
-    '.tools = $ex[0].tools | .host.cert_manager = $ex[0].host.cert_manager' \
+    '.tools = $ex[0].tools
+     | .host.cert_manager = $ex[0].host.cert_manager
+     | .host.logs = $ex[0].host.logs' \
     "$CONTEXT_OUT" > "$tmp"
 mv "$tmp" "$CONTEXT_OUT"
 

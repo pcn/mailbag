@@ -28,8 +28,45 @@ _testHost: #Host & {
 		version:         "v1.21.2"
 		manifest_sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	}
+	logs: {
+		journald: {system_max_use: "100M", system_max_file_size: "20M", max_retention: "1month"}
+		rsyslog: {frequency: "daily", rotate: 4, maxsize: "50M"}
+	}
 	min_free_mb: {data_dir: 2048, var: 1024}
 }
+
+// farout's hand-made log limits before host setup managed them (PROJ-044):
+// the values match the context, but not the generated text.
+_faroutJournald: """
+	# /var is a 2.8G partition shared with k3s data; the 10%-of-filesystem default
+	# let the journal reach 284M. Cap it explicitly.
+	[Journal]
+	SystemMaxUse=100M
+	SystemMaxFileSize=20M
+	MaxRetentionSec=1month
+
+	"""
+_faroutLogrotate: """
+	/var/log/syslog
+	/var/log/mail.log
+	/var/log/kern.log
+	/var/log/auth.log
+	/var/log/user.log
+	/var/log/cron.log
+	{
+	\trotate 4
+	\tdaily
+	\tmaxsize 50M
+	\tmissingok
+	\tnotifempty
+	\tcompress
+	\tsharedscripts
+	\tpostrotate
+	\t\t/usr/lib/rsyslog/rsyslog-rotate
+	\tendscript
+	}
+
+	"""
 
 // Markers for the script's steps, for order checks.
 _step: {
@@ -49,6 +86,7 @@ let _want = #Desired & {in: _testHost}
 	installK3s:         bool
 	refuse:             bool
 	installCertManager: bool
+	restartJournald:    bool
 	// When given, the exact /etc/environment text written.
 	env?: string
 	// When given, these script steps (_step values) appear in this order.
@@ -63,6 +101,8 @@ let _want = #Desired & {in: _testHost}
 		k3sVersion:       *"k3s version v1.32.5+k3s1 (8e8f2a47)\ngo version go1.23.8\n" | string
 		oldDataDir:       *false | bool
 		certManagerImage: *"quay.io/jetstack/cert-manager-controller:v1.21.2" | string
+		journald:         *_want.journald | string
+		logrotate:        *_want.logrotate | string
 	}
 	tlsSource: *"cert-manager" | "secret"
 	want:      #Expect
@@ -78,6 +118,7 @@ let _want = #Desired & {in: _testHost}
 		installK3s:         p.installK3s
 		refuse:             p.refuse
 		installCertManager: p.installCertManager
+		restartJournald:    p.restartJournald
 		if want.env != _|_ {
 			env: [for w in p.writes if w.path == #Paths.env {w.contents}][0]
 		}
@@ -104,6 +145,7 @@ let _none = {
 	installK3s:         *false | bool
 	refuse:             *false | bool
 	installCertManager: *false | bool
+	restartJournald:    *false | bool
 }
 
 tests: [string]: #Case
@@ -173,8 +215,41 @@ tests: {
 	}
 	oldDataDirRefused: {
 		// Even with every file wrong, nothing is planned but the refusal.
-		have: {config: "", dropin: "", env: "", k3sVersion: "", oldDataDir: true, certManagerImage: ""}
+		have: {config: "", dropin: "", env: "", k3sVersion: "", oldDataDir: true, certManagerImage: "", journald: "", logrotate: ""}
 		want: _none & {refuse: true}
+	}
+
+	// Log limits (PROJ-044).
+	faroutHandMadeJournald: {
+		have: journald: _faroutJournald
+		want: _none & {
+			mkdirs: [#Paths.journaldDir]
+			writes: [#Paths.journald]
+			restartJournald: true
+		}
+	}
+	missingJournald: {
+		have: journald: ""
+		want: _none & {
+			mkdirs: [#Paths.journaldDir]
+			writes: [#Paths.journald]
+			restartJournald: true
+		}
+	}
+	// logrotate reads its rules at each run: a rewrite restarts nothing.
+	faroutHandEditedLogrotate: {
+		have: logrotate: _faroutLogrotate
+		want: _none & {
+			mkdirs: [#Paths.logrotateDir]
+			writes: [#Paths.logrotate]
+		}
+	}
+	missingLogrotate: {
+		have: logrotate: ""
+		want: _none & {
+			mkdirs: [#Paths.logrotateDir]
+			writes: [#Paths.logrotate]
+		}
 	}
 
 	// cert-manager (PROJ-027).

@@ -100,6 +100,9 @@ import (
 
 #Sha256: =~"^[0-9a-f]{64}$"
 
+// A size both journald and logrotate read the same way: 100M, 20M, 1G.
+#LogSize: =~"^[1-9][0-9]*[KMG]$"
+
 // ---------------------------------------------------------------- listeners
 
 // Settings the esmtpd templates read for each SMTP listener, all defaulted
@@ -253,6 +256,21 @@ import (
 		// sha256 of github.com/cert-manager/cert-manager/releases/download/
 		// <version>/cert-manager.yaml, checked before anything is applied.
 		manifest_sha256: #Sha256
+	})
+	// Limits on log growth on the small /var (PROJ-044), installed by host
+	// setup: a journald drop-in and the logrotate policy for rsyslog's logs.
+	logs: close({
+		journald: close({
+			system_max_use:       #LogSize // SystemMaxUse
+			system_max_file_size: #LogSize // SystemMaxFileSize
+			// MaxRetentionSec, in journald's time syntax: "1month", "2week".
+			max_retention: =~"^[0-9]+(s|min|h|day|week|month|year)$"
+		})
+		rsyslog: close({
+			frequency: "daily" | "weekly" | "monthly"
+			rotate:    int & >0 // rotated files kept
+			maxsize:   #LogSize // rotate early once a log exceeds this
+		})
 	})
 	min_free_mb: close({
 		data_dir: int & >0

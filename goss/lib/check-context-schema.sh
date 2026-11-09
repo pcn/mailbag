@@ -56,6 +56,13 @@ host.cert_manager missing|del(.host.cert_manager)
 host.cert_manager.version without the v|.host.cert_manager.version = "1.21.2"
 host.cert_manager.manifest_sha256 not 64 hex characters|.host.cert_manager.manifest_sha256 = "e03b668e"
 host.cert_manager with an unknown key|.host.cert_manager.url = "https://example.org/cm.yaml"
+host.logs missing|del(.host.logs)
+host.logs.journald.system_max_use without a unit|.host.logs.journald.system_max_use = "100"
+host.logs.journald.system_max_use in lowercase|.host.logs.journald.system_max_use = "100m"
+host.logs.journald.max_retention not in journald's syntax|.host.logs.journald.max_retention = "30 days"
+host.logs.rsyslog.frequency hourly|.host.logs.rsyslog.frequency = "hourly"
+host.logs.rsyslog.rotate zero|.host.logs.rsyslog.rotate = 0
+host.logs.rsyslog.maxsize missing|del(.host.logs.rsyslog.maxsize)
 host_paths.mail_archive missing|del(.host_paths.mail_archive)
 host_paths.mail_archive not absolute|.host_paths.mail_archive = "vmail-archive"
 host_paths.mail_archive under host_paths.mail|.host_paths.mail_archive = .host_paths.mail + "/archive"
